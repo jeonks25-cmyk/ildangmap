@@ -2,22 +2,29 @@ import React, { useEffect, useRef, useState } from "react";
 import "./App.css";
 
 function MapPage() {
+
     const mapRef = useRef(null);
 
     const [jobs, setJobs] = useState([]);
 
+    const [selectedJob, setSelectedJob] = useState(null);
+
     useEffect(() => {
+
         fetch("http://localhost:8080/jobs")
             .then((res) => res.json())
             .then((data) => {
                 setJobs(data);
             });
+
     }, []);
 
     useEffect(() => {
-        if (!window.kakao) return;
+
+        if (!window.kakao || !window.kakao.maps) return;
 
         window.kakao.maps.load(() => {
+
             const container = mapRef.current;
 
             const options = {
@@ -27,40 +34,31 @@ function MapPage() {
 
             const map = new window.kakao.maps.Map(container, options);
 
-            setTimeout(() => {
-                map.relayout();
-                map.setCenter(new window.kakao.maps.LatLng(36.3504, 127.3845));
-            }, 500);
-
             jobs.forEach((job) => {
+
                 const marker = new window.kakao.maps.Marker({
                     map: map,
                     position: new window.kakao.maps.LatLng(job.lat, job.lng),
                 });
 
-                const infowindow = new window.kakao.maps.InfoWindow({
-                    content: `
-            <div style="padding:8px;font-size:12px;">
-              <b>${job.title}</b><br/>
-              ${job.location}<br/>
-              💰 ${job.pay}
-            </div>
-          `,
+                window.kakao.maps.event.addListener(marker, "click", () => {
+                    setSelectedJob(job);
                 });
 
-                window.kakao.maps.event.addListener(marker, "click", () => {
-                    infowindow.open(map, marker);
-                });
             });
+
         });
+
     }, [jobs]);
 
     return (
-        <div className="map-page">
-            <div className="top-bar">
-                <div>
-                    <div className="logo">일당맵</div>
-                    <div className="sub-logo">기술자 · 오야지 연결</div>
+        <div className="page">
+
+            <div className="topbar">
+
+                <div className="logo">
+                    <div className="title">일당맵</div>
+                    <div className="sub">기술자 · 오야지 연결</div>
                 </div>
 
                 <div className="mode-buttons">
@@ -68,26 +66,49 @@ function MapPage() {
                     <button>오야지</button>
                 </div>
 
-                <div className="search-box">
-                    <input type="text" placeholder="주소 검색" />
+                <div className="search-area">
+                    <input placeholder="주소 검색" />
                     <button>검색</button>
                 </div>
 
                 <button className="register-btn">등록하기</button>
+
             </div>
 
-            <div ref={mapRef} className="map-container"></div>
+            <div className="content">
 
-            <div className="job-panel">
-                <h2>내 공고</h2>
+                <div className="left-panel">
 
-                {jobs.map((job) => (
-                    <div key={job.id} className="job-card">
-                        <h3>{job.title}</h3>
-                        <p>📍 {job.location}</p>
-                        <p>💰 {job.pay}</p>
+                    <div className="job-list-title">
+                        내 공고
                     </div>
-                ))}
+
+                    {jobs.map((job) => (
+                        <div
+                            key={job.id}
+                            className="job-card"
+                            onClick={() => setSelectedJob(job)}
+                        >
+                            <div className="job-title">
+                                {job.title}
+                            </div>
+
+                            <div className="job-location">
+                                📍 {job.location}
+                            </div>
+
+                            <div className="job-pay">
+                                💰 {job.pay}원
+                            </div>
+                        </div>
+                    ))}
+
+                </div>
+
+                <div className="map-wrap">
+                    <div ref={mapRef} className="map"></div>
+                </div>
+
             </div>
 
             <div className="bottom-nav">
@@ -95,6 +116,31 @@ function MapPage() {
                 <button>📅</button>
                 <button>⚙️</button>
             </div>
+
+            {selectedJob && (
+                <div className="bottom-sheet">
+
+                    <div className="sheet-handle"></div>
+
+                    <div className="sheet-title">
+                        {selectedJob.title}
+                    </div>
+
+                    <div className="sheet-location">
+                        📍 {selectedJob.location}
+                    </div>
+
+                    <div className="sheet-pay">
+                        💰 {selectedJob.pay}원
+                    </div>
+
+                    <button className="apply-btn">
+                        지원하기
+                    </button>
+
+                </div>
+            )}
+
         </div>
     );
 }
