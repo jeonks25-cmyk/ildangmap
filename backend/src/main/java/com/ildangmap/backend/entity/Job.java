@@ -1,20 +1,19 @@
 package com.ildangmap.backend.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
 
 @Entity
 public class Job {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String title;
     private String location;
     private String pay;
-
-    private Double lat;
-    private Double lng;
+    private double lat;
+    private double lng;
 
     public Job() {
     }
@@ -23,43 +22,47 @@ public class Job {
         return id;
     }
 
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public String getTitle() {
         return title;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public String getPay() {
-        return pay;
-    }
-
-    public Double getLat() {
-        return lat;
-    }
-
-    public Double getLng() {
-        return lng;
     }
 
     public void setTitle(String title) {
         this.title = title;
     }
 
+    public String getLocation() {
+        return location;
+    }
+
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getPay() {
+        return pay;
     }
 
     public void setPay(String pay) {
         this.pay = pay;
     }
 
-    public void setLat(Double lat) {
+    public double getLat() {
+        return lat;
+    }
+
+    public void setLat(double lat) {
         this.lat = lat;
     }
 
-    public void setLng(Double lng) {
+    public double getLng() {
+        return lng;
+    }
+
+    public void setLng(double lng) {
         this.lng = lng;
     }
 }

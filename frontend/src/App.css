@@ -1,255 +1,278 @@
-body {
+* {
   margin: 0;
-  font-family: sans-serif;
-  background: #f4f6fb;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.page {
-  width: 100%;
-  height: 100vh;
+body {
+  font-family: sans-serif;
   overflow: hidden;
 }
 
-.topbar {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  right: 10px;
-
-  height: 70px;
-
-  background: rgba(255,255,255,0.95);
-
-  border-radius: 20px;
-
-  z-index: 100;
-
+.app {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  padding: 0 20px;
-
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.logo .title {
-  font-weight: bold;
-  font-size: 20px;
-}
-
-.logo .sub {
-  font-size: 12px;
-  color: gray;
-}
-
-.mode-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.mode-buttons button {
-  border: none;
-  background: #e8ebf5;
-  padding: 10px 18px;
-  border-radius: 12px;
-  cursor: pointer;
-}
-
-.mode-buttons .active {
-  background: #1e2b5f;
-  color: white;
-}
-
-.search-area {
-  display: flex;
-  gap: 5px;
-}
-
-.search-area input {
-  width: 180px;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #ccc;
-}
-
-.search-area button {
-  border: none;
-  padding: 10px 15px;
-  border-radius: 10px;
-}
-
-.register-btn {
-  border: none;
-  background: #1e2b5f;
-  color: white;
-  padding: 12px 20px;
-  border-radius: 12px;
-}
-
-.content {
-  display: flex;
+  width: 100vw;
   height: 100vh;
 }
 
-.left-panel {
-  width: 320px;
+.sidebar {
+  width: 260px;
   background: white;
-  padding-top: 100px;
-  overflow-y: auto;
+  border-right: 1px solid #eee;
+  padding: 20px;
   z-index: 10;
+  overflow-y: auto;
 }
 
-.job-list-title {
-  font-size: 28px;
-  font-weight: bold;
-  margin: 20px;
+.sidebar h1 {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.sub-text {
+  color: #777;
+  font-size: 13px;
+  margin-bottom: 24px;
+}
+
+.sidebar h2 {
+  margin-bottom: 16px;
+}
+
+.job-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .job-card {
-  background: #f8f9fc;
-  margin: 15px;
-  padding: 18px;
+  background: #f7f8fa;
+  padding: 14px;
   border-radius: 18px;
-  cursor: pointer;
-
-  transition: 0.2s;
 }
 
-.job-card:hover {
-  transform: translateY(-2px);
+.job-card p {
+  margin-top: 6px;
+  font-size: 13px;
 }
 
-.job-title {
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.job-location {
-  margin-top: 10px;
-  color: gray;
-}
-
-.job-pay {
-  margin-top: 8px;
-  font-weight: bold;
-  color: #1e2b5f;
-}
-
-.map-wrap {
+.map-area {
   flex: 1;
+  position: relative;
 }
 
 .map {
   width: 100%;
-  height: 100vh;
+  height: 100%;
+}
+
+.top-bar {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 20;
+}
+
+.mode-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.mode-buttons button {
+  border: none;
+  padding: 14px 22px;
+  border-radius: 18px;
+  background: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.mode-buttons .active {
+  background: #1f3c88;
+  color: white;
 }
 
 .bottom-nav {
-  position: fixed;
+  position: absolute;
   bottom: 20px;
   left: 50%;
-
   transform: translateX(-50%);
-
-  background: rgba(255,255,255,0.95);
-
-  padding: 12px 20px;
-
-  border-radius: 30px;
-
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(12px);
+  padding: 12px 18px;
+  border-radius: 24px;
   display: flex;
-  gap: 15px;
-
-  z-index: 200;
-
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  gap: 14px;
+  z-index: 20;
 }
 
 .bottom-nav button {
   border: none;
-  background: none;
-  font-size: 24px;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.my-location-btn {
+  position: absolute;
+  right: 20px;
+  bottom: 120px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  font-size: 26px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  z-index: 30;
 }
 
 .bottom-sheet {
-
-  position: fixed;
-
+  position: absolute;
   left: 50%;
-  bottom: 0;
-
+  bottom: 100px;
   transform: translateX(-50%);
-
-  width: 500px;
-
+  width: 380px;
   background: white;
-
-  border-radius: 30px 30px 0 0;
-
-  padding: 25px;
-
-  z-index: 300;
-
-  box-shadow: 0 -5px 30px rgba(0,0,0,0.2);
-
-  animation: slideUp 0.25s ease;
+  border-radius: 26px;
+  padding: 24px;
+  z-index: 40;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.18);
 }
 
-.sheet-handle {
-  width: 80px;
+.sheet-bar {
+  width: 60px;
   height: 6px;
-
   background: #ddd;
-
-  border-radius: 10px;
-
-  margin: 0 auto 20px auto;
+  border-radius: 999px;
+  margin: 0 auto 20px;
 }
 
-.sheet-title {
-  font-size: 24px;
-  font-weight: bold;
+.bottom-sheet h3 {
+  margin-bottom: 14px;
 }
 
-.sheet-location {
-  margin-top: 15px;
-  font-size: 18px;
-}
-
-.sheet-pay {
-  margin-top: 10px;
-  font-size: 22px;
-  font-weight: bold;
-  color: #1e2b5f;
+.bottom-sheet p {
+  margin-bottom: 10px;
 }
 
 .apply-btn {
-
   width: 100%;
-
-  margin-top: 25px;
-
+  height: 52px;
   border: none;
-
-  background: #1e2b5f;
-
+  border-radius: 18px;
+  background: #1f3c88;
   color: white;
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 16px;
+  cursor: pointer;
+}
 
-  padding: 18px;
-
-  border-radius: 16px;
-
+.close-btn {
+  position: absolute;
+  right: 16px;
+  top: 16px;
+  border: none;
+  background: #f1f3f5;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
   font-size: 18px;
 }
 
-@keyframes slideUp {
+.register-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  left: auto;
 
-  from {
-    transform: translateX(-50%) translateY(100%);
-  }
+  width: 320px;
 
-  to {
-    transform: translateX(-50%) translateY(0);
-  }
+  background: rgba(255,255,255,0.96);
+
+  backdrop-filter: blur(12px);
+
+  border-radius: 24px;
+
+  padding: 18px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  z-index: 30;
+
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.register-panel input {
+  width: 100%;
+  height: 44px;
+
+  border: 1px solid #e5e7eb;
+
+  border-radius: 14px;
+
+  padding: 0 14px;
+
+  font-size: 14px;
+
+  background: white;
+}
+
+.register-panel button {
+  height: 48px;
+
+  border: none;
+
+  border-radius: 16px;
+
+  background: #1f3c88;
+
+  color: white;
+
+  font-size: 15px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.address-box {
+  position: relative;
+}
+
+.suggestion-box {
+  position: absolute;
+
+  top: 48px;
+  left: 0;
+  right: 0;
+
+  background: white;
+
+  border-radius: 16px;
+
+  overflow: hidden;
+
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+
+  z-index: 100;
+}
+
+.suggestion-item {
+  padding: 14px;
+
+  font-size: 14px;
+
+  cursor: pointer;
+
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.suggestion-item:hover {
+  background: #f8f9fa;
 }
