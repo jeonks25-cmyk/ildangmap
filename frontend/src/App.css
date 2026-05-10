@@ -4,9 +4,13 @@
   box-sizing: border-box;
 }
 
-body {
-  font-family: sans-serif;
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
   overflow: hidden;
+  font-family: sans-serif;
   background: #f5f5f5;
 }
 
@@ -14,79 +18,63 @@ body {
   display: flex;
   width: 100vw;
   height: 100vh;
+  overflow: hidden;
 }
 
 /* =========================
-   좌측 패널
+   데스크탑 좌측 패널
 ========================= */
 
 .sidebar {
   width: 320px;
   background: white;
-  border-right: 1px solid #eaeaea;
+  border-right: 1px solid #ececec;
+
   padding: 24px;
+
   overflow-y: auto;
+
   z-index: 20;
 }
 
 .logo-section h1 {
   font-size: 32px;
   font-weight: 800;
-  color: #111;
 }
 
 .sub-text {
   margin-top: 6px;
+
   color: #777;
   font-size: 13px;
 }
 
-/* =========================
-   프로필
-========================= */
-
 .profile-box {
   margin-top: 24px;
+
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .profile-box img {
-  width: 44px !important;
-  height: 44px !important;
-
-  min-width: 44px;
-  min-height: 44px;
-
-  max-width: 44px;
-  max-height: 44px;
+  width: 46px;
+  height: 46px;
 
   border-radius: 50%;
   object-fit: cover;
-  display: block;
-
-  border: 2px solid #eee;
 }
-
-.profile-box div {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-/* =========================
-   로그아웃 버튼
-========================= */
 
 .logout-btn {
   width: 100%;
   height: 44px;
+
   margin-top: 20px;
 
   border: none;
   border-radius: 14px;
 
-  background: #111b55;
+  background: #111827;
   color: white;
 
   font-weight: 700;
@@ -94,13 +82,10 @@ body {
   cursor: pointer;
 }
 
-/* =========================
-   기술자 오야지
-========================= */
-
 .mode-switch {
   display: flex;
   gap: 10px;
+
   margin-top: 20px;
 }
 
@@ -112,7 +97,7 @@ body {
   border: none;
   border-radius: 12px;
 
-  background: #efefef;
+  background: #f1f5f9;
 
   font-weight: 700;
 
@@ -120,76 +105,8 @@ body {
 }
 
 .mode-switch .active {
-  background: #111b55;
+  background: #111827;
   color: white;
-}
-
-/* =========================
-   공고 목록
-========================= */
-
-.list-title {
-  margin-top: 28px;
-  margin-bottom: 16px;
-}
-
-.distance-filter {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.distance-filter button {
-  flex: 1;
-
-  height: 34px;
-
-  border: none;
-  border-radius: 999px;
-
-  background: #efefef;
-
-  font-size: 12px;
-
-  cursor: pointer;
-}
-
-.distance-filter .active {
-  background: #111b55;
-  color: white;
-}
-
-.job-card {
-  border: 1px solid #ececec;
-  border-radius: 18px;
-
-  padding: 16px;
-
-  margin-bottom: 14px;
-
-  cursor: pointer;
-
-  transition: 0.2s;
-}
-
-.job-card:hover {
-  transform: translateY(-2px);
-}
-
-.selected-job {
-  border: 2px solid #1d2b72;
-}
-
-.job-card strong {
-  display: block;
-  margin-bottom: 10px;
-  font-size: 15px;
-}
-
-.job-card p {
-  font-size: 13px;
-  color: #666;
-  margin-top: 4px;
 }
 
 /* =========================
@@ -197,11 +114,22 @@ body {
 ========================= */
 
 .map-area {
-  flex: 1;
   position: relative;
+
+  flex: 1;
+
+  width: 100%;
+  height: 100vh;
+
+  overflow: hidden;
 }
 
 .map {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
   width: 100%;
   height: 100%;
 }
@@ -211,78 +139,56 @@ body {
 ========================= */
 
 .custom-marker {
-  background: rgba(15, 15, 15, 0.95);
-  color: white;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  background: white;
 
   padding: 10px 14px;
 
   border-radius: 999px;
 
+  border: 2px solid #d1d5db;
+
   font-size: 13px;
   font-weight: 700;
 
-  box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+  color: #111827;
+
+  box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+
+  transition: 0.2s;
 }
 
-/* =========================
-   상단 플로팅 버튼
-========================= */
-
-.top-floating-bar {
-  position: absolute;
-
-  top: 20px;
-  left: 30px;
-
-  display: flex;
-  align-items: center;
-  gap: 10px;
-
-  z-index: 40;
-}
-
-.logo-box {
-  background: white;
-
-  padding: 14px 20px;
-
-  border-radius: 18px;
-
-  font-weight: 800;
-
-  box-shadow: 0 4px 18px rgba(0,0,0,0.12);
-}
-
-.top-menu-btn {
-  height: 48px;
-
-  border: none;
-  border-radius: 16px;
-
-  padding: 0 18px;
-
-  background: rgba(15,15,15,0.94);
+.custom-marker.active {
+  background: #111827;
   color: white;
 
-  font-size: 14px;
-  font-weight: 700;
-
-  cursor: pointer;
+  border-color: #111827;
 }
 
-.active-top-btn {
-  background: #1d2b72;
+.marker-worker {
+  border-color: #3b82f6;
+}
+
+.marker-helper {
+  border-color: #22c55e;
+}
+
+.marker-boss {
+  border-color: #ef4444;
 }
 
 /* =========================
-   우측 카드
+   데스크탑 상세카드
 ========================= */
 
 .selected-job-overlay {
   position: absolute;
 
+  top: 120px;
   right: 30px;
-  top: 130px;
 
   width: 320px;
 
@@ -292,39 +198,13 @@ body {
 
   padding: 24px;
 
-  z-index: 40;
+  z-index: 50;
 
   box-shadow: 0 8px 30px rgba(0,0,0,0.15);
 }
 
-.selected-job-overlay h2 {
-  margin-top: 10px;
-  margin-bottom: 14px;
-}
-
-.selected-job-overlay p {
-  margin-top: 8px;
-}
-
-.selected-job-overlay button {
-  width: 100%;
-
-  height: 46px;
-
-  margin-top: 18px;
-
-  border: none;
-  border-radius: 14px;
-
-  background: #ffeb3b;
-
-  font-weight: 700;
-
-  cursor: pointer;
-}
-
 /* =========================
-   모바일 기본 숨김
+   모바일 기본
 ========================= */
 
 .mobile-only {
@@ -339,9 +219,9 @@ body {
    모바일
 ========================= */
 
-@media (max-width: 768px) {
+@media (max-width: 950px) {
 
-  .desktop-sidebar {
+  .sidebar {
     display: none;
   }
 
@@ -353,71 +233,201 @@ body {
     display: block;
   }
 
+  .app {
+    width: 100vw;
+    height: 100vh;
+
+    overflow: hidden;
+  }
+
   .map-area {
+    position: fixed;
+
+    top: 0;
+    left: 0;
+
     width: 100vw;
     height: 100vh;
   }
 
-  /* 모바일 상단 */
+  .map {
+    width: 100%;
+    height: 100%;
+  }
 
-  .mobile-top-bar {
+  /* =========================
+     상단 UI
+  ========================= */
+
+  .mobile-top-ui {
     position: absolute;
 
     top: 14px;
     left: 14px;
     right: 14px;
 
-    z-index: 60;
-
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+
+    z-index: 100;
   }
 
-  .mobile-logo {
-    background: white;
+  .mobile-logo-box {
+    background: rgba(255,255,255,0.96);
 
     padding: 16px 18px;
 
-    border-radius: 22px;
+    border-radius: 24px;
 
-    box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+    backdrop-filter: blur(10px);
+
+    box-shadow: 0 6px 24px rgba(0,0,0,0.14);
   }
 
-  .mobile-logo strong {
-    display: block;
+  .mobile-logo-box h2 {
+    font-size: 28px;
+    font-weight: 900;
+
+    color: #111827;
+  }
+
+  .mobile-logo-box span {
+    font-size: 12px;
+    color: #666;
+  }
+
+  .mobile-action-buttons {
+    display: flex;
+    flex-direction: column;
+
+    gap: 10px;
+  }
+
+  .circle-btn {
+    width: 54px;
+    height: 54px;
+
+    border-radius: 50%;
+
+    border: 2px solid #d1d5db;
+
+    background: white;
+
+    color: #111827;
 
     font-size: 22px;
-    font-weight: 800;
-  }
 
-  .mobile-logo span {
-    font-size: 12px;
-    color: #777;
-  }
+    box-shadow: 0 6px 20px rgba(0,0,0,0.14);
 
-  .mobile-btn-group {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    justify-content: center;
+
+    cursor: pointer;
+
+    transition: 0.2s;
   }
 
-  .mobile-icon-btn {
-    width: 46px;
-    height: 46px;
+  .circle-btn.worker {
+    border-color: #3b82f6;
+  }
+
+  .circle-btn.boss {
+    border-color: #ef4444;
+  }
+
+  .circle-btn.pin {
+    border-color: #f59e0b;
+  }
+
+  .circle-btn.active {
+    background: #111827;
+    color: white;
+  }
+
+  /* =========================
+     현재위치 버튼
+  ========================= */
+
+  .my-location-btn {
+    position: absolute;
+
+    right: 18px;
+    bottom: 105px;
+
+    z-index: 100;
+
+    width: 58px;
+    height: 58px;
 
     border: none;
-    border-radius: 14px;
+    border-radius: 50%;
 
-    background: rgba(15,15,15,0.94);
+    background: rgba(17,24,39,0.96);
 
     color: white;
 
-    font-size: 18px;
+    font-size: 24px;
+
+    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
 
     cursor: pointer;
   }
 
-  /* 모바일 하단시트 */
+  /* =========================
+     하단 네비
+  ========================= */
+
+  .mobile-bottom-nav {
+    position: absolute;
+
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+
+    height: 76px;
+
+    background: rgba(255,255,255,0.96);
+
+    border-radius: 26px;
+
+    backdrop-filter: blur(12px);
+
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+
+    z-index: 100;
+
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  }
+
+  .bottom-nav-btn {
+    border: none;
+    background: transparent;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 4px;
+
+    color: #111827;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+  }
+
+  .bottom-nav-btn span {
+    font-size: 11px;
+  }
+
+  /* =========================
+     모바일 상세시트
+  ========================= */
 
   .mobile-bottom-sheet {
     position: absolute;
@@ -432,57 +442,214 @@ body {
 
     padding: 24px;
 
-    z-index: 60;
+    z-index: 120;
 
     box-shadow: 0 -6px 24px rgba(0,0,0,0.14);
   }
+}
 
-  .mobile-bottom-sheet h2 {
-    margin-top: 10px;
-    margin-bottom: 14px;
+/* =========================
+   모바일 가로모드
+========================= */
+
+@media (max-width: 950px) and (orientation: landscape) {
+
+  html,
+  body,
+  #root,
+  .app {
+    width: 100vw;
+    height: 100vh;
+
+    overflow: hidden;
   }
 
-  .mobile-bottom-sheet p {
-    margin-top: 8px;
+  .map-area {
+    width: 100vw;
+    height: 100vh;
   }
 
-  .mobile-bottom-sheet button {
-    width: 100%;
+  .map {
+    width: 100vw;
+    height: 100vh;
+  }
 
+  .mobile-top-ui {
+    top: 10px;
+    left: 10px;
+    right: 10px;
+  }
+
+  .mobile-logo-box {
+    padding: 12px 14px;
+
+    border-radius: 18px;
+  }
+
+  .mobile-logo-box h2 {
+    font-size: 22px;
+  }
+
+  .mobile-logo-box span {
+    font-size: 11px;
+  }
+
+  .mobile-action-buttons {
+    flex-direction: row;
+
+    gap: 8px;
+  }
+
+  .circle-btn {
+    width: 48px;
+    height: 48px;
+
+    font-size: 18px;
+  }
+
+  .mobile-bottom-nav {
+    left: 50%;
+
+    transform: translateX(-50%);
+
+    width: 340px;
+    height: 64px;
+
+    bottom: 10px;
+  }
+
+  .my-location-btn {
+    width: 50px;
     height: 50px;
 
-    margin-top: 18px;
+    bottom: 82px;
+    right: 12px;
+  }
 
-    border: none;
-    border-radius: 14px;
+  .mobile-bottom-sheet {
+    max-height: 42vh;
 
-    background: #ffeb3b;
+    overflow-y: auto;
 
-    font-weight: 700;
-
-    cursor: pointer;
+    padding: 16px;
   }
 }
 
-.login-box {
+/* =========================
+   모바일 상단바 강제표시
+========================= */
+
+.mobile-topbar {
+  position: absolute;
+
+  top: 14px;
+  left: 14px;
+  right: 14px;
+
+  z-index: 999;
+
+  background: rgba(255,255,255,0.96);
+
+  border-radius: 24px;
+
+  padding: 14px 16px;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  backdrop-filter: blur(12px);
+
+  box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+}
+
+.mobile-logo {
+  font-size: 26px;
+  font-weight: 900;
+  color: #111;
+}
+
+.mobile-sub {
+  margin-top: 4px;
+
+  font-size: 12px;
+  color: #666;
+}
+
+.mobile-top-right {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin-top: 14px;
+  align-items: flex-end;
+
+  gap: 10px;
 }
 
+.kakao-login-btn {
+  border: none;
+
+  background: #fee500;
+
+  padding: 8px 14px;
+
+  border-radius: 12px;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.mobile-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.toggle-btn {
+  border: 1.5px solid #ddd;
+
+  background: white;
+
+  padding: 7px 12px;
+
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.toggle-btn.active {
+  background: #111827;
+  color: white;
+
+  border-color: #111827;
+}
+
+/* =========================
+   카카오 프로필 이미지 고정
+========================= */
+
+.profile-box img,
 .profile-img {
-  width: 56px !important;
-  height: 56px !important;
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
-}
+  width: 48px !important;
+  height: 48px !important;
 
-.user-name {
-  margin-top: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  min-width: 48px;
+  min-height: 48px;
+
+  max-width: 48px;
+  max-height: 48px;
+
+  border-radius: 50% !important;
+
+  object-fit: cover !important;
+
+  display: block;
+
+  flex-shrink: 0;
+
+  border: 2px solid #eee;
 }
 
 .mode-buttons {
@@ -494,18 +661,275 @@ body {
 
 .mode-btn {
   flex: 1;
+
   height: 40px;
+
   border: none;
   border-radius: 12px;
-  background: #f1f3f5;
+
+  background: #f1f5f9;
+
   color: #222;
+
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+
   cursor: pointer;
+
   transition: 0.2s;
 }
 
 .mode-btn.active {
-  background: #0f172a;
+  background: #111827;
   color: white;
+}
+
+/* =========================
+   데스크탑 버튼 스타일 복구
+========================= */
+
+.mode-buttons {
+  display: flex;
+  gap: 10px;
+
+  margin-top: 16px;
+  margin-bottom: 18px;
+}
+
+.mode-btn {
+  flex: 1;
+
+  height: 40px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #f1f5f9;
+
+  color: #111827;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.mode-btn.active {
+  background: #111827;
+  color: white;
+}
+
+/* =========================
+   거리 필터
+========================= */
+
+.distance-filters {
+  display: flex;
+
+  gap: 8px;
+
+  margin-top: 14px;
+  margin-bottom: 20px;
+}
+
+.distance-filters button {
+  flex: 1;
+
+  height: 36px;
+
+  border: none;
+  border-radius: 999px;
+
+  background: #f1f5f9;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  color: #334155;
+
+  cursor: pointer;
+}
+
+.active-filter {
+  background: #111b55 !important;
+  color: white !important;
+}
+
+/* =========================
+   공고 카드 복구
+========================= */
+
+.job-card {
+  border: 1px solid #e5e7eb;
+
+  border-radius: 18px;
+
+  padding: 18px;
+
+  margin-bottom: 14px;
+
+  background: white;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.job-card:hover {
+  transform: translateY(-2px);
+}
+
+.selected-job {
+  border: 2px solid #111827;
+}
+
+/* =========================
+   좌측 버튼 크기 축소
+========================= */
+
+.mode-buttons {
+  display: flex;
+  gap: 8px;
+
+  margin-top: 16px;
+  margin-bottom: 18px;
+}
+
+.mode-btn {
+  flex: 1;
+
+  height: 34px;
+
+  border: none;
+  border-radius: 10px;
+
+  background: #f1f5f9;
+
+  color: #111827;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.mode-btn.active {
+  background: #111827;
+  color: white;
+}
+
+/* =========================
+   거리 필터
+========================= */
+
+.distance-filters {
+  display: flex;
+
+  gap: 6px;
+
+  margin-top: 14px;
+  margin-bottom: 18px;
+}
+
+.distance-filters button {
+  flex: 1;
+
+  height: 30px;
+
+  border: none;
+  border-radius: 999px;
+
+  background: #f1f5f9;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  color: #334155;
+
+  cursor: pointer;
+}
+
+.active-filter {
+  background: #111827 !important;
+  color: white !important;
+}
+
+/* =========================
+   공고 카드
+========================= */
+
+.job-card {
+  border: 1px solid #e5e7eb;
+
+  border-radius: 16px;
+
+  padding: 14px;
+
+  margin-bottom: 12px;
+
+  background: white;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.job-card:hover {
+  transform: translateY(-2px);
+}
+
+.selected-job {
+  border: 2px solid #111827;
+}
+
+.job-title {
+  font-size: 15px;
+  font-weight: 800;
+
+  margin-bottom: 10px;
+
+  color: #111827;
+}
+
+.job-info {
+  font-size: 12px;
+
+  color: #475569;
+
+  line-height: 1.7;
+}
+
+.job-pay {
+  margin-top: 10px;
+
+  font-size: 15px;
+  font-weight: 800;
+
+  color: #111827;
+}
+
+.job-tags {
+  display: flex;
+  flex-wrap: wrap;
+
+  gap: 6px;
+
+  margin-top: 10px;
+}
+
+.job-tag {
+  background: #eef2ff;
+
+  color: #3730a3;
+
+  padding: 4px 8px;
+
+  border-radius: 999px;
+
+  font-size: 10px;
+  font-weight: 700;
 }

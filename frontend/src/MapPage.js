@@ -16,6 +16,7 @@ export default function MapPage() {
     const [distanceFilter, setDistanceFilter] = useState("all");
     const [suggestions, setSuggestions] = useState([]);
     const [user, setUser] = useState(null);
+    const isMobile = window.innerWidth <= 950;
 
     const [form, setForm] = useState({
         title: "",
@@ -41,6 +42,12 @@ export default function MapPage() {
             title: "아파트 필름 보조",
             region: "대전 서구",
             pay: "150,000원",
+
+            trustScore: 92,
+            paymentRate: 100,
+            cancelRate: 3,
+            repeatRate: 78,
+
             lat: 36.3504,
             lng: 127.3845,
             date: "2026-05-10",
@@ -56,8 +63,20 @@ export default function MapPage() {
             applicants: [
                 {
                     nickname: "김민수",
+
                     career: "경력 5년",
+
                     status: "pending",
+
+                    skillLevel: "기공",
+
+                    workCount: 84,
+
+                    noShow: 0,
+
+                    lateCount: 1,
+
+                    repeatRate: 82,
                 },
             ],
         },
@@ -66,6 +85,10 @@ export default function MapPage() {
             title: "상가 도장 보조",
             region: "대전 유성구",
             pay: "140,000원",
+            trustScore: 81,
+            paymentRate: 95,
+            cancelRate: 8,
+            repeatRate: 64,
             lat: 36.3621,
             lng: 127.3564,
             date: "2026-05-11",
@@ -85,6 +108,10 @@ export default function MapPage() {
             title: "관공서 필름 기공",
             region: "대전 중구",
             pay: "200,000원",
+            trustScore: 97,
+            paymentRate: 100,
+            cancelRate: 1,
+            repeatRate: 91,
             lat: 36.3251,
             lng: 127.4214,
             date: "2026-05-12",
@@ -131,8 +158,41 @@ export default function MapPage() {
             });
 
             setMap(kakaoMap);
+
+            setTimeout(() => {
+                kakaoMap.relayout();
+                kakaoMap.setCenter(
+                    new window.kakao.maps.LatLng(36.3504, 127.3845)
+                );
+            }, 300);
+
+            const handleResize = () => {
+                window.dispatchEvent(new Event("resize"));
+            };
+
+            window.addEventListener("orientationchange", handleResize);
+
+            return () => {
+                window.removeEventListener("orientationchange", handleResize);
+            };
         });
     }, []);
+
+    useEffect(() => {
+        if (!map) return;
+
+        const handleResize = () => {
+            setTimeout(() => {
+                map.relayout();
+            }, 200);
+        };
+
+        window.addEventListener("resize", handleResize);
+
+        return () => {
+            window.removeEventListener("resize", handleResize);
+        };
+    }, [map]);
 
     useEffect(() => {
         if (!map) return;
@@ -161,6 +221,8 @@ export default function MapPage() {
                     border: "3px solid white",
                     boxShadow: "0 6px 18px rgba(0,0,0,0.22)",
                 },
+
+
             ],
         });
 
@@ -178,7 +240,7 @@ export default function MapPage() {
 
             markerEl.className =
                 selectedJob?.id === job.id
-                    ? "custom-marker active-marker"
+                    ? "custom-marker active"
                     : "custom-marker";
 
             markerEl.style.border = `1.5px solid ${getSkillColor(job.skill)}`;
@@ -517,7 +579,7 @@ export default function MapPage() {
 
     return (
         <div className="app">
-            <aside className="sidebar">
+            <aside className="sidebar desktop-sidebar">
                 <h1>일당맵</h1>
 
                 <p className="sub-text">기술자 · 오야지 연결</p>
@@ -799,6 +861,18 @@ export default function MapPage() {
 
                             <p>📍 {job.region}</p>
                             <p>💰 {job.pay}</p>
+                            <div className="trust-mini">
+
+    <span className="trust-badge">
+        ⭐ 신뢰 {job.trustScore}
+    </span>
+
+                                <span className="trust-sub">
+        재호출 {job.repeatRate}%
+    </span>
+
+                            </div>
+
                             <p>
                                 👷 {job.recruitCount}명 모집 · {job.applicants.length}명 지원
                             </p>
@@ -808,7 +882,91 @@ export default function MapPage() {
             </aside>
 
             <main className="map-area">
-                <div ref={mapRef} className="map"></div>
+
+                {/* 모바일 UI */}
+                {isMobile && (
+                    <>
+
+                        {/* 상단바 */}
+                        <div className="mobile-topbar">
+
+                            <div>
+                                <div className="mobile-logo">
+                                    일당맵
+                                </div>
+
+                                <div className="mobile-sub">
+                                    기술자 연결 플랫폼
+                                </div>
+                            </div>
+
+                            <div className="mobile-top-right">
+
+                                <button
+                                    className="kakao-login-btn"
+                                    onClick={() => alert("카카오 로그인 준비중")}
+                                >
+                                    카카오 로그인
+                                </button>
+
+                                <div className="mobile-toggle">
+
+                                    <button
+                                        className={`toggle-btn ${
+                                            mode === "worker" ? "active" : ""
+                                        }`}
+                                        onClick={() => setMode("worker")}
+                                    >
+                                        기술자
+                                    </button>
+
+                                    <button
+                                        className={`toggle-btn ${
+                                            mode === "boss" ? "active" : ""
+                                        }`}
+                                        onClick={() => setMode("boss")}
+                                    >
+                                        오야지
+                                    </button>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 현재 위치 버튼 */}
+                        <button className="my-location-btn">
+                            📍
+                        </button>
+
+                        {/* 하단 네비 */}
+                        <div className="mobile-bottom-nav">
+
+                            <button className="bottom-nav-btn">
+                                🗺️
+                                <span>지도</span>
+                            </button>
+
+                            <button className="bottom-nav-btn">
+                                📅
+                                <span>캘린더</span>
+                            </button>
+
+                            <button className="bottom-nav-btn">
+                                💬
+                                <span>채팅방</span>
+                            </button>
+
+                        </div>
+
+                    </>
+                )}
+
+                {/* 지도 */}
+                <div
+                    id="map"
+                    ref={mapRef}
+                    className="map"
+                />
 
                 {selectedJob && (
 
@@ -842,7 +1000,113 @@ export default function MapPage() {
                                 {selectedJob.endTime || "17:00"}
                             </p>
 
+                            {mode === "boss" && (
+
+                                <div className="applicant-section">
+
+                                    <h4>지원자 목록</h4>
+
+                                    {selectedJob.applicants.length === 0 && (
+                                        <p className="empty-text">
+                                            아직 지원자가 없습니다.
+                                        </p>
+                                    )}
+
+                                    {selectedJob.applicants.map((applicant, index) => (
+
+                                        <div
+                                            key={index}
+                                            className="applicant-card"
+                                        >
+
+                                            <h5>
+                                                👤 {applicant.nickname}
+                                            </h5>
+
+                                            <p>
+                                                📌 {applicant.career}
+                                            </p>
+
+                                            <div className="worker-trust-box">
+
+                                                <div className="worker-badge">
+                                                    {applicant.skillLevel}
+                                                </div>
+
+                                                <div className="worker-mini-info">
+                                                    작업 {applicant.workCount}회
+                                                </div>
+
+                                                <div className="worker-mini-info">
+                                                    노쇼 {applicant.noShow}회
+                                                </div>
+
+                                                <div className="worker-mini-info">
+                                                    재호출 {applicant.repeatRate}%
+                                                </div>
+
+                                            </div>
+
+                                            <p style={{ marginTop: "10px" }}>
+                                                {getStatusText(applicant.status)}
+                                            </p>
+
+                                            <div className="applicant-buttons">
+
+                                                <button
+                                                    className="approve-btn"
+                                                    onClick={() =>
+                                                        updateApplicantStatus(
+                                                            applicant.nickname,
+                                                            "approved"
+                                                        )
+                                                    }
+                                                >
+                                                    승인
+                                                </button>
+
+                                                <button
+                                                    className="reject-btn"
+                                                    onClick={() =>
+                                                        updateApplicantStatus(
+                                                            applicant.nickname,
+                                                            "rejected"
+                                                        )
+                                                    }
+                                                >
+                                                    거절
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+                                    ))}
+
+                                </div>
+                            )}
+
                             <div className="card-buttons">
+
+                                <div className="trust-box">
+
+                                    <h4>오야지 신뢰 정보</h4>
+
+                                    <div className="trust-row">
+                                        <span>정산 완료율</span>
+                                        <strong>{selectedJob.paymentRate}%</strong>
+                                    </div>
+
+                                    <div className="trust-row">
+                                        <span>작업 취소율</span>
+                                        <strong>{selectedJob.cancelRate}%</strong>
+                                    </div>
+
+                                    <div className="trust-row">
+                                        <span>재호출률</span>
+                                        <strong>{selectedJob.repeatRate}%</strong>
+                                    </div>
+
+                                </div>
 
                                 <button className="phone-btn">
                                     전화
