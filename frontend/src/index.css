@@ -1,8 +1,27 @@
-html,
-body,
-#root {
+/* 전역 뷰포트 풀스크린 — 미리보기/모바일에서 중앙 박스처럼 줄어드는 것 방지 */
+html {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
+  max-width: none;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  min-height: 100dvh;
 }

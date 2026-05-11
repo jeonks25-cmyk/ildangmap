@@ -1,0 +1,393 @@
+/* 모바일 전용 — 데스크톱 규칙은 daangn-shell-desktop.css 만 사용 */
+
+.daangn-shell {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+  background: #f7f8fa;
+  color: #212124;
+  box-sizing: border-box;
+}
+
+.daangn-shell__main {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
+}
+
+/* 하단 탭바 (당근형) — 좌우 edge-to-edge */
+.daangn-tabbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 0;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+  background: #fff;
+  border-top: 1px solid #eaecef;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.daangn-tabbar__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 2px;
+  text-decoration: none;
+  color: #868b94;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+.daangn-tabbar__item--active {
+  color: #212124;
+}
+
+.daangn-tabbar__icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.daangn-tabbar__label {
+  letter-spacing: -0.02em;
+}
+
+/* 홈 — 콘텐츠 폭 100%, 가로 여백 16px만 */
+.daangn-home {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 0 24px;
+  box-sizing: border-box;
+}
+
+.daangn-home__header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 14px 16px 12px;
+  background: #fff;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.daangn-home__region-block {
+  min-width: 0;
+}
+
+.daangn-home__region {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #212124;
+}
+
+.daangn-home__sub {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #868b94;
+}
+
+.daangn-home__actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.daangn-icon-btn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: #f4f5f7;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.daangn-home__chips {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 10px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: #f7f8fa;
+  border-bottom: 1px solid #eceef1;
+}
+
+.daangn-home__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.daangn-chip {
+  flex: 0 0 auto;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #e6e8eb;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  color: #4b5159;
+  cursor: pointer;
+}
+
+.daangn-chip--active {
+  background: #212124;
+  color: #fff;
+  border-color: #212124;
+}
+
+.daangn-home__list {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 10px 16px 96px;
+}
+
+.daangn-home .job-list.job-list--daangn,
+.job-list.job-list--daangn {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.job-list--daangn .job-card--geo {
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 12px;
+  box-sizing: border-box;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #eceef1;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  padding: 16px;
+}
+
+.job-list--daangn .job-card--geo.selected-job {
+  border-color: #212124;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.job-list--daangn .job-card__title-geo {
+  font-size: 16px;
+}
+
+.job-list--daangn .job-pay-text--geo {
+  font-size: 17px;
+  color: #ff6f0f;
+}
+
+.job-list--daangn .selected-job .job-pay-text--geo {
+  color: #ffb38a;
+}
+
+/* 플로팅 글쓰기 */
+.daangn-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: 20;
+  width: 56px;
+  height: 56px;
+  border: none;
+  border-radius: 50%;
+  background: #ff6f0f;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(255, 111, 15, 0.35);
+}
+
+/* 지도 탭 — 문서 흐름 + flex (absolute 남용 없음) */
+.map-tab-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  height: 100%;
+  min-height: 0;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.map-tab-page__header {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #f0f1f3;
+  background: #fff;
+}
+
+.map-tab-page__title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0 0 8px;
+}
+
+.map-tab-page__modes {
+  display: flex;
+  gap: 8px;
+}
+
+.map-tab-page__mode {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #e6e8eb;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.map-tab-page__mode--active {
+  background: #212124;
+  color: #fff;
+  border-color: #212124;
+}
+
+.map-tab-page__hint {
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #868b94;
+}
+
+.map-tab-page__map {
+  flex: 1 1 42%;
+  width: 100%;
+  max-width: none;
+  min-height: 200px;
+  position: relative;
+  background: #e9ecf0;
+  box-sizing: border-box;
+}
+
+.map-tab-page__map .map-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.map-tab-page__panel {
+  flex: 1 1 48%;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 12px 16px 20px;
+  background: #f7f8fa;
+  border-top: 1px solid #eceef1;
+}
+
+.map-tab-page .bottom-sheet-list-area {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-left: 0;
+  padding-right: 0;
+  box-sizing: border-box;
+}
+
+.map-tab-page .job-list.job-list--geo {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.map-tab-page .job-list--geo .job-card--geo {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+  box-sizing: border-box;
+}
+
+.map-tab-page .bottom-sheet-selected-card,
+.map-tab-page .bottom-sheet-job-form {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.map-tab-page__panel-title {
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: #212124;
+}
+
+.map-tab-page .bottom-sheet-job-form {
+  margin-top: 12px;
+}
+
+/* 플레이스홀더 탭 */
+.daangn-placeholder {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+  padding: 24px 16px;
+}
+
+.daangn-placeholder h1 {
+  font-size: 20px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.daangn-placeholder p {
+  font-size: 14px;
+  color: #868b94;
+  line-height: 1.5;
+}
+
+/* 앱 메인 안 모든 리스트 루트 — 좁게 잡히는 현상 방지 */
+.daangn-shell__main .job-list {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  box-sizing: border-box;
+}
