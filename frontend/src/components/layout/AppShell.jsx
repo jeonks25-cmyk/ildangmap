@@ -1,6 +1,7 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
 import MainTabBar from "../navigation/MainTabBar";
+import MobileWriteFab from "./MobileWriteFab";
 
 export default function AppShell() {
   return (
@@ -9,6 +10,7 @@ export default function AppShell() {
         <Outlet />
       </main>
       <MainTabBar />
+      <MobileWriteFab />
     </div>
   );
 }

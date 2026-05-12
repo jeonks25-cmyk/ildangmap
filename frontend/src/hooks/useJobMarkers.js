@@ -57,7 +57,7 @@ export default function useJobMarkers({
         clickable: true,
       });
 
-      const bubbleEl = anchorEl.querySelector(".job-speech-bubble");
+      const bubbleEl = anchorEl.querySelector(".job-pin-marker");
       if (!bubbleEl) {
         overlay.setMap(null);
         return;
@@ -108,7 +108,7 @@ export default function useJobMarkers({
 
     itemsRef.current.forEach((it) => {
       const isSelected = isSameJob(selectedJob, it.job);
-      it.anchorEl?.classList?.toggle?.("job-speech-bubble-anchor--selected", isSelected);
+      it.anchorEl?.classList?.toggle?.("job-pin-marker-anchor--selected", isSelected);
       if (typeof it.overlay?.setZIndex === "function") {
         it.overlay.setZIndex(isSelected ? 40 : 12);
       }

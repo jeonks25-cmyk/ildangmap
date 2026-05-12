@@ -2,7 +2,8 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import JobList from "../components/Jobs/JobList";
 import { useJobs } from "../context/JobsContext";
-import { TRADE_KEYS } from "../overlays/jobSpeechBubbleOverlay";
+import { TRADE_KEYS } from "../utils/jobTrade";
+import { canApplyToJob, createSelfApplicant, getApplicantsArray } from "../utils/jobModel";
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -17,15 +18,15 @@ export default function HomePage() {
 
   const handleJobClick = (job) => {
     if (!job || job.id == null) return;
-    navigate(`/job/${job.id}`);
+    navigate(`/jobs/${job.id}`);
   };
 
   const handleApplyJob = (job) => {
-    if (!job || job.id == null) return;
+    if (!job || job.id == null || !canApplyToJob(job)) return;
     setJobs((prev) =>
       (Array.isArray(prev) ? prev : []).map((item) => {
-        if (!item || item.id !== job.id) return item;
-        return { ...item, applicants: (item.applicants || 0) + 1 };
+        if (!item || item.id !== job.id || !canApplyToJob(item)) return item;
+        return { ...item, applicants: [...getApplicantsArray(item), createSelfApplicant(item)] };
       })
     );
   };

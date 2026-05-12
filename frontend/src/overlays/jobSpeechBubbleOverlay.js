@@ -1,16 +1,11 @@
 /**
- * 거지맵형 말풍선 오버레이 HTML (카카오 CustomOverlay content)
- * 직종: 조공(회) · 준기공(파) · 기공(초) · 오야지(빨)
+ * 지도 마커 HTML (카카오 CustomOverlay)
+ * 당근 동네지도 스타일 말풍선: 금액(만) + 부가 한 줄(긴급/프리미엄/오늘)
  */
 
-const TRADE_KEYS = ["조공", "준기공", "기공", "오야지"];
+import { getMapMarkerTone, isJobWorkDateToday, isUrgentJob } from "../utils/jobModel";
 
-const TRADE_META = {
-  조공: { emoji: "🧰", accent: "jogong" },
-  준기공: { emoji: "🏠", accent: "junki" },
-  기공: { emoji: "🏢", accent: "gigi" },
-  오야지: { emoji: "👔", accent: "oyaji" },
-};
+export { normalizeJobTrade, TRADE_KEYS, TRADE_META, resolveSiteType, getTradeAccentKey } from "../utils/jobTrade";
 
 function escHtml(s) {
   return String(s ?? "")
@@ -20,48 +15,53 @@ function escHtml(s) {
     .replace(/"/g, "&quot;");
 }
 
-export function normalizeJobTrade(job) {
-  const raw = job?.trade ?? job?.jobTrade ?? job?.직종;
-  if (raw && TRADE_META[raw]) return raw;
-  const t = String(job?.title ?? "");
-  if (t.includes("오야지") || t.includes("사장")) return "오야지";
-  if (t.includes("기공") && !t.includes("준")) return "기공";
-  if (t.includes("준기공")) return "준기공";
-  if (t.includes("조공")) return "조공";
-  return "조공";
+/** 지도 마커: 만 원 단위 (140000 → 14만) */
+function formatPayManLabel(pay) {
+  const n = Number(String(pay ?? "").replace(/[^0-9]/g, ""));
+  if (!Number.isFinite(n) || n <= 0) return "?만";
+  const m = Math.round(n / 10000);
+  const clipped = Math.min(Math.max(m, 1), 999);
+  return `${clipped}만`;
 }
 
-export function getTradeAccentKey(job) {
-  const trade = normalizeJobTrade(job);
-  return (TRADE_META[trade] || TRADE_META.조공).accent;
+function getMarkerSubline(job) {
+  if (!job) return "";
+  if (isUrgentJob(job)) return "긴급";
+  if (job.isPremium) return "프리미엄";
+  if (isJobWorkDateToday(job)) return "오늘";
+  return "";
 }
 
 export function getJobSpeechBubbleHtml(job) {
-  const trade = normalizeJobTrade(job);
-  const meta = TRADE_META[trade] || TRADE_META.조공;
-  const payRaw = job?.pay == null || job?.pay === "" ? "-" : String(job.pay);
-  const pay = escHtml(payRaw);
-  const payAria = escHtml(payRaw);
-  const emoji = meta.emoji;
-  const accent = meta.accent;
-  const label = escHtml(`${trade} 공고`);
+  const payLabel = formatPayManLabel(job?.pay);
+  const tone = getMapMarkerTone(job);
+  const sub = getMarkerSubline(job);
+  const payE = escHtml(payLabel);
+  const subE = sub ? escHtml(sub) : "";
+  const n = Number(String(job?.pay ?? "").replace(/[^0-9]/g, ""));
+  const man = Number.isFinite(n) && n > 0 ? Math.round(n / 10000) : null;
+  const ariaCore = man != null && man >= 1 ? `현장 일당 약 ${man}만 원` : "현장 일당 협의";
+  const ariaExtra = sub ? `, ${sub}` : "";
+  const ariaLabel = escHtml(`${ariaCore}${ariaExtra}`);
+
+  const subBlock = sub
+    ? `<div class="job-pin-marker__sub">${subE}</div>`
+    : "";
 
   return `
-<div class="job-speech-bubble-anchor">
+<div class="job-pin-marker-anchor">
   <div
-    class="job-speech-bubble job-speech-bubble--accent-${accent}"
+    class="job-pin-marker job-pin-marker--tone-${tone}"
     role="button"
     tabindex="0"
-    aria-label="${label}, 급여 ${payAria}"
+    aria-label="${ariaLabel}"
   >
-    <span class="job-speech-bubble__emoji-ring" aria-hidden="true">
-      <span class="job-speech-bubble__emoji">${emoji}</span>
-    </span>
-    <span class="job-speech-bubble__pay">${pay}</span>
+    <div class="job-pin-marker__box">
+      <div class="job-pin-marker__pay">${payE}</div>
+      ${subBlock}
+    </div>
+    <div class="job-pin-marker__tail" aria-hidden="true"></div>
   </div>
-  <div class="job-speech-bubble__tail" aria-hidden="true"></div>
 </div>
 `.trim();
 }
-
-export { TRADE_KEYS, TRADE_META };

@@ -2,8 +2,8 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 
 const tabs = [
-  { to: "/", end: true, label: "홈", icon: "🏠" },
-  { to: "/map", label: "지도", icon: "🗺️" },
+  { to: "/map", end: true, label: "지도", icon: "🗺️" },
+  { to: "/calendar", label: "캘린더", icon: "📅" },
   { to: "/community", label: "커뮤니티", icon: "📮" },
   { to: "/chat", label: "채팅", icon: "💬" },
   { to: "/my", label: "내정보", icon: "👤" },
