@@ -136,12 +136,14 @@ export function useScheduleFieldOps(selectedDateKey) {
   );
 
   const dayEntries = useMemo(
-    () =>
-      buildUnifiedDayEntries({
+    () => {
+      void personalRevision;
+      return buildUnifiedDayEntries({
         schedules,
         personalEvents,
         dateKey: selectedDateKey,
-      }),
+      });
+    },
     [personalEvents, personalRevision, schedules, selectedDateKey]
   );
 

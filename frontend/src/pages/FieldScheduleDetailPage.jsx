@@ -89,11 +89,17 @@ export default function FieldScheduleDetailPage() {
   const participants = useMemo(() => (schedule ? getScheduleParticipants(schedule) : []), [schedule]);
   const briefingId = useMemo(() => resolveScheduleBriefingId(schedule), [schedule]);
   const changeHistory = useMemo(
-    () => (schedule ? listScheduleChangeHistory(schedule.id) : []),
+    () => {
+      void refreshKey;
+      return schedule ? listScheduleChangeHistory(schedule.id) : [];
+    },
     [schedule, refreshKey]
   );
   const pendingRequest = useMemo(
-    () => (schedule ? getLatestPendingChangeRequest(schedule.id) : null),
+    () => {
+      void refreshKey;
+      return schedule ? getLatestPendingChangeRequest(schedule.id) : null;
+    },
     [schedule, refreshKey]
   );
   const siteStatus = useMemo(() => deriveSiteStatus(schedule), [schedule]);

@@ -159,7 +159,7 @@ export function normalizeMapItemDraft(input = {}) {
 function extractDateRange(text, fallbackDateKey) {
   const blob = String(text || "");
   const year = fallbackDateKey?.slice(0, 4) || String(new Date().getFullYear());
-  const mdRange = blob.match(/(\d{1,2})\s*[.\-/월]\s*(\d{1,2})\s*[~\-]\s*(\d{1,2})\s*[.\-/월]?\s*(\d{1,2})/);
+  const mdRange = blob.match(/(\d{1,2})\s*[.\-/월]\s*(\d{1,2})\s*[~-]\s*(\d{1,2})\s*[.\-/월]?\s*(\d{1,2})/);
   if (mdRange) {
     const start = `${year}-${String(mdRange[1]).padStart(2, "0")}-${String(mdRange[2]).padStart(2, "0")}`;
     const end = `${year}-${String(mdRange[3]).padStart(2, "0")}-${String(mdRange[4]).padStart(2, "0")}`;

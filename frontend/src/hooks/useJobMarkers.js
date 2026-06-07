@@ -199,9 +199,10 @@ export default function useJobMarkers({
   }, [isReady, kakao, map, selectedJobId, overlaysEnabled]);
 
   useEffect(() => {
+    const overlayMap = overlayMapRef.current;
     return () => {
-      overlayMapRef.current.forEach((entry) => detachOverlayEntry(entry));
-      overlayMapRef.current.clear();
+      overlayMap.forEach((entry) => detachOverlayEntry(entry));
+      overlayMap.clear();
     };
   }, []);
 }

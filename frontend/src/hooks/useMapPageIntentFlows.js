@@ -232,7 +232,7 @@ export default function useMapPageIntentFlows({
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
-  }, [isReady, kakao, locating, map, myLocationMarkerRef, setLocating, showLocationToast]);
+  }, [isReady, kakao, locating, map, myLocationMarkerRef, setLocating, setUserLocation, showLocationToast]);
 
   const handleConfirmApplyJob = useCallback(
     async (job) => {

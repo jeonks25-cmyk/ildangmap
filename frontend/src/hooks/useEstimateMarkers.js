@@ -170,9 +170,10 @@ export default function useEstimateMarkers({
   }, [isReady, kakao, map, selectedEstimateId, overlaysEnabled]);
 
   useEffect(() => {
+    const overlayMap = overlayMapRef.current;
     return () => {
-      overlayMapRef.current.forEach((entry) => detachOverlayEntry(entry));
-      overlayMapRef.current.clear();
+      overlayMap.forEach((entry) => detachOverlayEntry(entry));
+      overlayMap.clear();
     };
   }, []);
 }
