@@ -1,0 +1,738 @@
+.field-biz-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(120, 113, 108, 0.16);
+  box-shadow: 0 6px 20px rgba(60, 55, 50, 0.06);
+}
+
+.field-biz-card__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.field-biz-card__photo {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--oyaji-warm, #faf8f5);
+}
+
+.field-biz-card__photo--ph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #8a7f76;
+  border: 1px solid rgba(120, 113, 108, 0.18);
+}
+
+.field-biz-card__id {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.field-biz-card__name {
+  font-size: 19px;
+  font-weight: 800;
+  color: #2a2520;
+  line-height: 1.2;
+}
+
+.field-biz-card__sub {
+  font-size: 14px;
+  color: #6f655d;
+}
+
+.field-biz-card__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid rgba(120, 113, 108, 0.12);
+}
+
+.field-biz-card__fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.field-biz-card__fact dt {
+  font-size: 12px;
+  color: #9a9089;
+}
+
+.field-biz-card__fact dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #2a2520;
+}
+
+.field-biz-card__fact--cowork dd {
+  color: #c0552b;
+}
+
+.field-biz-card__fact--last-work dd {
+  color: #374151;
+  font-weight: 700;
+}
+
+.field-biz-card__recent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(120, 113, 108, 0.12);
+}
+
+.field-biz-card__recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.field-biz-card__recent-all {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c0552b;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.field-biz-card__recent-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6f655d;
+}
+
+.field-biz-card__recent-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-biz-card__recent-list li {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding-left: 14px;
+  font-size: 14px;
+  color: #44403c;
+}
+
+.field-biz-card__recent-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-biz-card__recent-date {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #9a9089;
+}
+
+.field-biz-card__recent-list li::before {
+  content: "·";
+  position: absolute;
+  left: 4px;
+  color: #b7aea6;
+}
+
+/* ─── 명함 바텀시트 ─── */
+.field-card-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.field-card-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(20, 18, 16, 0.45);
+}
+
+.field-card-sheet__panel {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  background: var(--oyaji-warm, #faf8f5);
+  border-radius: 20px 20px 0 0;
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.field-card-sheet__grab {
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(120, 113, 108, 0.3);
+  margin: 2px 0 4px;
+}
+
+.field-biz-card--sheet {
+  border: none;
+  box-shadow: none;
+  padding: 4px 2px;
+  background: transparent;
+}
+
+.field-biz-card--sheet .field-biz-card__name {
+  font-size: 22px;
+}
+
+.field-card-sheet__close {
+  min-height: 52px;
+  border: none;
+  border-radius: 14px;
+  background: #111827;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.field-card-sheet__x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(120, 113, 108, 0.14);
+  color: #6f655d;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.field-card-sheet__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field-card-sheet__unreg-badge {
+  align-self: flex-start;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(202, 138, 4, 0.4);
+  background: rgba(250, 204, 21, 0.16);
+  color: #a16207;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.field-card-sheet__next-avail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 113, 108, 0.16);
+  background: #fff;
+}
+
+.field-card-sheet__next-avail-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: #6b6259;
+}
+
+.field-card-sheet__next-avail-date {
+  font-size: 19px;
+  font-weight: 900;
+  color: #2a2520;
+}
+
+.field-card-sheet__next-avail--available {
+  border-color: rgba(34, 160, 96, 0.35);
+  background: rgba(34, 160, 96, 0.08);
+}
+
+.field-card-sheet__next-avail--busy {
+  border-color: rgba(214, 158, 46, 0.35);
+  background: rgba(214, 158, 46, 0.1);
+}
+
+.field-card-sheet__next-avail--none {
+  border-color: rgba(120, 113, 108, 0.2);
+  background: rgba(120, 113, 108, 0.06);
+}
+
+.field-card-sheet__next-avail--none .field-card-sheet__next-avail-date {
+  color: #8a817a;
+}
+
+.field-card-sheet__actions {
+  position: sticky;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.2fr;
+  gap: 8px;
+  padding-top: 12px;
+  margin-top: 2px;
+  background: var(--oyaji-warm, #faf8f5);
+  box-shadow: 0 -8px 12px -8px var(--oyaji-warm, #faf8f5);
+}
+
+.field-card-sheet__act {
+  min-height: 52px;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  border-radius: 14px;
+  background: #fff;
+  color: #2a2520;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.field-card-sheet__act--primary {
+  border-color: transparent;
+  background: var(--ildang-green, #2f8f46);
+  color: #fff;
+}
+
+/* ─── 인원 상세 헤더 (투입 판단용) ─── */
+.person-detail-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 2px 2px 4px;
+}
+
+.person-detail-head__name {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.person-detail-head__craft {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #374151;
+  letter-spacing: -0.02em;
+}
+
+.person-detail-head__region {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.person-detail-head__today {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #111827;
+}
+
+.person-detail-today-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 2px solid #374151;
+  background: #fff;
+}
+
+.person-detail-today-banner--open {
+  border-style: dashed;
+  background: #fff;
+}
+
+.person-detail-today-banner--taken {
+  border-style: solid;
+  background: repeating-linear-gradient(
+    -45deg,
+    #f3f4f6,
+    #f3f4f6 6px,
+    #e5e7eb 6px,
+    #e5e7eb 12px
+  );
+}
+
+.person-detail-today-banner__text {
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+.person-detail-history-link {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #6b7280;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* ─── 작업자 가용 캘린더 (가능/불가 2상태) ─── */
+.person-avail-cal {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid rgba(120, 113, 108, 0.16);
+}
+
+.person-avail-cal__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.person-avail-cal__nav-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(120, 113, 108, 0.2);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 18px;
+  color: #44403c;
+  cursor: pointer;
+}
+
+.person-avail-cal__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #2a2520;
+}
+
+.person-avail-cal__weekdays,
+.person-avail-cal__row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.person-avail-cal__weekday {
+  text-align: center;
+  font-size: 11px;
+  color: #9a9089;
+}
+
+.person-avail-cal__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.person-avail-cal__cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 52px;
+  padding: 6px 2px 4px;
+  border-radius: 10px;
+  background: transparent;
+  border: 2px solid transparent;
+  box-sizing: border-box;
+}
+
+.person-avail-cal__cell--empty {
+  background: transparent;
+  border: none;
+}
+
+.person-avail-cal__day {
+  font-size: 14px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1;
+}
+
+.person-avail-cal__cell.is-today {
+  border: 2px solid #16a34a;
+  background: #fff;
+}
+
+.person-avail-cal__marker {
+  display: block;
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* 가능 — 표시 없음 (높이만 맞춤) */
+.person-avail-cal__marker--free {
+  visibility: hidden;
+}
+
+/* 일정 있음 — 채운 점 */
+.person-avail-cal__marker--busy {
+  border-radius: 50%;
+  background: #1f2937;
+}
+
+/* 미공유 — 빈 원 */
+.person-avail-cal__marker--none {
+  border-radius: 50%;
+  border: 2px solid #9ca3af;
+  background: transparent;
+}
+
+/* ─── 극장 객석형 좌석 마크 (색맹 접근성) ─── */
+.deploy-seat-mark {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border-radius: 6px 6px 3px 3px;
+}
+
+.deploy-seat-mark--sm {
+  width: 16px;
+  height: 12px;
+}
+
+.deploy-seat-mark--md {
+  width: 20px;
+  height: 15px;
+}
+
+.deploy-seat-mark--lg {
+  width: 28px;
+  height: 20px;
+}
+
+.deploy-seat-mark--open {
+  border: 2px solid #374151;
+  background: #fff;
+}
+
+.deploy-seat-mark--taken {
+  border: 2px solid #374151;
+  background: repeating-linear-gradient(
+    -45deg,
+    #f9fafb,
+    #f9fafb 2px,
+    #9ca3af 2px,
+    #9ca3af 4px
+  );
+}
+
+.deploy-seat-mark__x {
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  color: #111827;
+}
+
+.deploy-seat-mark--md .deploy-seat-mark__x,
+.deploy-seat-mark--lg .deploy-seat-mark__x {
+  font-size: 11px;
+}
+
+.deploy-seat-mark__label {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #111827;
+}
+
+/* 이름 클릭 → 명함 시트 진입점 (텍스트처럼 보이는 버튼) */
+.field-team-roster__name-btn,
+.field-detail-page__team-name-btn,
+.briefing-post-author-row__name-btn,
+.chat-room-header__name-btn {
+  padding: 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+}
+
+.field-team-roster__name-btn,
+.field-detail-page__team-name-btn,
+.briefing-post-author-row__name-btn,
+.chat-room-header__name-btn {
+  text-decoration: underline;
+  text-decoration-color: rgba(120, 113, 108, 0.35);
+  text-underline-offset: 3px;
+}
+
+/* ─── 협업 이력 타임라인 시트 ─── */
+.cowork-history-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(20, 18, 16, 0.45);
+}
+
+.cowork-history-sheet__panel {
+  width: 100%;
+  max-width: 520px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: #faf8f5;
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+}
+
+.cowork-history-sheet__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid rgba(120, 113, 108, 0.12);
+}
+
+.cowork-history-sheet__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #2a2520;
+}
+
+.cowork-history-sheet__sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #9a9089;
+}
+
+.cowork-history-sheet__close {
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: #6f655d;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.cowork-history-sheet__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.cowork-history-sheet__empty {
+  text-align: center;
+  color: #9a9089;
+  font-size: 14px;
+  padding: 32px 0;
+}
+
+.cowork-history-sheet__timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.cowork-history-sheet__item {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 0 0 16px 0;
+}
+
+.cowork-history-sheet__item:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 14px;
+  bottom: 0;
+  width: 2px;
+  background: rgba(120, 113, 108, 0.18);
+}
+
+.cowork-history-sheet__dot {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: #c0552b;
+  box-shadow: 0 0 0 3px rgba(192, 85, 43, 0.15);
+}
+
+.cowork-history-sheet__item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cowork-history-sheet__site {
+  font-size: 16px;
+  font-weight: 800;
+  color: #2a2520;
+}
+
+.cowork-history-sheet__meta {
+  font-size: 13px;
+  color: #9a9089;
+}

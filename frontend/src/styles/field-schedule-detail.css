@@ -1,0 +1,703 @@
+.field-detail-page {
+  min-height: 100%;
+  padding: 12px 14px 32px;
+  background: var(--oyaji-bg, #f4f1ec);
+  box-sizing: border-box;
+}
+
+/* 운영 허브: 하단 고정 액션바와 겹치지 않게 패딩 확보 */
+.field-detail-page--hub {
+  padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+}
+
+.field-detail-page__top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.field-detail-page__top-title {
+  flex: 1;
+  margin: 0;
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--oyaji-ink, #1c1917);
+}
+
+/* 현장 상태 배지 */
+.field-detail-status {
+  flex: 0 0 auto;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.field-detail-status--recruiting {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.field-detail-status--ongoing {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
+}
+
+.field-detail-status--done {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+/* 상단 요약 카드 */
+.field-detail-summary {
+  margin-bottom: 12px;
+}
+
+.field-detail-summary__name {
+  display: block;
+  font-size: 19px;
+  font-weight: 950;
+  color: var(--oyaji-ink, #1c1917);
+}
+
+.field-detail-summary__addr {
+  margin: 4px 0 12px;
+  font-size: 13px;
+  color: var(--oyaji-muted, #78716c);
+}
+
+.field-detail-summary__grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px 10px;
+}
+
+.field-detail-summary__grid dt {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--oyaji-muted, #78716c);
+}
+
+.field-detail-summary__grid dd {
+  margin: 3px 0 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--oyaji-ink, #1c1917);
+  word-break: keep-all;
+}
+
+/* 중단 탭 */
+.field-detail-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 6px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(120, 113, 108, 0.12);
+}
+
+.field-detail-tabs__btn {
+  min-height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--oyaji-muted, #78716c);
+}
+
+.field-detail-tabs__btn.is-active {
+  background: var(--ildang-brand, #f97316);
+  color: #fff;
+}
+
+.field-detail-tabpanel {
+  min-height: 120px;
+}
+
+/* 팀원 탭 */
+.field-detail-page__team-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.field-detail-page__team-head h2 {
+  margin: 0;
+}
+
+.field-detail-page__team-count {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--oyaji-muted, #78716c);
+}
+
+.field-detail-page__team-who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.field-detail-page__team-who span {
+  font-size: 12px;
+  color: var(--oyaji-muted, #78716c);
+}
+
+.field-detail-attend {
+  align-self: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.field-detail-attend--owner {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.field-detail-attend--yes {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.field-detail-attend--no {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.field-detail-attend--wait {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.field-detail-page__team-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.field-detail-page__team-actions button {
+  min-height: 44px;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--oyaji-ink, #1c1917);
+}
+
+.field-detail-page__team-actions .is-primary {
+  border-color: var(--ildang-brand-strong, #c2410c);
+  background: var(--ildang-brand, #f97316);
+  color: #fff;
+}
+
+/* 변경 이력 */
+.field-detail-page__history-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.field-detail-page__history-actor {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.field-detail-page__history-meta time {
+  font-size: 12px;
+  color: var(--oyaji-muted, #78716c);
+}
+
+.field-detail-page__history-summary {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--oyaji-ink, #1c1917);
+  white-space: pre-line;
+}
+
+.field-detail-page__history li {
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--oyaji-warm, #faf8f5);
+}
+
+/* 하단 고정 액션바 */
+.field-detail-actionbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid rgba(120, 113, 108, 0.16);
+}
+
+.field-detail-actionbar__btn {
+  min-height: 48px;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--oyaji-ink, #1c1917);
+}
+
+.field-detail-actionbar__btn--alert {
+  border-color: var(--ildang-brand-strong, #c2410c);
+  background: var(--ildang-brand, #f97316);
+  color: #fff;
+}
+
+.field-detail-page__back {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 18px;
+}
+
+.field-detail-page__top-copy h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 950;
+  color: var(--oyaji-ink, #1c1917);
+}
+
+.field-detail-page__top-copy p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--oyaji-muted, #78716c);
+}
+
+.field-detail-page__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.field-detail-page__actions button {
+  min-height: 44px;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--oyaji-ink, #1c1917);
+}
+
+.field-detail-page__info dl {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.field-detail-page__info dt {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--oyaji-muted, #78716c);
+}
+
+.field-detail-page__info dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--oyaji-ink, #1c1917);
+}
+
+.field-detail-page__team ul,
+.field-detail-page__history ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.field-detail-page__team li {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px;
+  border-radius: 10px;
+  background: var(--oyaji-warm, #faf8f5);
+}
+
+.field-detail-page__respond-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.field-detail-page__respond-btns .is-yes {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+  color: #047857;
+}
+
+.field-detail-page__respond-btns .is-no {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.field-detail-page__urgent-btn {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 12px;
+  background: var(--ildang-brand, #f97316);
+  color: #fff;
+  font-weight: 900;
+}
+
+.field-board {
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.field-board__title {
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.field-board__sub {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--oyaji-muted, #78716c);
+}
+
+.field-board__composer {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.field-board__type-row {
+  display: flex;
+  gap: 6px;
+}
+
+.field-board__type-btn {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.field-board__type-btn.is-active {
+  border-color: var(--ildang-brand-strong, #c2410c);
+  background: var(--oyaji-accent-soft, #fff7ed);
+}
+
+.field-board__textarea {
+  width: 100%;
+  border: 1px solid rgba(120, 113, 108, 0.2);
+  border-radius: 12px;
+  padding: 10px;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.field-board__submit {
+  min-height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: var(--ildang-brand, #f97316);
+  color: #fff;
+  font-weight: 900;
+}
+
+.field-board__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.field-board__item {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--oyaji-warm, #faf8f5);
+}
+
+.field-board__badge {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.field-board__badge--notice {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.field-board__badge--question {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.field-board__badge--worklog {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.field-board__badge--photo {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.field-board__badge--change {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.field-board__image {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+.field-board__comments {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.field-board__comment-form {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.field-board__comment-form input {
+  flex: 1;
+  min-height: 36px;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 113, 108, 0.2);
+  padding: 0 8px;
+}
+
+.schedule-edit-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(28, 25, 23, 0.2);
+}
+
+.schedule-edit-sheet__panel {
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+  padding: 14px;
+  border-radius: 20px 20px 0 0;
+  background: #fff;
+  display: grid;
+  gap: 10px;
+}
+
+.schedule-edit-sheet__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.schedule-edit-sheet__head h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.schedule-edit-sheet__field {
+  display: grid;
+  gap: 4px;
+}
+
+.schedule-edit-sheet__field span {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--oyaji-muted, #78716c);
+}
+
+.schedule-edit-sheet__field input,
+.schedule-edit-sheet__field select {
+  min-height: 42px;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  border-radius: 10px;
+  padding: 0 10px;
+}
+
+.schedule-edit-sheet__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.schedule-edit-sheet__submit {
+  min-height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: var(--ildang-brand, #f97316);
+  color: #fff;
+  font-weight: 900;
+}
+
+/* 현장 일정 탭 — 기간 + 날짜별 배정 */
+.field-schedule-roster {
+  margin-bottom: 12px;
+}
+
+.field-schedule-roster__title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.field-schedule-roster__period {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(120, 113, 108, 0.15);
+}
+
+.field-schedule-roster__period-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: #78716c;
+}
+
+.field-schedule-roster__period-value {
+  font-size: 17px;
+  font-weight: 900;
+  color: #1c1917;
+}
+
+.field-schedule-roster__time {
+  font-size: 13px;
+  font-weight: 700;
+  color: #57534e;
+}
+
+.field-schedule-roster__team-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.field-schedule-roster__team-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.field-schedule-roster__team-hint {
+  font-size: 12px;
+  font-weight: 700;
+  color: #78716c;
+}
+
+.field-schedule-roster__days {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field-schedule-roster__day {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fafaf9;
+  border: 1px solid rgba(120, 113, 108, 0.12);
+}
+
+.field-schedule-roster__day-label {
+  font-size: 14px;
+  font-weight: 900;
+  color: #1c1917;
+  margin-bottom: 6px;
+}
+
+.field-schedule-roster__workers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+.field-schedule-roster__worker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #d6d3d1;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.field-schedule-roster__worker-role {
+  font-size: 11px;
+  font-weight: 800;
+  color: #ea580c;
+}
+
+.field-schedule-roster__worker-period {
+  font-size: 11px;
+  font-weight: 700;
+  color: #78716c;
+}
+
+.field-schedule-roster__empty-day {
+  margin: 0;
+  font-size: 13px;
+  color: #a8a29e;
+}

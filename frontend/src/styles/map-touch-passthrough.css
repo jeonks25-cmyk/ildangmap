@@ -1,0 +1,75 @@
+/* ═══ 지도 터치 — HUD만 통과, Kakao 타일 pane은 기본 pan/zoom ═══ */
+
+.map-tab-page--geo .map-geo-stage__map-column {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.map-tab-page--geo .map-geo-stage__canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.map-tab-page--geo .map-geo-stage__map-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.map-tab-page--geo .map-geo-stage__map-surface .map-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.map-tab-page--geo .map-geo-stage__overlays {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* HUD — 컨테이너는 통과, 버튼·카드만 auto */
+.map-tab-page--geo .map-geo-stage__overlays .map-floating-btn,
+.map-tab-page--geo .map-geo-stage__overlays .map-floating-action-layer__add-fab,
+.map-tab-page--geo .map-geo-stage__overlays .floating-action-button,
+.map-tab-page--geo .map-geo-stage__overlays .floating-action-button-anchor,
+.map-tab-page--geo .map-geo-stage__overlays .map-quick-add-anchor,
+.map-tab-page--geo .map-geo-stage__overlays .map-quick-add-bubble,
+.map-tab-page--geo .map-geo-stage__overlays .map-quick-add-bubble__action,
+.map-tab-page--geo .map-geo-stage__overlays .geo-map-fab,
+.map-tab-page--geo .map-geo-stage__overlays .geo-map-filter-chip,
+.map-tab-page--geo .map-geo-stage__overlays .map-field-location-pick-bar,
+.map-tab-page--geo .map-geo-stage__overlays .map-filter-sheet,
+.map-tab-page--geo .map-geo-stage__overlays .map-location-toast,
+.map-tab-page--geo .map-geo-stage__overlays .map-operation-context-card,
+.map-tab-page--geo .map-search-marker,
+.map-tab-page--geo .map-search-marker-info,
+.map-tab-page--geo .map-floating-anchor .map-floating-btn,
+.map-tab-page--geo .map-geo-stage__map-column > .map-card-shell .map-card-container,
+.map-tab-page--geo .map-geo-stage__map-column > .map-card-shell .map-place-overlay-row,
+.map-tab-page--geo .map-geo-stage__map-column > .map-card-shell .map-place-overlay__sort-btn,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-card-container,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-search-panel__form,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-search-panel__recent,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-search-panel__keyword {
+  pointer-events: auto;
+}
+
+.map-tab-page--geo .map-geo-stage__map-column > .map-card-shell,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell,
+.map-tab-page--geo .map-geo-stage__overlays .map-floating-action-layer,
+.map-tab-page--geo .map-geo-stage__overlays .geo-map-chrome,
+.map-tab-page--geo .map-geo-stage__overlays .map-center-draft-pin,
+.map-tab-page--geo .map-geo-stage__overlays .map-floating-anchor {
+  pointer-events: none;
+}

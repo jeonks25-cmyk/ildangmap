@@ -1,28 +1,23 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { JOBS_STORAGE_KEY, loadStoredJobs } from "../utils/jobsStorage";
-
-const JobsContext = createContext(null);
+import { useJobStore } from "../store/useJobStore";
 
 export function JobsProvider({ children }) {
-  const [jobs, setJobs] = useState(() => loadStoredJobs());
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(JOBS_STORAGE_KEY, JSON.stringify(jobs));
-    } catch (_) {
-      /* noop */
-    }
-  }, [jobs]);
-
-  const value = useMemo(() => ({ jobs, setJobs }), [jobs]);
-
-  return <JobsContext.Provider value={value}>{children}</JobsContext.Provider>;
+  // Bootstrap is centralized in useAppBootstrap -> AppShell.
+  // This bridge stays side-effect free so pages can read jobs without hidden fetches.
+  return children;
 }
 
 export function useJobs() {
-  const ctx = useContext(JobsContext);
-  if (!ctx) {
-    throw new Error("useJobs must be used within JobsProvider");
-  }
-  return ctx;
+  const jobs = useJobStore((state) => state.jobs);
+  const setJobs = useJobStore((state) => state.setJobs);
+  const loading = useJobStore((state) => state.loading);
+  const error = useJobStore((state) => state.error);
+  const refreshJobs = useJobStore((state) => state.refreshJobs);
+
+  return {
+    jobs,
+    setJobs,
+    loading,
+    error,
+    refreshJobs,
+  };
 }

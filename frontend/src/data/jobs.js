@@ -1,74 +1,64 @@
+import { migrateJob } from "../utils/jobModel";
+
+/** Legacy list sample — canonical shape (date, address, participants, briefing, alerts) */
 const jobs = [
-
-    {
-        id: 1,
-        title: "아파트 필름 보조",
-        region: "대전 서구",
-        distance: "2km",
-        pay: "18만원",
-
-        lat: 36.3504,
-        lng: 127.3845,
-
-        skill: "준기공",
-
-        urgent: true,
-
-        placeType: "apartment",
-
-        description:
-            "아파트 필름 보조 구합니다.",
-
-        startTime: "08:00",
-        endTime: "17:00",
-    },
-
-    {
-        id: 2,
-        title: "도배 기공 구합니다",
-        region: "세종시",
-        distance: "4km",
-        pay: "22만원",
-
-        lat: 36.4800,
-        lng: 127.2890,
-
-        skill: "기공",
-
-        urgent: false,
-
-        placeType: "apartment",
-
-        description:
-            "도배 기공 모집합니다.",
-
-        startTime: "08:00",
-        endTime: "17:00",
-    },
-
-    {
-        id: 3,
-        title: "타일 보조 구인",
-        region: "천안",
-        distance: "8km",
-        pay: "16만원",
-
-        lat: 36.8151,
-        lng: 127.1139,
-
-        skill: "초보",
-
-        urgent: true,
-
-        placeType: "store",
-
-        description:
-            "타일 보조 구합니다.",
-
-        startTime: "09:00",
-        endTime: "18:00",
-    },
-
+  {
+    id: 1,
+    title: "아파트 필름 보조",
+    address: "대전 서구",
+    addressDetail: "대전 서구",
+    date: "2026-05-15",
+    pay: "18만원",
+    lat: 36.3504,
+    lng: 127.3845,
+    craft: "film",
+    trade: "준기공",
+    isUrgent: true,
+    siteKind: "apartment",
+    description: "아파트 필름 보조 구합니다.",
+    workTime: "08:00~17:00",
+    participants: [],
+    briefing: [],
+    alerts: [],
+  },
+  {
+    id: 2,
+    title: "도배 기공 구합니다",
+    address: "세종시",
+    addressDetail: "세종시",
+    date: "2026-05-14",
+    pay: "22만원",
+    lat: 36.48,
+    lng: 127.289,
+    craft: "wallpaper",
+    trade: "기공",
+    isUrgent: false,
+    siteKind: "apartment",
+    description: "도배 기공 참여 요청입니다.",
+    workTime: "08:00~17:00",
+    participants: [],
+    briefing: [],
+    alerts: [],
+  },
+  {
+    id: 3,
+    title: "타일 보조 현장 요청",
+    address: "천안",
+    addressDetail: "천안",
+    date: "2026-05-13",
+    pay: "16만원",
+    lat: 36.8151,
+    lng: 127.1139,
+    craft: "tile",
+    trade: "조공",
+    isUrgent: true,
+    siteKind: "store",
+    description: "타일 보조 구합니다.",
+    workTime: "09:00~18:00",
+    participants: [],
+    briefing: [],
+    alerts: [],
+  },
 ];
 
-export default jobs;
+export default jobs.map(migrateJob);

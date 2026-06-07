@@ -1,19 +1,23 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useJobs } from "../context/JobsContext";
+import { applyJob } from "../api/applicationsApi";
 import JobDetail from "../components/Jobs/JobDetail";
 import ApplicantsSheet from "../components/map/ApplicantsSheet";
-import {
-  JOB_STATUS,
-  canApplyToJob,
-  createSelfApplicant,
-  getApplicantsArray,
-} from "../utils/jobModel";
+import { useJobs } from "../context/JobsContext";
+import { useViewerApplicantUserId } from "../hooks/useJobOwnership";
+import { canApplyToJob, deriveViewerJobState } from "../utils/jobModel";
+
+import { useJobStore } from "../store/useJobStore";
+import { useUiStore } from "../store/useUiStore";
+import { useUserStore } from "../store/useUserStore";
 
 export default function JobDetailPage() {
   const navigate = useNavigate();
+  const viewerApplicantUserId = useViewerApplicantUserId();
   const { id } = useParams();
   const { jobs, setJobs } = useJobs();
+  const confirmJobApplicant = useJobStore((s) => s.confirmJobApplicant);
+  const rejectJobApplicant = useJobStore((s) => s.rejectJobApplicant);
   const [applicantsOpen, setApplicantsOpen] = useState(false);
 
   const job = useMemo(() => {
@@ -31,47 +35,62 @@ export default function JobDetailPage() {
     return jobs.find((j) => j && j.id === job.id) || job;
   }, [applicantsOpen, jobs, job]);
 
+  const applicantsSheetCanManage = useMemo(() => {
+    if (!sheetJob) return false;
+    return deriveViewerJobState(sheetJob, viewerApplicantUserId).canApproveApplicants;
+  }, [sheetJob, viewerApplicantUserId]);
+
   const handleApply = useCallback(
-    (target) => {
-      if (!target || target.id == null || !canApplyToJob(target)) return;
-      setJobs((prev) =>
-        (Array.isArray(prev) ? prev : []).map((item) => {
-          if (!item || item.id !== target.id || !canApplyToJob(item)) return item;
-          return { ...item, applicants: [...getApplicantsArray(item), createSelfApplicant(item)] };
-        })
-      );
+    async (target) => {
+      const { session, authReady } = useUserStore.getState();
+      if (!authReady) return;
+      if (!session.isAuthenticated) {
+        useUiStore.getState().openAuthPrompt("apply");
+        return;
+      }
+      if (!target || target.id == null || !canApplyToJob(target, viewerApplicantUserId)) return;
+      try {
+        const result = await applyJob(target.id);
+        if (Array.isArray(result?.jobs)) setJobs(result.jobs);
+      } catch (_) {
+        /* noop */
+      }
     },
-    [setJobs]
+    [setJobs, viewerApplicantUserId]
   );
 
   const handleConfirmApplicant = useCallback(
-    (jobId, applicantId) => {
-      setJobs((prev) =>
-        (Array.isArray(prev) ? prev : []).map((j) => {
-          if (!j || j.id !== jobId) return j;
-          const applicants = getApplicantsArray(j).map((a) =>
-            a.id === applicantId ? { ...a, status: "confirmed" } : a
-          );
-          return { ...j, status: JOB_STATUS.PENDING, applicants };
-        })
-      );
+    async (jobId, applicantId) => {
+      const { session, authReady } = useUserStore.getState();
+      if (!authReady) return;
+      if (!session.isAuthenticated) {
+        useUiStore.getState().openAuthPrompt("applicants");
+        return;
+      }
+      try {
+        await confirmJobApplicant(jobId, applicantId);
+      } catch (_) {
+        /* noop */
+      }
     },
-    [setJobs]
+    [confirmJobApplicant]
   );
 
   const handleRejectApplicant = useCallback(
-    (jobId, applicantId) => {
-      setJobs((prev) =>
-        (Array.isArray(prev) ? prev : []).map((j) => {
-          if (!j || j.id !== jobId) return j;
-          const applicants = getApplicantsArray(j).map((a) =>
-            a.id === applicantId ? { ...a, status: "rejected" } : a
-          );
-          return { ...j, applicants };
-        })
-      );
+    async (jobId, applicantId) => {
+      const { session, authReady } = useUserStore.getState();
+      if (!authReady) return;
+      if (!session.isAuthenticated) {
+        useUiStore.getState().openAuthPrompt("applicants");
+        return;
+      }
+      try {
+        await rejectJobApplicant(jobId, applicantId);
+      } catch (_) {
+        /* noop */
+      }
     },
-    [setJobs]
+    [rejectJobApplicant]
   );
 
   return (
@@ -80,12 +99,21 @@ export default function JobDetailPage() {
         job={job}
         onBack={() => navigate(-1)}
         onApply={handleApply}
-        onShowApplicants={() => job && setApplicantsOpen(true)}
+        onShowApplicants={() => {
+          const { session, authReady } = useUserStore.getState();
+          if (!authReady) return;
+          if (!session.isAuthenticated) {
+            useUiStore.getState().openAuthPrompt("applicants");
+            return;
+          }
+          if (job) setApplicantsOpen(true);
+        }}
       />
       {sheetJob ? (
         <ApplicantsSheet
           job={sheetJob}
           onClose={() => setApplicantsOpen(false)}
+          canManageApplicants={applicantsSheetCanManage}
           onConfirm={(applicantId) => handleConfirmApplicant(sheetJob.id, applicantId)}
           onReject={(applicantId) => handleRejectApplicant(sheetJob.id, applicantId)}
         />

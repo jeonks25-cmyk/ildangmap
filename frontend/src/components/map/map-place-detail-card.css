@@ -1,0 +1,149 @@
+.place-detail-card__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.place-detail-card__info {
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.place-detail-card__place-title {
+  margin: 0 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.place-detail-card__place-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.place-detail-card__meta {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.place-detail-card__meta-row {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.place-detail-card__meta-row dt {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.place-detail-card__meta-row dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.place-detail-card__distance {
+  font-weight: 900;
+  color: #16a34a !important;
+}
+
+.place-detail-card__maps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.place-detail-card__map-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #1c1917;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.place-detail-card__edit {
+  margin-top: 10px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  background: #fafafa;
+  color: #57534e;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.place-detail-card__board {
+  padding: 12px 14px 16px;
+}
+
+.place-detail-card__board-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 0;
+  border: none;
+  border-bottom: 1px solid #eef0f4;
+  background: transparent;
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.place-detail-card__board-row:last-child {
+  border-bottom: none;
+}
+
+.place-detail-card__board-author {
+  flex: 0 0 auto;
+  font-weight: 800;
+  color: #475569;
+}
+
+.place-detail-card__board-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #334155;
+  font-weight: 600;
+}
+
+.place-detail-card__board-like {
+  flex: 0 0 auto;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.place-detail-card__board-sep {
+  color: #cbd5e1;
+}

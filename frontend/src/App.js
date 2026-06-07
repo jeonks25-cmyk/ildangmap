@@ -1,33 +1,144 @@
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
-import { JobsProvider } from "./context/JobsContext";
-import { UserMapPreferencesProvider } from "./context/UserMapPreferencesContext";
 import AppShell from "./components/layout/AppShell";
 import MapPage from "./pages/MapPage";
-import JobDetailPage from "./pages/JobDetailPage";
-import CommunityTabPage from "./pages/CommunityTabPage";
-import ChatTabPage from "./pages/ChatTabPage";
 import MyTabPage from "./pages/MyTabPage";
-import CalendarPage from "./CalendarPage";
+import ContactsTabPage from "./pages/ContactsTabPage";
+import ScheduleTabPage from "./pages/ScheduleTabPage";
+import OAuthPage from "./OAuthPage";
+import { PersonCardProvider } from "./context/PersonCardContext";
+
+const FieldScheduleDetailPage = lazy(() => import("./pages/FieldScheduleDetailPage"));
+const BriefingRoomPage = lazy(() => import("./pages/BriefingRoomPage"));
+const ScheduleBriefingRoomPage = lazy(() => import("./pages/ScheduleBriefingRoomPage"));
+const TodayFieldWorkPage = lazy(() => import("./pages/TodayFieldWorkPage"));
+const VisitEstimateRequestPage = lazy(() => import("./pages/VisitEstimateRequestPage"));
+const FieldNotificationsTabPage = lazy(() => import("./pages/FieldNotificationsTabPage"));
+const FieldNotificationDetailPage = lazy(() => import("./pages/FieldNotificationDetailPage"));
+const ChatTabPage = lazy(() => import("./pages/ChatTabPage"));
+const ChatRoomPage = lazy(() => import("./pages/ChatRoomPage"));
+const JobDetailPage = lazy(() => import("./pages/JobDetailPage"));
+
+function LazyRoute({ children }) {
+  return <Suspense fallback={null}>{children}</Suspense>;
+}
+
+function HomeRoute() {
+  return <Navigate to="/map" replace />;
+}
 
 export default function App() {
   return (
     <BrowserRouter>
-      <JobsProvider>
-        <UserMapPreferencesProvider>
+      <PersonCardProvider>
         <Routes>
-          <Route path="/" element={<AppShell />}>
-            <Route index element={<Navigate to="map" replace />} />
-            <Route path="map" element={<MapPage />} />
-            <Route path="calendar" element={<CalendarPage />} />
-            <Route path="community" element={<CommunityTabPage />} />
-            <Route path="chat" element={<ChatTabPage />} />
-            <Route path="my" element={<MyTabPage />} />
-          </Route>
-          <Route path="/jobs/:id" element={<JobDetailPage />} />
-          <Route path="/job/:id" element={<JobDetailPage />} />
+        <Route path="/" element={<AppShell />}>
+          <Route index element={<Navigate to="map" replace />} />
+          <Route path="home" element={<HomeRoute />} />
+          <Route path="map" element={<MapPage />} />
+          <Route path="schedule/*" element={<ScheduleTabPage />} />
+          <Route path="contacts" element={<ContactsTabPage />} />
+          <Route
+            path="notifications/:threadId"
+            element={
+              <LazyRoute>
+                <FieldNotificationDetailPage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="notifications"
+            element={
+              <LazyRoute>
+                <FieldNotificationsTabPage />
+              </LazyRoute>
+            }
+          />
+          <Route path="settings" element={<MyTabPage />} />
+          <Route
+            path="visit-estimate"
+            element={
+              <LazyRoute>
+                <VisitEstimateRequestPage />
+              </LazyRoute>
+            }
+          />
+          <Route path="my-work" element={<Navigate to="/schedule" replace />} />
+          <Route path="ops-feed" element={<Navigate to="/notifications" replace />} />
+          <Route path="my" element={<Navigate to="/settings" replace />} />
+          <Route path="favorites" element={<Navigate to="/contacts" replace />} />
+          <Route path="calendar" element={<Navigate to="/schedule" replace />} />
+          <Route path="settlement" element={<Navigate to="/schedule" replace />} />
+          <Route path="briefing" element={<Navigate to="/schedule" replace state={{ focusMarketBriefing: true }} />} />
+          <Route path="community" element={<Navigate to="/notifications" replace />} />
+          <Route
+            path="chat"
+            element={
+              <LazyRoute>
+                <ChatTabPage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="chat/:roomId"
+            element={
+              <LazyRoute>
+                <ChatRoomPage />
+              </LazyRoute>
+            }
+          />
+        </Route>
+        <Route
+          path="/jobs/:id"
+          element={
+            <LazyRoute>
+              <JobDetailPage />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/jobs/:id/briefing"
+          element={
+            <LazyRoute>
+              <BriefingRoomPage />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/briefing-room/:briefingId"
+          element={
+            <LazyRoute>
+              <ScheduleBriefingRoomPage />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/today-field/:scheduleId"
+          element={
+            <LazyRoute>
+              <TodayFieldWorkPage />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/schedule/field/:scheduleId"
+          element={
+            <LazyRoute>
+              <FieldScheduleDetailPage />
+            </LazyRoute>
+          }
+        />
+        <Route
+          path="/job/:id"
+          element={
+            <LazyRoute>
+              <JobDetailPage />
+            </LazyRoute>
+          }
+        />
+        <Route path="/oauth/kakao/callback" element={<OAuthPage />} />
         </Routes>
-        </UserMapPreferencesProvider>
-      </JobsProvider>
+      </PersonCardProvider>
     </BrowserRouter>
   );
 }

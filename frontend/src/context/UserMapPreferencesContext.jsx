@@ -1,9 +1,8 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { CRAFT_LABEL } from "../utils/jobModel";
+import { useUserStore } from "../store/useUserStore";
 
-const STORAGE_KEY = "user_map_prefs_v1";
-
-export const REGION_OPTIONS = ["대전 서구", "대전 유성구", "대전 동구", "대전 중구", "전국"];
+export const REGION_OPTIONS = ["대전 서구", "대전 유성구", "대전 동구", "대전 중구", "세종", "청주", "전국"];
 
 export const PREF_TRADE_OPTIONS = ["전체", "조공", "준기공", "기공", "오야지"];
 
@@ -46,44 +45,16 @@ export function formatPreferenceSummary(prefs) {
   return `${craftPart} · ${tradePart}`;
 }
 
-function loadPrefs() {
-  try {
-    const s = localStorage.getItem(STORAGE_KEY);
-    if (!s) return { ...DEFAULT_PREFS };
-    return normalizePrefs(JSON.parse(s));
-  } catch (_) {
-    return { ...DEFAULT_PREFS };
-  }
-}
-
-const UserMapPreferencesContext = createContext(null);
-
 export function UserMapPreferencesProvider({ children }) {
-  const [prefs, setPrefsState] = useState(() => loadPrefs());
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
-    } catch (_) {
-      /* noop */
-    }
-  }, [prefs]);
-
-  const setPrefs = useCallback((patch) => {
-    setPrefsState((prev) => normalizePrefs({ ...prev, ...patch }));
-  }, []);
-
-  const value = useMemo(() => ({ prefs, setPrefs }), [prefs, setPrefs]);
-
-  return <UserMapPreferencesContext.Provider value={value}>{children}</UserMapPreferencesContext.Provider>;
+  return children;
 }
 
 export function useUserMapPreferences() {
-  const ctx = useContext(UserMapPreferencesContext);
-  if (!ctx) {
-    throw new Error("useUserMapPreferences must be used within UserMapPreferencesProvider");
-  }
-  return ctx;
+  const rawPrefs = useUserStore((state) => state.prefs);
+  const setPrefs = useUserStore((state) => state.setPrefs);
+  const prefs = useMemo(() => normalizePrefs(rawPrefs), [rawPrefs]);
+
+  return { prefs, setPrefs };
 }
 
 export function jobMatchesRegionPref(job, regionLabel) {

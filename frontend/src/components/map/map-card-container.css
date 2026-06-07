@@ -1,0 +1,205 @@
+/* ═══ 지도 탭 공통 카드 (목록·상세·검색 등) ═══ */
+
+.map-tab-page--geo {
+  --map-card-sheet-gap: 6px;
+  --map-card-sheet-top: calc(
+    var(--geo-map-topbar-stack-h, 132px) + max(0px, env(safe-area-inset-top, 0px)) + var(--map-card-sheet-gap)
+  );
+  --map-card-sheet-fab-strip: calc(var(--map-floating-size, 48px) + 12px);
+  --map-card-sheet-bottom: calc(
+    var(--daangn-tabbar-base-h, 90px) + env(safe-area-inset-bottom, 0px) + var(--map-card-sheet-fab-strip) +
+      var(--map-card-sheet-gap)
+  );
+  --map-card-sheet-max-height: min(
+    75dvh,
+    calc(100dvh - var(--map-card-sheet-top) - var(--map-card-sheet-bottom))
+  );
+}
+
+.map-tab-page--geo .map-geo-stage__map-column > .map-card-shell {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-overlay-card, 200);
+  pointer-events: none;
+}
+
+.map-card-shell {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-overlay-card, 200);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.map-card-container {
+  pointer-events: auto;
+  position: fixed;
+  top: var(--map-card-sheet-top);
+  bottom: var(--map-card-sheet-bottom);
+  left: 14px;
+  right: 14px;
+  width: auto;
+  max-width: 420px;
+  height: auto;
+  min-height: 0;
+  max-height: var(--map-card-sheet-max-height);
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--app-sheet-radius, 16px);
+  background: #fff;
+  box-shadow: var(--app-sheet-shadow);
+  border: var(--app-sheet-border);
+  overflow: hidden;
+  animation: map-card-container-pop 0.2s ease-out both;
+}
+
+@keyframes map-card-container-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.map-card-container__sticky-top {
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #fff;
+}
+
+.map-card-container__head {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid #eef0f4;
+}
+
+.map-card-container__lead {
+  padding: 10px 14px 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #78716c;
+}
+
+.map-card-container__head:has(+ .map-card-container__sticky-slot),
+.map-card-container__sticky-top .map-card-container__head {
+  border-bottom: none;
+}
+
+.map-card-container__back {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-card-container__back:active {
+  background: #e5e7eb;
+}
+
+.map-card-container__head-spacer {
+  width: 36px;
+  height: 36px;
+}
+
+.map-card-container__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #0f172a;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-card-container__close {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-card-container__close:active {
+  background: #e5e7eb;
+}
+
+.map-card-container__sticky-slot {
+  flex: 0 0 auto;
+}
+
+.map-card-container__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.map-card-container__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.map-tab-page--map-card-open:not(.map-tab-page--search-panel-open) .map-floating-action-layer,
+.map-tab-page--place-overlay-open .map-floating-action-layer {
+  z-index: calc(var(--z-overlay-card, 200) - 1);
+}
+
+.map-tab-page--map-card-open:not(.map-tab-page--search-panel-open) .map-floating-anchor .map-floating-btn,
+.map-tab-page--place-overlay-open .map-floating-anchor .map-floating-btn {
+  z-index: calc(var(--z-overlay-card, 200) - 2);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* 장소검색 패널 OPEN — 지도 FAB 전부 숨김 */
+.map-tab-page--search-panel-open .map-floating-anchor,
+.map-tab-page--search-panel-open .map-floating-action-layer,
+.map-tab-page--search-panel-open .floating-action-button-anchor {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .map-card-container {
+    animation: none;
+  }
+}

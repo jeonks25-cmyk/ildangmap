@@ -1,0 +1,207 @@
+/* 지도 상단바 2줄 — Row1: 브랜드·검색·알림 / Row2: 카테고리칩 */
+
+.map-page-head.map-page-head--market {
+  background: #ffffff;
+  border-bottom: none;
+  pointer-events: auto;
+}
+
+.map-page-head--branded.map-page-head--geo-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  background: #ffffff;
+  box-shadow: 0 1px 0 #f0f0f2;
+}
+
+.map-page-head--geo-stack .map-page-head__row--primary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: max(8px, env(safe-area-inset-top, 0px)) var(--app-page-pad-x, 14px) 10px;
+}
+
+.map-page-head--title-only .map-page-head__row--primary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.map-page-head--geo-stack .map-page-head__row--categories {
+  padding: 0 0 8px;
+}
+
+/* 검색 1줄 + 카테고리 2줄 — 일정 탭 월 네비와 동일 여백 */
+.map-page-head--search .map-page-head__row--categories {
+  padding: 8px 10px 4px;
+}
+
+.map-page-head--search .map-page-head__row--categories .map-layer-chips {
+  padding: 0;
+}
+
+.map-page-head--geo-stack .map-page-head__row--categories .map-layer-chips {
+  width: 100%;
+}
+
+.map-page-head--geo-stack .map-page-head__brand {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: var(--app-font-title, 23px);
+  font-weight: var(--app-font-title-weight, 800);
+  letter-spacing: var(--app-font-title-spacing, -0.03em);
+  color: var(--app-color-title, #111827);
+  line-height: var(--app-line-tight, 1.38);
+  white-space: nowrap;
+}
+
+.map-page-head--geo-stack .map-page-head__search-form {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+.map-page-head--geo-stack .map-page-head__search-input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 36px 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.map-page-head--geo-stack .map-page-head__search-input:focus {
+  border-color: var(--ildang-signature-green, #1fa35b);
+  box-shadow: 0 0 0 3px rgba(31, 163, 91, 0.12);
+  background: #ffffff;
+}
+
+.map-page-head--geo-stack .map-page-head__search-input::placeholder {
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+.map-page-head--geo-stack .map-page-head__actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.map-page-head__action {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--app-color-title, #111827);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-page-head__action--alerts {
+  color: var(--app-color-title, #111827);
+}
+
+.map-page-head__icon-alerts {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.map-page-head__action:active {
+  background: var(--app-color-surface-muted, #f3f4f6);
+}
+
+.map-page-head__badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--ildang-green, #2f8f46);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+  border: 1px solid #fff;
+  box-sizing: border-box;
+}
+
+.map-page-head__badge--alerts,
+.map-page-head__badge--notify {
+  top: 2px;
+  right: 0;
+}
+
+.map-page-head__notify {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 40px;
+  padding: 2px 4px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--app-color-title, #111827);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-page-head__notify:active {
+  background: var(--app-color-surface-muted, #f3f4f6);
+}
+
+.map-page-head__notify-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.map-page-head__notify-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.map-page-head__search-clear {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  width: 30px;
+  height: 30px;
+  transform: translateY(-50%);
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.map-tab-page--geo .map-geo-stage__top > * {
+  pointer-events: auto;
+}

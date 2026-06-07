@@ -1,7 +1,10 @@
 /* src/App.css */
+@import "./styles/design-tokens.css";
+@import "./styles/ildang-ui-system.css";
+
 :root {
   --primary: #111111;
-  --secondary: #22c55e; /* 지원하기/상태 배지용 초록 */
+  --secondary: #22c55e; /* 참여 요청/상태 배지용 초록 */
   --bg-main: #f7f7f7;
   --daangn-orange: #ff7a00;
   --text-main: #111111;
@@ -488,347 +491,6 @@ body {
   }
 }
 
-/* Bottom Sheet */
-.bottom-sheet {
-  display: none;
-  position: absolute;
-  left: 0;
-  right: 0;
-  margin: 0 10px;
-  border-radius: 28px 28px 22px 22px;
-  background: var(--glass-bg-strong);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  box-shadow: 0 -12px 44px rgba(15, 23, 42, 0.12), 0 1px 0 rgba(255, 255, 255, 0.5) inset;
-  z-index: 900;
-  overflow: hidden;
-  transition: height 0.38s cubic-bezier(0.33, 1, 0.68, 1);
-  flex-direction: column;
-  max-height: 70vh;
-}
-
-.bottom-sheet--dragging {
-  transition: none !important;
-}
-
-.bottom-sheet-grab-area {
-  cursor: grab;
-  touch-action: none;
-  padding: 6px 24px 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.bottom-sheet-grab-area:active {
-  cursor: grabbing;
-}
-
-.bottom-sheet--geo .bottom-sheet-content {
-  touch-action: pan-y;
-}
-
-/* BottomSheet: 모바일·태블릿 세로 UX 전용 */
-.map-page--immersive .layout-mobile-only .bottom-sheet {
-  display: flex;
-  bottom: calc(var(--safe-bottom) + 80px);
-}
-
-.bottom-sheet-handle {
-  width: 100%;
-  padding: 16px;
-  border: none;
-  background: transparent;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  cursor: default;
-}
-
-.bottom-sheet-handle--geo {
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 16px 8px;
-  border-bottom: 1px solid rgba(226, 232, 240, 0.85);
-}
-
-.bottom-sheet-handle-row--geo {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: nowrap;
-  width: 100%;
-}
-
-.bottom-sheet-handle-main {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  padding: 2px 8px 4px 0;
-  border: none;
-  background: transparent;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.bottom-sheet-subtitle {
-  margin: 4px 0 0;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: #868b94;
-  line-height: 1.35;
-}
-
-.bottom-sheet-close-text {
-  flex-shrink: 0;
-  margin: 0;
-  padding: 8px 10px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #6b7280;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.bottom-sheet-close-text:active {
-  background: #f3f4f6;
-  color: #111827;
-}
-
-.bottom-sheet-header-right {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.bottom-sheet-grabber {
-  width: 40px;
-  height: 4px;
-  border-radius: 999px;
-  background: #e2e8f0;
-  margin-bottom: 12px;
-}
-
-.bottom-sheet-grabber--geo {
-  width: 36px;
-  height: 3px;
-  margin-bottom: 0;
-  opacity: 0.75;
-}
-
-.bottom-sheet-handle-hint {
-  font-size: 11px;
-  font-weight: 800;
-  color: #94a3b8;
-  letter-spacing: -0.02em;
-}
-
-.bottom-sheet-title {
-  font-weight: 900;
-  font-size: 16px;
-  color: #111827;
-}
-
-.bottom-sheet-content {
-  flex: 1;
-  min-height: 0;
-  padding: 0 20px 20px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  touch-action: pan-y;
-}
-
-.bottom-sheet-selected-card {
-  position: relative;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(226, 232, 240, 0.95);
-  border-radius: 16px;
-  padding: 14px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.07);
-}
-
-.bottom-sheet-selected-card.is-hidden {
-  display: none;
-}
-
-.bottom-sheet-selected-close {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  border: none;
-  background: transparent;
-  font-size: 16px;
-  cursor: pointer;
-  color: #6b7280;
-}
-
-.bottom-sheet-selected-label {
-  font-size: 11px;
-  font-weight: 800;
-  color: #16a34a;
-  margin-bottom: 8px;
-}
-
-.bottom-sheet-apply-btn {
-  margin-top: 12px;
-  margin-bottom: 0;
-  background: #22c55e;
-}
-
-.bottom-sheet-list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 8px 0 12px;
-}
-
-.bottom-sheet-list-title {
-  font-size: 17px;
-  font-weight: 900;
-  color: #111827;
-}
-
-.bottom-sheet-list-count {
-  font-size: 11px;
-  font-weight: 800;
-  color: #9ca3af;
-}
-
-.bottom-sheet-list-area {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding-top: 4px;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
-}
-
-.bottom-sheet-job-form {
-  flex-shrink: 0;
-  background: rgba(249, 250, 251, 0.78);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 16px;
-  padding: 12px 12px 10px;
-  border: 1px solid rgba(226, 232, 240, 0.95);
-  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
-}
-
-.bottom-sheet-job-form-title {
-  font-size: 12px;
-  font-weight: 900;
-  color: #64748b;
-  margin-bottom: 8px;
-  letter-spacing: -0.01em;
-}
-
-.bottom-sheet-address-hit {
-  font-size: 11px;
-  padding: 8px 10px;
-  margin-bottom: 4px;
-  border-radius: 10px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  cursor: pointer;
-  color: #334155;
-}
-
-.bottom-sheet-address-hit:focus {
-  outline: 2px solid #22c55e;
-  outline-offset: 1px;
-}
-
-.bottom-sheet-filter-strip {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  margin-top: 2px;
-}
-
-.filter-btn--compact {
-  padding: 6px 12px;
-  font-size: 12px;
-  border-radius: 999px;
-}
-
-.main-btn--compact {
-  height: 44px;
-  margin-bottom: 0;
-  margin-top: 4px;
-  font-size: 14px;
-  border-radius: 14px;
-}
-
-.bottom-sheet-selected-pay {
-  font-size: 15px;
-  font-weight: 900;
-  color: #111827;
-  margin: 6px 0 4px;
-}
-
-.bottom-sheet-selected-meta {
-  font-size: 12px;
-  color: #64748b;
-  margin: 2px 0;
-}
-
-.map-page--immersive .layout-mobile-only .bottom-sheet .job-card {
-  padding: 12px 14px;
-  margin-bottom: 10px;
-  border-radius: 18px;
-}
-
-.map-page--immersive .layout-mobile-only .bottom-sheet .job-card strong {
-  font-size: 16px;
-  margin-bottom: 8px;
-}
-
-.map-page--immersive .layout-mobile-only .bottom-sheet .job-top-row {
-  margin-bottom: 8px;
-}
-
-.map-page--immersive .layout-mobile-only .bottom-sheet .job-info-row {
-  align-items: center;
-}
-
-.map-page--immersive .layout-mobile-only .bottom-sheet .job-apply-btn {
-  padding: 8px 14px;
-  font-size: 12px;
-}
-
-.map-page--immersive .layout-mobile-only .bottom-sheet .job-applicants-badge {
-  top: 12px;
-  right: 40px;
-  font-size: 9px;
-}
-
-.map-page--immersive .layout-mobile-only .bottom-sheet .job-pay-text {
-  font-size: 15px;
-}
-
-.map-page--immersive .layout-mobile-only .bottom-sheet .job-loc-pay p {
-  font-size: 12px;
-}
-
 /* 거지맵형 상단: 지도 위 absolute 오버레이 (패널과 분리) */
 .geo-top-bar.geo-top-bar--overlay {
   position: absolute;
@@ -950,7 +612,7 @@ body {
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
 }
 
-.geo-map-float--rank {
+.geo-map-float--context {
   padding: 8px 12px;
   border-radius: 999px;
   font-size: 12px;
@@ -990,12 +652,12 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-/* 데스크톱 좌측 랭킹 패널 (정적 데모 리스트) */
-.floating-left-rank {
+/* 데스크톱 좌측 경험 맥락 패널 (정적 데모 리스트) */
+.floating-left-context {
   display: none;
 }
 
-.floating-left-rank__title {
+.floating-left-context__title {
   font-size: 13px;
   font-weight: 900;
   color: #0f172a;
@@ -1003,7 +665,7 @@ body {
   letter-spacing: -0.02em;
 }
 
-.floating-left-rank__list {
+.floating-left-context__list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1012,7 +674,7 @@ body {
   gap: 6px;
 }
 
-.floating-left-rank__item {
+.floating-left-context__item {
   display: grid;
   grid-template-columns: 28px 22px 1fr auto;
   align-items: center;
@@ -1025,23 +687,23 @@ body {
   color: #334155;
 }
 
-.floating-left-rank__num {
+.floating-left-context__num {
   font-weight: 900;
   color: #64748b;
 }
 
-.floating-left-rank__emoji {
+.floating-left-context__emoji {
   text-align: center;
 }
 
-.floating-left-rank__name {
+.floating-left-context__name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.floating-left-rank__delta {
+.floating-left-context__delta {
   font-size: 10px;
   font-weight: 900;
   color: #16a34a;
@@ -1174,7 +836,7 @@ body {
   color: #fafafa;
 }
 
-/* 공고 카드 — 거지맵형 리스트 (패널·시트 공통) */
+/* 현장 카드 — 지도 리스트 (패널·시트 공통) */
 .job-list--geo .job-card--geo {
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
@@ -1374,37 +1036,6 @@ body {
   opacity: 0.45;
 }
 
-/* 공유 jobs-panel: 기본(모바일 시트 내부) */
-.jobs-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-height: 0;
-}
-
-/* 플로팅 패널·시트 내부: 목록 우선·폼 하단 (스크롤 1열) */
-.jobs-panel--overlay {
-  gap: 12px;
-}
-
-.floating-right-panel__scroll .jobs-panel--overlay,
-.bottom-sheet-content .jobs-panel--overlay {
-  flex: 1;
-  min-height: 0;
-}
-
-.jobs-panel--overlay .jobs-panel__list {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.jobs-panel--overlay .bottom-sheet-list-area {
-  flex: 1 1 auto;
-  min-height: 0;
-}
-
 @media (min-width: 1024px) {
   .map-overlay-fabs {
     display: none !important;
@@ -1432,9 +1063,6 @@ body {
   }
 }
 
-.jobs-panel__form-grid {
-  display: block;
-}
 
 .job-list-empty {
   text-align: center;
@@ -1444,7 +1072,7 @@ body {
   font-size: 13px;
 }
 
-/* 지도 마커 — 말풍선(만 단위) · 톤색 · 선택 시 확대 */
+/* 지도 마커 — 금액 중심 말풍선 · 일반/헬프/야간/반일 구분 */
 .job-pin-marker-anchor {
   position: relative;
   display: flex;
@@ -1453,7 +1081,7 @@ body {
   width: max-content;
   max-width: min(92vw, 280px);
   pointer-events: auto;
-  filter: drop-shadow(0 5px 12px rgba(15, 23, 42, 0.2));
+  filter: drop-shadow(0 7px 16px rgba(15, 23, 42, 0.2));
   transition:
     transform 0.22s cubic-bezier(0.34, 1.15, 0.64, 1),
     filter 0.2s ease;
@@ -1483,101 +1111,268 @@ body {
 }
 
 .job-pin-marker__box {
-  min-width: 52px;
-  padding: 7px 11px 8px;
-  border-radius: 14px;
+  min-width: 62px;
+  padding: 8px 12px 9px;
+  border-radius: 18px;
   box-sizing: border-box;
   text-align: center;
-  line-height: 1.15;
+  line-height: 1.08;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow:
-    0 2px 8px rgba(15, 23, 42, 0.12),
-    0 6px 16px rgba(15, 23, 42, 0.1);
+    0 4px 12px rgba(15, 23, 42, 0.16),
+    0 10px 22px rgba(15, 23, 42, 0.14);
   color: #fff;
 }
 
-.job-pin-marker__pay {
-  font-size: clamp(15px, 4.1vw, 17px);
-  font-weight: 900;
-  letter-spacing: -0.07em;
+.job-pin-marker__main-row {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 
-.job-pin-marker__sub {
-  margin-top: 3px;
-  font-size: clamp(11px, 2.9vw, 12px);
+.job-pin-marker__prefix {
+  font-size: clamp(11px, 2.8vw, 13px);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.job-pin-marker__pay {
+  font-size: clamp(16px, 4.2vw, 18px);
+  font-weight: 900;
+  letter-spacing: -0.07em;
+  line-height: 1;
+}
+
+.job-pin-marker__meta {
+  margin-top: 4px;
+  font-size: clamp(11px, 2.8vw, 12px);
   font-weight: 800;
   letter-spacing: -0.04em;
-  opacity: 0.95;
+  opacity: 0.96;
+  white-space: nowrap;
 }
 
 .job-pin-marker__tail {
   width: 0;
   height: 0;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-top: 8px solid #16a34a;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 9px solid #1f2937;
   margin-top: -1px;
   pointer-events: none;
   transition: border-top-color 0.18s ease;
 }
 
-/* 톤: 일반 초록 · 긴급 빨강 · 오늘 주황 · 프리미엄 검정 */
-.job-pin-marker--tone-normal .job-pin-marker__box {
-  background: #16a34a;
+.job-pin-marker--compact .job-pin-marker__box {
+  min-width: 54px;
+  padding: 6px 10px 7px;
+  border-radius: 16px;
 }
 
-.job-pin-marker--tone-normal .job-pin-marker__tail {
-  border-top-color: #16a34a;
+.job-pin-marker--compact .job-pin-marker__pay {
+  font-size: clamp(14px, 3.8vw, 16px);
 }
 
-.job-pin-marker--tone-urgent .job-pin-marker__box {
-  background: #ef4444;
+.job-pin-marker--compact .job-pin-marker__meta {
+  font-size: clamp(10px, 2.6vw, 11px);
 }
 
-.job-pin-marker--tone-urgent .job-pin-marker__tail {
-  border-top-color: #ef4444;
+.job-pin-marker--variant-general .job-pin-marker__box {
+  background: linear-gradient(180deg, #374151 0%, #1f2937 100%);
 }
 
-.job-pin-marker--tone-today .job-pin-marker__box {
-  background: #ea580c;
+.job-pin-marker--variant-general .job-pin-marker__tail {
+  border-top-color: #1f2937;
 }
 
-.job-pin-marker--tone-today .job-pin-marker__tail {
+.job-pin-marker--variant-help .job-pin-marker__box {
+  background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);
+}
+
+.job-pin-marker--variant-help .job-pin-marker__tail {
   border-top-color: #ea580c;
 }
 
-.job-pin-marker--tone-premium .job-pin-marker__box {
-  background: #0f172a;
-  color: #f8fafc;
+.job-pin-marker--variant-night .job-pin-marker__box {
+  background: linear-gradient(180deg, #8b5cf6 0%, #6d28d9 100%);
 }
 
-.job-pin-marker--tone-premium .job-pin-marker__tail {
-  border-top-color: #0f172a;
+.job-pin-marker--variant-night .job-pin-marker__tail {
+  border-top-color: #6d28d9;
+}
+
+.job-pin-marker--variant-half .job-pin-marker__box {
+  background: linear-gradient(180deg, #64748b 0%, #475569 100%);
+}
+
+.job-pin-marker--variant-half .job-pin-marker__tail {
+  border-top-color: #475569;
+}
+
+.job-pin-marker--closed {
+  opacity: 0.62;
+  filter: grayscale(0.16);
+}
+
+.job-pin-marker--help {
+  position: relative;
+}
+
+.job-pin-marker__help-ring {
+  position: absolute;
+  inset: -7px;
+  border-radius: 999px;
+  border: 2px solid rgba(251, 146, 60, 0.42);
+  animation: job-help-ring-pulse 1.45s ease-out infinite;
+}
+
+.job-pin-marker--help .job-pin-marker__box {
+  box-shadow:
+    0 0 0 4px rgba(255, 247, 237, 0.85),
+    0 12px 26px rgba(234, 88, 12, 0.2);
+}
+
+.job-pin-marker--help-safe .job-pin-marker__help-ring {
+  border-color: rgba(251, 146, 60, 0.42);
+}
+
+.job-pin-marker--help-warning .job-pin-marker__help-ring {
+  border-color: rgba(249, 115, 22, 0.54);
+}
+
+.job-pin-marker--help-critical .job-pin-marker__help-ring {
+  border-color: rgba(234, 88, 12, 0.55);
+}
+
+.job-pin-marker--help-closed .job-pin-marker__help-ring {
+  animation: none;
+  border-color: rgba(148, 163, 184, 0.46);
+}
+
+.job-pin-marker--help-boost .job-pin-marker__help-ring {
+  inset: -8px;
+  border-width: 2px;
+  border-color: rgba(234, 88, 12, 0.65);
+  animation-duration: 1.05s;
+}
+
+.job-pin-marker--help-boost .job-pin-marker__box {
+  box-shadow:
+    0 0 0 3px rgba(255, 247, 237, 0.95),
+    0 10px 22px rgba(234, 88, 12, 0.2);
+}
+
+@keyframes job-help-ring-pulse {
+  0% {
+    transform: scale(0.96);
+    opacity: 0.95;
+  }
+  72% {
+    transform: scale(1.08);
+    opacity: 0.22;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 0;
+  }
 }
 
 .job-pin-marker-anchor--selected {
-  transform: scale(1.1);
+  transform: scale(1.12);
   z-index: 3;
-  filter: drop-shadow(0 8px 20px rgba(15, 23, 42, 0.28));
+  filter: drop-shadow(0 10px 24px rgba(15, 23, 42, 0.3));
 }
 
 .job-pin-marker-anchor--selected .job-pin-marker__box {
+  background: linear-gradient(180deg, #111827 0%, #000000 100%);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.2);
   box-shadow:
-    0 4px 14px rgba(15, 23, 42, 0.18),
-    0 10px 26px rgba(15, 23, 42, 0.14);
+    0 0 0 2px rgba(17, 24, 39, 0.14),
+    0 8px 22px rgba(15, 23, 42, 0.24);
+}
+
+.job-pin-marker-anchor--selected .job-pin-marker__tail {
+  border-top-color: #000000;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .job-pin-marker-anchor:not(.job-pin-marker-anchor--selected):hover {
-    filter: drop-shadow(0 7px 16px rgba(15, 23, 42, 0.22));
+    filter: drop-shadow(0 10px 20px rgba(15, 23, 42, 0.24));
   }
 
-  .job-pin-marker-anchor:not(.job-pin-marker-anchor--selected) .job-pin-marker:hover {
-    transform: translateY(-1px);
-  }
-
+  .job-pin-marker-anchor:not(.job-pin-marker-anchor--selected) .job-pin-marker:hover,
   .job-pin-marker-anchor--selected .job-pin-marker:hover {
     transform: translateY(-1px);
   }
+}
+
+/* 거지맵형 compact pay bubble */
+.job-pin-marker-anchor--geo {
+  filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.14));
+}
+
+.job-pin-marker-anchor--geo.job-pin-marker-anchor--selected {
+  transform: scale(1.08);
+  filter: drop-shadow(0 4px 10px rgba(15, 23, 42, 0.2));
+}
+
+.job-pin-marker--geo .job-pin-marker__box--geo {
+  min-width: 0;
+  padding: 4px 8px 5px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
+}
+
+.job-pin-marker--geo .job-pin-marker__chip {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.job-pin-marker--geo .job-pin-marker__tail--geo {
+  border-left-width: 5px;
+  border-right-width: 5px;
+  border-top-width: 6px;
+  margin-top: -1px;
+}
+
+.job-pin-marker--geo-general .job-pin-marker__box--geo {
+  background: #1f2937;
+}
+
+.job-pin-marker--geo-general .job-pin-marker__tail--geo {
+  border-top-color: #1f2937;
+}
+
+.job-pin-marker--geo-urgent .job-pin-marker__box--geo {
+  background: linear-gradient(180deg, #fb923c, #ea580c);
+}
+
+.job-pin-marker--geo-urgent .job-pin-marker__tail--geo {
+  border-top-color: #ea580c;
+}
+
+.job-pin-marker--geo-night .job-pin-marker__box--geo {
+  background: linear-gradient(180deg, #7c3aed, #5b21b6);
+}
+
+.job-pin-marker--geo-night .job-pin-marker__tail--geo {
+  border-top-color: #5b21b6;
+}
+
+.job-pin-marker--geo-half .job-pin-marker__box--geo {
+  background: linear-gradient(180deg, #64748b, #475569);
+}
+
+.job-pin-marker--geo-half .job-pin-marker__tail--geo {
+  border-top-color: #475569;
 }
 
 /*
@@ -1630,88 +1425,9 @@ body {
     font-size: 11px;
   }
 
-  .layout-mobile-only .bottom-sheet-handle {
-    padding: 8px 12px 6px;
-  }
-
-  .layout-mobile-only .bottom-sheet-grabber {
-    margin-bottom: 6px;
-  }
-
-  .layout-mobile-only .bottom-sheet-title {
-    font-size: 14px;
-  }
-
-  .layout-mobile-only .bottom-sheet-content {
-    padding: 0 12px 10px;
-    gap: 6px;
-  }
-
-  .layout-mobile-only .bottom-sheet-selected-card {
-    padding: 10px 12px;
-    border-radius: 14px;
-  }
-
-  .layout-mobile-only .bottom-sheet-selected-label {
-    margin-bottom: 4px;
-    font-size: 10px;
-  }
-
-  .layout-mobile-only .bottom-sheet-selected-card strong {
-    font-size: 15px;
-    line-height: 1.25;
-  }
-
-  .layout-mobile-only .bottom-sheet-apply-btn {
-    margin-top: 8px;
-    height: 44px;
-    font-size: 14px;
-  }
-
-  .layout-mobile-only .bottom-sheet-list-header {
-    margin: 4px 0 8px;
-  }
-
-  .layout-mobile-only .bottom-sheet-list-title {
-    font-size: 15px;
-  }
-
-  .layout-mobile-only .bottom-sheet-list-area {
-    padding-top: 0;
-  }
-
-  .layout-mobile-only .bottom-sheet .job-card {
-    padding: 12px 14px;
-    margin-bottom: 10px;
-    border-radius: 18px;
-  }
-
-  .layout-mobile-only .bottom-sheet .job-card strong {
-    font-size: 16px;
-    margin-bottom: 8px;
-  }
-
-  .layout-mobile-only .bottom-sheet .job-top-row {
-    margin-bottom: 8px;
-  }
-
-  .layout-mobile-only .bottom-sheet .job-info-row {
-    align-items: center;
-  }
-
-  .layout-mobile-only .bottom-sheet .job-apply-btn {
-    padding: 8px 14px;
-    font-size: 12px;
-  }
-
-  .layout-mobile-only .bottom-sheet .job-applicants-badge {
-    top: 12px;
-    right: 40px;
-    font-size: 9px;
-  }
 }
 
-/* 모바일 가로: 우측 공고 패널 (맵 영역 확보) */
+/* 모바일 가로: 우측 현장 패널 (맵 영역 확보) */
 @media (max-width: 1023px) and (orientation: landscape) {
   .floating-right-panel.floating-right-panel--landscape {
     flex-direction: column;
@@ -1760,9 +1476,6 @@ body {
     margin-bottom: 6px;
   }
 
-  .floating-right-panel--landscape .bottom-sheet-job-form {
-    padding: 6px 8px;
-  }
 }
 
 /* ─── 데스크톱 (≥1024): BottomSheet 숨김, 우측 플로팅 패널, 상단 오버레이 유지 ─── */
@@ -1795,7 +1508,7 @@ body {
     border-radius: 0;
   }
 
-  .floating-left-rank.layout-desktop-only {
+  .floating-left-context.layout-desktop-only {
     display: flex;
     flex-direction: column;
     position: absolute;
@@ -1905,108 +1618,6 @@ body {
   .map-page--immersive .geo-header__mode-btn {
     padding: 8px 16px;
     font-size: 12px;
-  }
-
-  /* 패널 내부 정보 밀도 ↑ */
-  .floating-right-panel .jobs-panel {
-    gap: 8px;
-  }
-
-  .floating-right-panel .bottom-sheet-list-header {
-    display: none;
-  }
-
-  .floating-right-panel .bottom-sheet-job-form {
-    padding: 8px 10px 8px;
-    border-radius: 12px;
-  }
-
-  .floating-right-panel .bottom-sheet-job-form-title {
-    font-size: 10px;
-    margin-bottom: 6px;
-  }
-
-  .floating-right-panel .jobs-panel__form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px 8px;
-    align-items: start;
-  }
-
-  .floating-right-panel .jobs-panel__form-grid > input[name="title"],
-  .floating-right-panel .jobs-panel__form-grid > input[name="pay"] {
-    margin-bottom: 0 !important;
-  }
-
-  .floating-right-panel .jobs-panel__form-grid input {
-    margin-bottom: 0 !important;
-  }
-
-  .floating-right-panel .jobs-panel__trade-select {
-    grid-column: 1 / -1;
-  }
-
-  .floating-right-panel .jobs-panel__address-row {
-    grid-column: 1 / -1;
-    margin-bottom: 0 !important;
-  }
-
-  .floating-right-panel .jobs-panel__form-grid > .bottom-sheet-address-hit {
-    grid-column: 1 / -1;
-    margin-bottom: 2px;
-    padding: 6px 8px;
-    font-size: 10px;
-  }
-
-  .floating-right-panel .jobs-panel__submit {
-    grid-column: 1 / -1;
-    height: 36px;
-    font-size: 12px;
-    border-radius: 10px;
-    margin-top: 2px;
-  }
-
-  .floating-right-panel .bottom-sheet-selected-card {
-    padding: 8px 10px 10px;
-    border-radius: 12px;
-  }
-
-  .floating-right-panel .bottom-sheet-selected-label {
-    font-size: 9px;
-    margin-bottom: 4px;
-  }
-
-  .floating-right-panel .bottom-sheet-selected-card strong {
-    font-size: 13px;
-    line-height: 1.3;
-    display: block;
-    margin-bottom: 4px;
-  }
-
-  .floating-right-panel .bottom-sheet-selected-pay {
-    font-size: 13px;
-    margin: 2px 0;
-  }
-
-  .floating-right-panel .bottom-sheet-selected-meta {
-    font-size: 11px;
-  }
-
-  .floating-right-panel .bottom-sheet-apply-btn {
-    margin-top: 8px;
-    height: 36px;
-    font-size: 12px;
-    border-radius: 10px;
-  }
-
-  .floating-right-panel .filter-btn--compact {
-    padding: 4px 10px;
-    font-size: 11px;
-  }
-
-  .floating-right-panel .bottom-sheet-list-area {
-    padding-top: 0;
-    min-height: 120px;
   }
 
   .floating-right-panel .job-list--geo .job-card--geo {

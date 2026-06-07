@@ -31,3 +31,12 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Deploy / dependencies / env ###
+node_modules/
+backend/.gradle/
+backend/build/
+frontend/build/
+.env
+.env.*
+!.env.example

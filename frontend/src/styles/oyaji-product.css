@@ -1,0 +1,1036 @@
+/**
+ * 오야지 제품 감성 — 조용한 현장 운영 (플랫폼형 리스트/ERP 톤 배제)
+ */
+:root {
+  --oyaji-bg: #f4f1ec;
+  --oyaji-surface: #fffcf9;
+  --oyaji-ink: #1c1917;
+  /** 실외 가독용 — time·strip 등 */
+  --oyaji-ink-soft: #44403c;
+  --oyaji-muted: #78716c;
+  --oyaji-warning: #9a3412;
+  --oyaji-line: #e7e5e4;
+  --oyaji-accent: #c2410c;
+  --oyaji-accent-soft: #fff7ed;
+  --oyaji-warm: #faf8f5;
+  --oyaji-pad: 16px;
+  --oyaji-radius-lg: 20px;
+  --oyaji-radius-md: 14px;
+  --oyaji-radius-sm: 10px;
+  --oyaji-type-title: 900 -0.04em;
+  --oyaji-type-body: 600 -0.02em;
+  --oyaji-type-caption: 700 -0.01em;
+  --oyaji-motion-fast: 150ms;
+  --oyaji-motion-med: 180ms;
+  --oyaji-motion-focus: 820ms;
+  --oyaji-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ─── 앱 셸: 브랜드 토큰 ─── */
+.daangn-shell--oyaji {
+  --home-brand: var(--oyaji-accent);
+  --geo-brand: var(--oyaji-accent);
+  --home-feed-pad: var(--oyaji-pad);
+  background: var(--oyaji-bg);
+}
+
+.daangn-shell--oyaji .daangn-shell__main {
+  background: var(--oyaji-bg);
+}
+
+/* ─── 하단 탭바: 현장 운영 ─── */
+.daangn-shell--oyaji .geo-tabbar-shell,
+.geo-tabbar-shell--oyaji {
+  background: var(--oyaji-surface);
+  border-top: 1px solid var(--oyaji-line);
+  box-shadow: 0 -4px 24px rgba(28, 25, 23, 0.04);
+}
+
+.daangn-shell--oyaji .geo-tabbar--oyaji,
+.geo-tabbar--oyaji {
+  min-height: 54px;
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+  background: transparent;
+}
+
+.geo-tabbar--oyaji .geo-tabbar__item {
+  color: var(--oyaji-muted);
+  gap: 3px;
+}
+
+.geo-tabbar--oyaji .geo-tabbar__icon {
+  width: 22px;
+  height: 22px;
+  background-size: 20px 20px;
+  opacity: 0.72;
+}
+
+.geo-tabbar--oyaji .geo-tabbar__item--active {
+  color: var(--oyaji-ink);
+}
+
+.geo-tabbar--oyaji .geo-tabbar__item--active .geo-tabbar__icon {
+  opacity: 1;
+  filter: none;
+}
+
+.geo-tabbar--oyaji .geo-tabbar__label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--oyaji-muted);
+}
+
+.geo-tabbar--oyaji .geo-tabbar__item--active .geo-tabbar__label {
+  color: var(--ildang-green, #2f8f46);
+  font-weight: 900;
+}
+
+.geo-tabbar--oyaji .geo-tabbar__item--active::after {
+  content: "";
+  display: block;
+  width: 4px;
+  height: 4px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--ildang-green, #2f8f46);
+}
+
+/* 오야지 탭 아이콘 — stone 톤, 주황 제거 */
+.geo-tabbar__icon--oyaji-home {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716c' stroke-width='1.8'%3E%3Cpath d='M4 11.5L12 5l8 6.5V19a1 1 0 01-1 1h-5v-6H10v6H5a1 1 0 01-1-1v-7.5z'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__icon--oyaji-map {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716c' stroke-width='1.8'%3E%3Cpath d='M3 7l9-4 9 4v10l-9-4-9 4V7z'/%3E%3Cpath d='M12 3v10'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__icon--oyaji-schedule {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716c' stroke-width='1.8'%3E%3Crect x='4' y='5' width='16' height='15' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4M4 10h16'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__icon--oyaji-team {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716c' stroke-width='1.8'%3E%3Ccircle cx='9' cy='8' r='3'/%3E%3Cpath d='M3 19v-1a5 5 0 015-5h2a5 5 0 015 5v1M16 11a3 3 0 100-6 3 3 0 000 6M21 19v-1a4 4 0 00-3-3.87'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__icon--oyaji-settings {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2378716c' stroke-width='1.8'%3E%3Ccircle cx='12' cy='12' r='2.5'/%3E%3Cpath d='M12 3v2M12 19v2M5 5l1.5 1.5M17.5 17.5L19 19M3 12h2M19 12h2M5 19l1.5-1.5M17.5 6.5L19 5'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar--oyaji .geo-tabbar__item--active .geo-tabbar__icon--oyaji-home {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232F8F46' stroke-width='2'%3E%3Cpath d='M4 11.5L12 5l8 6.5V19a1 1 0 01-1 1h-5v-6H10v6H5a1 1 0 01-1-1v-7.5z'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar--oyaji .geo-tabbar__item--active .geo-tabbar__icon--oyaji-map {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232F8F46' stroke-width='2'%3E%3Cpath d='M3 7l9-4 9 4v10l-9-4-9 4V7z'/%3E%3Cpath d='M12 3v10'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar--oyaji .geo-tabbar__item--active .geo-tabbar__icon--oyaji-schedule {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232F8F46' stroke-width='2'%3E%3Crect x='4' y='5' width='16' height='15' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4M4 10h16'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar--oyaji .geo-tabbar__item--active .geo-tabbar__icon--oyaji-team {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232F8F46' stroke-width='2'%3E%3Ccircle cx='9' cy='8' r='3'/%3E%3Cpath d='M3 19v-1a5 5 0 015-5h2a5 5 0 015 5v1M16 11a3 3 0 100-6 3 3 0 000 6M21 19v-1a4 4 0 00-3-3.87'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar--oyaji .geo-tabbar__item--active .geo-tabbar__icon--oyaji-settings {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232F8F46' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='2.5'/%3E%3Cpath d='M12 3v2M12 19v2M5 5l1.5 1.5M17.5 17.5L19 19M3 12h2M19 12h2M5 19l1.5-1.5M17.5 6.5L19 5'/%3E%3C/svg%3E");
+}
+
+/* ─── 지도 핀: 현장 스티커 ─── */
+.daangn-shell--oyaji .geo-pin-marker--field-sticker.geo-pin-marker--ops,
+.daangn-shell--oyaji .geo-pin-marker--ops {
+  --geo-pin-accent: #d6d3d1;
+}
+
+.daangn-shell--oyaji .geo-pin-marker--field-sticker.geo-pin-marker--flow-compact,
+.daangn-shell--oyaji .geo-pin-marker--field-sticker.geo-pin-marker--minimal {
+  background: var(--oyaji-surface);
+  border: 1px solid #e7e5e4;
+  box-shadow: 0 2px 10px rgba(28, 25, 23, 0.08);
+}
+
+.daangn-shell--oyaji .geo-pin-marker--field-sticker .geo-pin-marker__site,
+.daangn-shell--oyaji .geo-pin-marker--ops .geo-pin-marker__site {
+  color: var(--oyaji-ink);
+  font-weight: 800;
+}
+
+.daangn-shell--oyaji .geo-pin-marker--field-sticker .geo-pin-marker__meta,
+.daangn-shell--oyaji .geo-pin-marker--ops .geo-pin-marker__meta {
+  color: #a8a29e;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.daangn-shell--oyaji .geo-pin-marker--field-sticker .geo-pin-marker__pulse,
+.daangn-shell--oyaji .geo-pin-marker--ops .geo-pin-marker__pulse {
+  color: var(--oyaji-muted);
+  font-weight: 700;
+}
+
+.daangn-shell--oyaji .geo-pin-marker--field-sticker .geo-pin-marker__pulse--warn {
+  color: #b45309;
+  font-weight: 800;
+}
+
+.daangn-shell--oyaji .geo-pin-marker--field-sticker.geo-pin-marker--flow-compact::after {
+  background: var(--oyaji-surface);
+  border-color: #e7e5e4;
+  box-shadow: 1px 1px 3px rgba(28, 25, 23, 0.06);
+}
+
+.daangn-shell--oyaji .geo-marker-anchor--selected .geo-pin-marker--field-sticker {
+  border-color: #d6d3d1;
+  box-shadow: 0 4px 14px rgba(28, 25, 23, 0.12);
+  transform: scale(1.03);
+}
+
+/* 현장 외 핀 — 오야지 지도에서 숨김 톤은 마커 모드 ops로 처리, 혹시 노출 시 */
+.daangn-shell--oyaji .map-tab-page--oyaji-quiet .geo-pin-marker:not(.geo-pin-marker--ops) {
+  opacity: 0.35;
+  filter: grayscale(0.4);
+}
+
+/* ─── 오야지 셸 홈 필터 톤 정리 ─── */
+.daangn-shell--oyaji .home-feed-filters__chip.is-active,
+.daangn-shell--oyaji .home-feed-filters--oyaji .home-feed-filters__chip.is-active {
+  background: var(--oyaji-accent-soft);
+  border-color: rgba(194, 65, 12, 0.3);
+  color: var(--oyaji-accent);
+  box-shadow: none;
+}
+
+.daangn-shell--oyaji .home-feed-filters__chip {
+  border-radius: var(--oyaji-radius-sm);
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.daangn-shell--oyaji .map-top-bar {
+  background: transparent;
+}
+
+.daangn-shell--oyaji .map-top-bar__icon-btn {
+  color: var(--oyaji-muted);
+  border-radius: var(--oyaji-radius-sm);
+}
+
+.daangn-shell--oyaji .contacts-search {
+  border-radius: var(--oyaji-radius-sm);
+  box-shadow: none;
+}
+
+.daangn-shell--oyaji .contact-row__quick-btn--primary {
+  background: var(--oyaji-accent-soft);
+  border-color: rgba(194, 65, 12, 0.35);
+  color: var(--oyaji-accent);
+}
+
+.daangn-shell--oyaji .page-section-header {
+  padding-left: var(--oyaji-pad);
+  padding-right: var(--oyaji-pad);
+}
+
+/* 타이포 rhythm 통일 */
+.daangn-shell--oyaji .oyaji-call-block__lead,
+.daangn-shell--oyaji .page-section-header__title {
+  letter-spacing: -0.04em;
+  font-weight: 900;
+}
+
+.daangn-shell--oyaji .field-flow-strip__text,
+.daangn-shell--oyaji .oyaji-ops-summary--desk .oyaji-ops-pill,
+.daangn-shell--oyaji .contact-row__name {
+  letter-spacing: -0.02em;
+}
+
+/* ─── 일정: 현장 흐름판 ─── */
+.daangn-shell--oyaji .schedule-tab-page--oyaji-flow {
+  background: var(--oyaji-bg);
+}
+
+/* ─── MVP 사용감: 숨 쉬는 밀도 ─── */
+.daangn-shell--oyaji .oyaji-ops-desk__sheet {
+  padding: 12px 0 10px;
+  box-shadow: 0 1px 0 rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.05);
+}
+
+.daangn-shell--oyaji .oyaji-ops-summary--desk {
+  padding-bottom: 10px;
+}
+
+.daangn-shell--oyaji .oyaji-call-block__problem {
+  padding-top: 12px;
+  padding-bottom: 10px;
+}
+
+.daangn-shell--oyaji .oyaji-call-block__call {
+  padding-top: 12px;
+  padding-bottom: 10px;
+}
+
+.daangn-shell--oyaji .field-flow-strip--desk {
+  padding-top: 6px;
+  padding-bottom: 8px;
+  min-height: 0;
+}
+
+.daangn-shell--oyaji .field-team-pulse--hero {
+  margin-top: 4px;
+}
+
+.daangn-shell--oyaji .oyaji-ops-appendix {
+  padding-top: 12px;
+}
+
+.daangn-shell--oyaji .home-feed-list--oyaji-rest .home-feed-card--oyaji {
+  margin-bottom: 5px;
+}
+
+.daangn-shell--oyaji .oyaji-week-flow__mast {
+  padding-bottom: 8px;
+}
+
+.daangn-shell--oyaji .oyaji-week-flow__strip {
+  padding-bottom: 8px;
+}
+
+.daangn-shell--oyaji .oyaji-week-flow__body {
+  padding-top: 12px;
+}
+
+.daangn-shell--oyaji .oyaji-flow-row {
+  margin-bottom: 5px;
+  padding: 10px 12px;
+}
+
+/* ─── 홈: 운영판 ─── */
+.home-tab-page--oyaji {
+  background: var(--oyaji-bg);
+}
+
+.home-tab-page--oyaji .home-feed-topbar {
+  min-height: 52px;
+  padding: 10px var(--oyaji-pad) 8px;
+  background: var(--oyaji-surface);
+  border-bottom: 1px solid var(--oyaji-line);
+}
+
+.home-tab-page--oyaji .home-feed-topbar__region-text::after {
+  content: none !important;
+}
+
+.home-tab-page--oyaji .home-feed-topbar__region-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.home-tab-page--oyaji .home-feed-topbar--desk .home-feed-topbar__desk-title {
+  display: block;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: var(--oyaji-ink);
+  line-height: 1.2;
+}
+
+.home-tab-page--oyaji .home-feed-topbar--desk .home-feed-topbar__desk-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--oyaji-muted);
+}
+
+.home-tab-page--oyaji .home-feed-topbar--desk .home-feed-topbar__pin {
+  display: none;
+}
+
+.home-tab-page--oyaji .home-feed-topbar--desk .home-feed-topbar__chevron {
+  font-size: 9px;
+  margin-top: 2px;
+}
+
+.home-tab-page--oyaji .home-feed-topbar__actions {
+  gap: 4px;
+}
+
+.home-tab-page--oyaji .home-feed-topbar__icon-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 12px;
+  color: var(--oyaji-muted);
+}
+
+.home-tab-page--oyaji .home-feed-topbar__badge {
+  background: var(--oyaji-accent);
+}
+
+.home-tab-page__scroll--oyaji {
+  background: var(--oyaji-bg);
+  border-top: none;
+}
+
+.oyaji-ops-desk {
+  flex-shrink: 0;
+  padding-bottom: 6px;
+  background: var(--oyaji-bg);
+}
+
+.oyaji-ops-desk__sheet {
+  margin: 0 var(--oyaji-pad);
+  padding: 14px 0 12px;
+  border-radius: var(--oyaji-radius-lg);
+  background: var(--oyaji-surface);
+  box-shadow: 0 1px 0 rgba(28, 25, 23, 0.04), 0 12px 32px rgba(28, 25, 23, 0.06);
+}
+
+.oyaji-ops-desk__sheet--ready {
+  animation: oyaji-desk-fade-in var(--oyaji-motion-med) var(--oyaji-ease-out);
+}
+
+@keyframes oyaji-desk-fade-in {
+  from {
+    opacity: 0.72;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 운영판 skeleton */
+.oyaji-ops-desk-skeleton {
+  padding: 0 var(--oyaji-pad) 8px;
+}
+
+.oyaji-ops-desk-skeleton__pills {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--oyaji-line);
+}
+
+.oyaji-ops-desk-skeleton__hero {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 0 14px;
+  border-bottom: 1px solid var(--oyaji-line);
+}
+
+.oyaji-ops-desk-skeleton__chips {
+  display: flex;
+  gap: 8px;
+  padding: 14px 0 12px;
+}
+
+.oyaji-ops-desk-skeleton__bar,
+.oyaji-ops-desk-skeleton__chip {
+  display: block;
+  border-radius: 8px;
+  background: var(--oyaji-line);
+  opacity: 0.55;
+}
+
+.oyaji-ops-desk-skeleton__bar--sm {
+  width: 56px;
+  height: 28px;
+}
+
+.oyaji-ops-desk-skeleton__bar--lg {
+  width: 72%;
+  height: 22px;
+}
+
+.oyaji-ops-desk-skeleton__bar--md {
+  width: 48%;
+  height: 16px;
+}
+
+.oyaji-ops-desk-skeleton__bar--btn {
+  width: 100%;
+  height: 48px;
+  margin-top: 4px;
+  border-radius: var(--oyaji-radius-sm);
+}
+
+.oyaji-ops-desk-skeleton__chip {
+  flex: 1 1 0;
+  min-width: 72px;
+  height: 44px;
+  border-radius: var(--oyaji-radius-sm);
+}
+
+.oyaji-ops-desk__command {
+  padding: 0 0 4px;
+}
+
+.oyaji-ops-summary--desk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin: 0;
+  padding: 0 var(--oyaji-pad) 12px;
+  border-bottom: 1px solid var(--oyaji-line);
+}
+
+.oyaji-ops-summary--desk .oyaji-ops-summary__label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--oyaji-muted);
+}
+
+.oyaji-ops-summary--desk .oyaji-ops-summary__pills {
+  gap: 6px;
+}
+
+.oyaji-ops-summary--desk .oyaji-ops-pill {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+}
+
+.oyaji-ops-summary--desk .oyaji-ops-pill--count {
+  background: var(--oyaji-warm);
+  color: var(--oyaji-ink);
+  font-weight: 800;
+}
+
+.oyaji-ops-summary--desk .oyaji-ops-pill--urgent {
+  color: var(--oyaji-warning);
+  font-weight: 800;
+}
+
+/* Hero — 운영 공간 (카드 → 커맨드 패널) */
+.home-tab-page--oyaji .oyaji-call-block {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__problem {
+  padding: 16px var(--oyaji-pad) 14px;
+  border-bottom: 1px solid var(--oyaji-line);
+  background: linear-gradient(180deg, var(--oyaji-accent-soft) 0%, transparent 72%);
+}
+
+.home-tab-page--oyaji .oyaji-call-block__lead {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1.22;
+  letter-spacing: -0.03em;
+  color: var(--oyaji-ink);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__time {
+  margin: 8px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--oyaji-ink-soft);
+}
+
+.home-tab-page--oyaji .oyaji-call-block__shortage {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--oyaji-warning);
+}
+
+.home-tab-page--oyaji .oyaji-call-block__call {
+  padding: 14px var(--oyaji-pad) 14px;
+  background: var(--oyaji-warm);
+  border-bottom: none;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__picks {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 8px;
+  margin: 0 calc(-1 * var(--oyaji-pad)) 10px;
+  padding: 0 var(--oyaji-pad) 2px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__picks::-webkit-scrollbar {
+  display: none;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__pick {
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--oyaji-line);
+  border-radius: var(--oyaji-radius-sm);
+  background: var(--oyaji-surface);
+  cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__pick.is-on {
+  border-color: var(--oyaji-accent);
+  background: var(--oyaji-accent-soft);
+}
+
+.home-tab-page--oyaji .oyaji-call-block__pick-name {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--oyaji-ink);
+}
+
+.home-tab-page--oyaji .oyaji-call-block__pick-rhythm {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--oyaji-ink-soft);
+}
+
+.home-tab-page--oyaji .oyaji-call-block__pick:not(.is-on) .oyaji-call-block__pick-rhythm {
+  display: none;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__pick--ok .oyaji-call-block__pick-rhythm {
+  color: #15803d;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__batch {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  border-radius: var(--oyaji-radius-sm);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__batch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__batch--primary {
+  margin-top: 2px;
+  border: none;
+  background: var(--oyaji-accent);
+  color: #fff;
+  box-shadow: none;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__secondary {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 10px;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--oyaji-ink-soft);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__link:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.home-tab-page--oyaji .oyaji-call-block__link-sep {
+  color: var(--oyaji-line);
+  font-weight: 700;
+}
+
+.home-tab-page--oyaji .oyaji-call-block--focus,
+.home-tab-page--oyaji .home-feed-card--oyaji-focus {
+  outline: 2px solid transparent;
+  outline-offset: -2px;
+  animation: oyaji-focus-outline var(--oyaji-motion-focus) var(--oyaji-ease-out);
+}
+
+.home-tab-page--oyaji .oyaji-call-block--focus .oyaji-call-block__problem,
+.home-tab-page--oyaji .oyaji-call-block--focus .oyaji-call-block__call,
+.home-tab-page--oyaji .home-feed-card--oyaji-focus {
+  animation:
+    oyaji-focus-outline var(--oyaji-motion-focus) var(--oyaji-ease-out),
+    oyaji-focus-tint var(--oyaji-motion-focus) var(--oyaji-ease-out);
+}
+
+@keyframes oyaji-focus-outline {
+  0% {
+    outline-color: rgba(194, 65, 12, 0);
+  }
+  18% {
+    outline-color: rgba(194, 65, 12, 0.34);
+  }
+  78% {
+    outline-color: rgba(194, 65, 12, 0.24);
+  }
+  100% {
+    outline-color: rgba(194, 65, 12, 0);
+  }
+}
+
+@keyframes oyaji-focus-tint {
+  0% {
+    filter: brightness(1);
+    box-shadow: inset 0 0 0 999px rgba(255, 247, 237, 0);
+  }
+  18% {
+    filter: brightness(1.01);
+    box-shadow: inset 0 0 0 999px rgba(255, 247, 237, 0.36);
+  }
+  78% {
+    filter: brightness(1.006);
+    box-shadow: inset 0 0 0 999px rgba(255, 247, 237, 0.22);
+  }
+  100% {
+    filter: brightness(1);
+    box-shadow: inset 0 0 0 999px rgba(255, 247, 237, 0);
+  }
+}
+
+/* 팀 pulse (Hero·연락처) */
+.home-tab-page--oyaji .field-team-pulse,
+.contacts-tab-page--oyaji-team .field-team-pulse {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: var(--oyaji-radius-sm);
+  background: #f0fdf4;
+  border: 1px solid #d1fae5;
+  animation: oyaji-pulse-fade-in var(--oyaji-motion-fast) var(--oyaji-ease-out) 50ms both;
+}
+
+@keyframes oyaji-pulse-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daangn-shell--oyaji .oyaji-ops-desk__sheet--ready,
+  .daangn-shell--oyaji .field-team-pulse,
+  .home-tab-page--oyaji .oyaji-call-block--focus,
+  .home-tab-page--oyaji .oyaji-call-block--focus .oyaji-call-block__problem,
+  .home-tab-page--oyaji .oyaji-call-block--focus .oyaji-call-block__call,
+  .home-tab-page--oyaji .home-feed-card--oyaji-focus {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .home-tab-page--oyaji .oyaji-call-block--focus,
+  .home-tab-page--oyaji .home-feed-card--oyaji-focus {
+    outline-color: rgba(194, 65, 12, 0.32);
+  }
+
+  .home-tab-page--oyaji .oyaji-call-block--focus .oyaji-call-block__problem,
+  .home-tab-page--oyaji .oyaji-call-block--focus .oyaji-call-block__call,
+  .home-tab-page--oyaji .home-feed-card--oyaji-focus {
+    filter: none;
+    box-shadow: inset 0 0 0 999px rgba(255, 247, 237, 0.26);
+  }
+}
+
+.home-tab-page--oyaji .field-team-pulse__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 10px;
+  margin-bottom: 8px;
+}
+
+.home-tab-page--oyaji .field-team-pulse__title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #166534;
+}
+
+.home-tab-page--oyaji .field-team-pulse__summary {
+  font-size: 12px;
+  font-weight: 800;
+  color: #15803d;
+}
+
+.home-tab-page--oyaji .field-team-pulse__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.home-tab-page--oyaji .field-team-pulse__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.home-tab-page--oyaji .field-team-pulse__name {
+  font-weight: 800;
+  color: var(--oyaji-ink);
+}
+
+.home-tab-page--oyaji .field-team-pulse__label {
+  font-weight: 700;
+  color: var(--oyaji-muted);
+}
+
+.home-tab-page--oyaji .field-flow-strip--desk {
+  margin: 0;
+  padding: 6px var(--oyaji-pad) 8px;
+  border-top: 1px solid var(--oyaji-line);
+}
+
+.home-tab-page--oyaji .field-flow-strip--desk .field-flow-strip__text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--oyaji-ink-soft);
+}
+
+.home-tab-page--oyaji .field-flow-strip--desk .field-flow-strip__dot {
+  background: #a8a29e;
+}
+
+@media (max-height: 680px) {
+  .home-tab-page--oyaji .field-flow-strip--desk {
+    padding: 4px var(--oyaji-pad) 6px;
+  }
+
+  .home-tab-page--oyaji .oyaji-call-block__problem {
+    padding-top: 14px;
+    padding-bottom: 12px;
+  }
+}
+
+.home-tab-page--oyaji .field-team-pulse--hero {
+  margin: 0 var(--oyaji-pad) 4px;
+  background: #f0fdf4;
+  border-color: #d1fae5;
+}
+
+/* 나머지 현장 — 부록 */
+.oyaji-ops-appendix {
+  padding: 16px 0 8px;
+}
+
+.oyaji-ops-appendix .oyaji-home-rest__title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--oyaji-muted);
+}
+
+.home-tab-page--oyaji .home-feed-list--oyaji-rest .home-feed-card--oyaji {
+  margin: 0 var(--oyaji-pad) 6px;
+  border-radius: 14px;
+  border: 1px solid var(--oyaji-line);
+  background: var(--oyaji-surface);
+}
+
+.home-tab-page--oyaji .home-feed-card--oyaji .home-feed-card__hit {
+  padding: 12px 14px;
+}
+
+.home-tab-page--oyaji .home-feed-card--oyaji .home-feed-thumbnail,
+.home-tab-page--oyaji .home-feed-card--oyaji .home-feed-card__thumb {
+  display: none;
+}
+
+.home-tab-page--oyaji .home-feed-card--oyaji .home-feed-card__oyaji-actions {
+  padding: 8px 10px 10px;
+  border-top: 1px solid var(--oyaji-line);
+  background: var(--oyaji-warm);
+}
+
+.home-tab-page--oyaji .oyaji-site-filter-chips {
+  opacity: 0.9;
+}
+
+/* ─── 지도: 조용한 현장 ─── */
+.map-tab-page--oyaji-ops.map-tab-page--oyaji-quiet .map-geo-stage__top {
+  background: linear-gradient(180deg, rgba(255, 252, 249, 0.97) 0%, rgba(255, 252, 249, 0.88) 72%, transparent 100%);
+  pointer-events: none;
+}
+
+.map-tab-page--oyaji-ops.map-tab-page--oyaji-quiet .map-geo-stage__top > * {
+  pointer-events: auto;
+}
+
+.map-tab-page--oyaji-quiet .map-top-bar {
+  background: transparent;
+  border-bottom: none;
+}
+
+.map-tab-page--oyaji-quiet .field-flow-strip--map {
+  min-height: 28px;
+  padding: 4px var(--app-page-pad-x, 16px) 6px;
+  background: transparent;
+}
+
+.map-tab-page--oyaji-quiet .field-flow-strip--map .field-flow-strip__text {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a8a29e;
+}
+
+/* ─── 연락처: 내 팀 ─── */
+.contacts-tab-page--oyaji-team {
+  background: var(--oyaji-bg);
+}
+
+.contacts-tab-page--oyaji-team .page-section-header__title {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: var(--oyaji-ink);
+}
+
+.contacts-tab-page--oyaji-team .page-section-header__lead {
+  color: var(--oyaji-muted);
+  font-weight: 600;
+}
+
+.contacts-tab-page--oyaji-team .contacts-team-board {
+  border-bottom: none;
+  padding-bottom: 8px;
+}
+
+.contacts-tab-page--oyaji-team .contacts-team-section__list .contact-row {
+  margin: 0 var(--oyaji-pad) 8px;
+  border-radius: 14px;
+  border: 1px solid var(--oyaji-line);
+  border-bottom: 1px solid var(--oyaji-line);
+  background: var(--oyaji-surface);
+  overflow: hidden;
+}
+
+.contacts-tab-page--oyaji-team .contacts-team-section__title {
+  padding-top: 14px;
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--oyaji-ink);
+}
+
+.contacts-tab-page--oyaji-team .contacts-team-section__lead {
+  color: var(--oyaji-muted);
+}
+
+.contacts-tab-page--oyaji-team .field-team-pulse--contacts {
+  background: var(--oyaji-surface);
+  border-color: var(--oyaji-line);
+}
+
+.contacts-tab-page--oyaji-team .field-team-pulse__title {
+  color: var(--oyaji-accent);
+}
+
+.contacts-tab-page--oyaji-team .contacts-search {
+  margin-top: 4px;
+  background: var(--oyaji-surface);
+  border: 1px solid var(--oyaji-line);
+}
+
+.contacts-tab-page--oyaji-team .contacts-tab-page__list .contact-row {
+  background: var(--oyaji-surface);
+}
+
+.contacts-tab-page--oyaji-team .contacts-chip--active {
+  background: var(--oyaji-accent-soft);
+  border-color: rgba(194, 65, 12, 0.35);
+  color: var(--oyaji-accent);
+}
+
+/* ─── 빈 운영판 (오늘 현장 없음) ─── */
+.oyaji-empty-board {
+  padding: 20px 4px 8px;
+  text-align: center;
+}
+
+.oyaji-empty-board__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--oyaji-ink);
+}
+
+.oyaji-empty-board__lead {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--oyaji-muted);
+}
+
+.oyaji-empty-board__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.oyaji-empty-board__btn {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--oyaji-radius-sm);
+  border: 1px solid var(--oyaji-line);
+  background: var(--oyaji-surface);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--oyaji-ink);
+}
+
+.oyaji-empty-board__btn--muted {
+  background: transparent;
+  font-weight: 700;
+  color: var(--oyaji-muted);
+}

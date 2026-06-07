@@ -1,16 +1,21 @@
 import React from "react";
+import { useViewerApplicantUserId } from "../../hooks/useJobOwnership";
 import { normalizeJobTrade } from "../../utils/jobTrade";
+import FieldMemorySection from "../field/FieldMemorySection";
+import { fieldMemorySiteKeyFromJobId } from "../../utils/fieldMemoryStorage";
 import {
   STATUS_LABEL,
   WORK_TYPE_LABEL,
   applicantCount,
   canApplyToJob,
+  deriveViewerJobState,
   formatCraftWithEmoji,
   formatPostedRelative,
   getAddressForViewer,
   hasSelfApplied,
   isNewJobWithin30Min,
   isUrgentJob,
+  normalizeLifecycleStatus,
 } from "../../utils/jobModel";
 
 function parsePay(payText) {
@@ -41,6 +46,7 @@ function fallbackDescription(job) {
 }
 
 export default function JobDetail({ job, onBack, onApply, onShowApplicants }) {
+  const viewerApplicantUserId = useViewerApplicantUserId();
   if (!job) {
     return (
       <div className="daangn-job-detail">
@@ -48,12 +54,12 @@ export default function JobDetail({ job, onBack, onApply, onShowApplicants }) {
           <button type="button" className="daangn-job-detail__back" onClick={onBack} aria-label="뒤로가기">
             ←
           </button>
-          <h1>공고 상세</h1>
+          <h1>현장 상세</h1>
           <span className="daangn-job-detail__topbar-spacer" />
         </header>
         <section className="daangn-job-detail__body">
           <article className="daangn-job-detail__card">
-            <p className="daangn-job-detail__empty">공고를 찾을 수 없습니다.</p>
+            <p className="daangn-job-detail__empty">현장을 찾을 수 없습니다.</p>
           </article>
         </section>
       </div>
@@ -61,13 +67,14 @@ export default function JobDetail({ job, onBack, onApply, onShowApplicants }) {
   }
 
   const trade = normalizeJobTrade(job);
-  const st = job.status || "recruiting";
-  const statusText = STATUS_LABEL[st] || st;
+  const st = normalizeLifecycleStatus(job);
+  const viewerState = deriveViewerJobState(job, viewerApplicantUserId);
+  const statusText = viewerState.lifecycleLabel || STATUS_LABEL[st] || st;
   const workTypeText = WORK_TYPE_LABEL[job.workType] || "종일";
   const count = applicantCount(job);
-  const applied = hasSelfApplied(job);
-  const canApply = canApplyToJob(job);
-  const addrLine = getAddressForViewer(job);
+  const applied = hasSelfApplied(job, viewerApplicantUserId);
+  const canApply = canApplyToJob(job, viewerApplicantUserId);
+  const addrLine = getAddressForViewer(job, viewerApplicantUserId);
   const now = new Date();
   const postedText = formatPostedRelative(job, now);
   const showNew = isNewJobWithin30Min(job, now);
@@ -79,7 +86,7 @@ export default function JobDetail({ job, onBack, onApply, onShowApplicants }) {
         <button type="button" className="daangn-job-detail__back" onClick={onBack} aria-label="뒤로가기">
           ←
         </button>
-        <h1>공고 상세</h1>
+        <h1>현장 상세</h1>
         <span className="daangn-job-detail__topbar-spacer" />
       </header>
 
@@ -117,12 +124,12 @@ export default function JobDetail({ job, onBack, onApply, onShowApplicants }) {
               <strong>{fallbackWorkDate(job)}</strong>
             </div>
             <div className="daangn-job-detail__meta-row">
-              <span>모집 직군</span>
+              <span>필요 역할</span>
               <strong>{trade}</strong>
             </div>
             <div className="daangn-job-detail__meta-row">
-              <span>지원자</span>
-              <strong>👥 지원자 {count}명</strong>
+              <span>참여 요청</span>
+              <strong>👥 참여 요청 {count}명</strong>
             </div>
           </div>
 
@@ -130,20 +137,22 @@ export default function JobDetail({ job, onBack, onApply, onShowApplicants }) {
             <h3>작업 설명</h3>
             <p>{fallbackDescription(job)}</p>
           </div>
+
+          <FieldMemorySection siteKey={fieldMemorySiteKeyFromJobId(job.id)} />
         </article>
       </section>
 
       <footer className="daangn-job-detail__bottom daangn-job-detail__bottom--split">
         <button type="button" className="daangn-job-detail__secondary" onClick={() => onShowApplicants?.()}>
-          지원자 보기
+          참여 요청 보기
         </button>
         <button
           type="button"
           className="daangn-job-detail__apply"
-          disabled={!canApply}
+          disabled={!canApply || viewerState.isCompleted || viewerState.isCancelled}
           onClick={() => canApply && onApply?.(job)}
         >
-          {applied ? "지원완료" : "지원하기"}
+          {viewerState.isCompleted ? "완료됨" : viewerState.isCancelled ? "취소됨" : applied ? "참여 요청됨" : "참여 요청"}
         </button>
       </footer>
     </div>

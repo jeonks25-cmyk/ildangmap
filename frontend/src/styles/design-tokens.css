@@ -1,0 +1,150 @@
+/**
+ * 연락처 탭 기준 공통 디자인 토큰 — 지도/일정/설정/알림센터 통일
+ */
+:root {
+  /* 일당맵 공식 컬러 — 화이트 + 시그니처 그린 */
+  --ildang-signature-green: #1fa35b;
+  --ildang-signature-green-dark: #188f4e;
+  --ildang-green: var(--ildang-signature-green);
+  --ildang-green-dark: var(--ildang-signature-green-dark);
+  --ildang-green-soft: #e8f5e9;
+  --ildang-green-ink: #1b5e20;
+
+  --app-color-title: #111827;
+  --app-color-body: #374151;
+  --app-color-muted: #9ca3af;
+  --app-color-sub: #6b7280;
+  --app-color-border: #f0f0f2;
+  --app-color-border-soft: #f3f4f6;
+  --app-color-surface: #ffffff;
+  --app-color-surface-muted: #f3f4f6;
+  --app-color-primary: var(--ildang-green);
+  --app-color-disabled: #d1d5db;
+  --app-color-disabled-bg: #f3f4f6;
+
+  --app-font-title: 23px;
+  --app-font-title-weight: 800;
+  --app-font-title-spacing: -0.03em;
+  --app-font-lead: 15px;
+  --app-font-body: 16px;
+  --app-font-body-lg: 17px;
+  --app-font-caption: 14px;
+  --app-line-tight: 1.38;
+  --app-line-normal: 1.5;
+
+  --app-page-pad-x: 16px;
+  --app-page-pad-top: 4px;
+  --app-card-radius: 18px;
+  --app-card-radius-sm: 10px;
+  --app-card-padding: 14px;
+  --app-card-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+  --app-card-border: 1px solid rgba(15, 23, 42, 0.06);
+
+  --app-btn-height: 44px;
+  --app-btn-height-sm: 38px;
+  --app-chip-height: 34px;
+  --app-icon-btn: 44px;
+  --app-touch-min: 44px;
+
+  /* 레이어 z-index — 지도·카드·모달·토스트 */
+  --z-map-layer: 1;
+  --z-fab: 20;
+  --z-floating-action: 52;
+  /* 탭 공통 FAB — 하단 탭바(56px) + 여백(28px) = 84px */
+  --fab-anchor-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+  --map-floating-bottom: var(--fab-anchor-bottom);
+  --fab-action-bg: var(--ildang-signature-green);
+  --fab-action-bg-active: var(--ildang-signature-green-dark);
+  --fab-action-shadow: 0 4px 14px rgba(31, 163, 91, 0.32);
+  --z-place-detail: 100;
+  --z-overlay-card: 200;
+  --z-search-panel: 210;
+  --z-modal-backdrop: 900;
+  --z-login-modal: 1000;
+  --z-toast: 1100;
+}
+
+.app-page-head {
+  padding: var(--app-page-pad-top) var(--app-page-pad-x) 10px;
+}
+
+.app-page-head__title {
+  margin: 0;
+  font-size: var(--app-font-title);
+  font-weight: var(--app-font-title-weight);
+  letter-spacing: var(--app-font-title-spacing);
+  color: var(--app-color-title);
+  line-height: var(--app-line-tight);
+}
+
+.app-page-head__lead {
+  margin: 2px 0 0;
+  font-size: var(--app-font-lead);
+  color: var(--app-color-muted);
+  line-height: var(--app-line-normal);
+}
+
+.app-page-head__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.app-page-head__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.app-page-head__actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-card {
+  margin: 0 var(--app-page-pad-x) 12px;
+  padding: var(--app-card-padding);
+  border-radius: var(--app-card-radius);
+  background: var(--app-color-surface);
+  border: var(--app-card-border);
+  box-shadow: var(--app-card-shadow);
+}
+
+.app-card__section-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: var(--app-font-title-weight);
+  letter-spacing: var(--app-font-title-spacing);
+  color: var(--app-color-title);
+}
+
+.app-card__note {
+  margin: 0 0 8px;
+  font-size: var(--app-font-caption);
+  color: var(--app-color-muted);
+  line-height: var(--app-line-normal);
+}
+
+.app-btn-primary {
+  min-height: var(--app-btn-height-sm);
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--app-color-primary);
+  color: #fff;
+  font-size: var(--app-font-lead);
+  font-weight: 700;
+}
+
+.app-btn-ghost {
+  min-height: var(--app-btn-height-sm);
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--app-card-radius-sm);
+  background: var(--app-color-surface-muted);
+  font-size: var(--app-font-caption);
+  font-weight: 700;
+  color: var(--app-color-body);
+}

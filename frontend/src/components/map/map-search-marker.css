@@ -1,0 +1,111 @@
+/* 검색 마커 — 위치 찾기 전용 (등록 임시핀과 별도) */
+
+.map-search-marker {
+  display: grid;
+  justify-items: center;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-search-marker--layer {
+  position: absolute;
+  z-index: 22;
+  transform: translate(-50%, -100%);
+  pointer-events: auto;
+}
+
+.map-search-marker__pin {
+  position: relative;
+  display: block;
+  width: 32px;
+  height: 32px;
+  border: 3px solid #fff;
+  border-radius: 999px 999px 999px 0;
+  background: #2563eb;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+  transform: rotate(-45deg);
+}
+
+.map-search-marker__pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+
+.map-search-marker-info {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: calc(var(--map-floating-size, 48px) + 20px);
+  z-index: 24;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+
+.map-search-marker-info__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.map-search-marker-info__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #111827;
+  line-height: 1.35;
+}
+
+.map-search-marker-info__close {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  margin: -4px -4px 0 0;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b7280;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-search-marker-info__close:active {
+  background: #f3f4f6;
+}
+
+.map-search-marker-info__address {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #4b5563;
+  letter-spacing: -0.02em;
+}
+
+.map-search-marker-info__address--sub {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+}

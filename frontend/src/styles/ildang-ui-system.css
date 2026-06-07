@@ -1,0 +1,105 @@
+/**
+ * 일당맵 UI 시스템 — 현장 기술자용 (깔끔·큰 글씨·빠른 조작)
+ * 화이트 + 그린 컨셉
+ */
+
+/* ─── 하단 탭바: 아이콘 축소 · 라벨 확대 ─── */
+.geo-tabbar--four .geo-tabbar__icon,
+.geo-tabbar--oyaji .geo-tabbar__icon {
+  width: 22px;
+  height: 22px;
+  background-size: 20px 20px;
+}
+
+.geo-tabbar--four .geo-tabbar__label,
+.geo-tabbar--oyaji .geo-tabbar__label {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.geo-tabbar--four .geo-tabbar__item--active .geo-tabbar__label,
+.geo-tabbar--oyaji .geo-tabbar__item--active .geo-tabbar__label {
+  color: var(--ildang-green, #2f8f46);
+  font-weight: 900;
+}
+
+.geo-tabbar--oyaji .geo-tabbar__item--active::after {
+  background: var(--ildang-green, #2f8f46);
+}
+
+/* ─── 탭 페이지 공통 오버레이 카드 좌표 ─── */
+.tab-page-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+  background: var(--app-color-surface, #fff);
+  --map-floating-size: 48px;
+  --map-card-sheet-gap: 6px;
+  --map-card-sheet-top: calc(52px + max(0px, env(safe-area-inset-top, 0px)) + var(--map-card-sheet-gap));
+  --map-card-sheet-bottom: calc(
+    var(--geo-tabbar-float-h, var(--daangn-tabbar-base-h, 56px)) + 12px + env(safe-area-inset-bottom, 0px)
+  );
+  --map-card-sheet-max-height: min(
+    75dvh,
+    calc(100dvh - var(--map-card-sheet-top) - var(--map-card-sheet-bottom))
+  );
+}
+
+.tab-page-shell > .map-card-shell {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-overlay-card, 200);
+  pointer-events: none;
+}
+
+.tab-page-shell__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── 공통 시트 카드 (map-card-container 기준) ─── */
+.app-sheet-card,
+.map-card-container {
+  border-radius: var(--app-sheet-radius, 16px);
+  box-shadow: var(--app-sheet-shadow);
+  border: var(--app-sheet-border);
+}
+
+.app-sheet-card__head,
+.map-card-container__head {
+  padding: var(--app-sheet-head-pad, 12px);
+}
+
+.app-sheet-card__title,
+.map-card-container__title {
+  font-size: var(--app-font-body-lg, 17px);
+  font-weight: var(--app-font-title-weight, 800);
+}
+
+.app-sheet-card__close,
+.map-card-container__close {
+  border-radius: var(--app-btn-radius, 999px);
+}
+
+/* ─── 선택 칩 · 활성 탭 — 그린 ─── */
+.contacts-chip--active,
+.settings-prefs__chip.is-active {
+  border-color: var(--ildang-green, #2f8f46);
+  background: var(--ildang-green-soft, #e8f5e9);
+  color: var(--ildang-green-dark, #1b5e20);
+}
+
+.app-btn-primary {
+  background: var(--ildang-green, #2f8f46);
+  color: #fff;
+}
+
+.app-btn-primary:active {
+  background: var(--ildang-green-dark, #267339);
+}

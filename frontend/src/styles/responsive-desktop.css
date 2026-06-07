@@ -1,0 +1,398 @@
+/**
+ * PC/태블릿 전용 레이아웃 — 모바일(0~767px) 규칙은 건드리지 않음
+ * Tablet: 768px~1199px / Desktop: 1200px+
+ */
+
+@media (min-width: 768px) {
+  :root {
+    --desktop-nav-w: 88px;
+    --desktop-sidebar-w: 380px;
+    --contacts-list-w: 380px;
+  }
+
+  .daangn-shell--responsive {
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: #f3f4f6;
+  }
+
+  .daangn-shell--responsive .daangn-shell__main {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── 좌측 탭 네비 (하단 탭 → 세로 레일) ─── */
+  .daangn-shell--responsive .geo-tabbar-shell {
+    display: flex !important;
+    order: -1;
+    flex: 0 0 var(--desktop-nav-w);
+    width: var(--desktop-nav-w);
+    min-width: var(--desktop-nav-w);
+    padding: 0;
+    padding-bottom: 0;
+    border-top: none;
+    border-right: 1px solid #e5e7eb;
+    background: #fff;
+    pointer-events: auto;
+  }
+
+  .daangn-shell--responsive .geo-tabbar {
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 4px;
+    width: 100%;
+    min-height: 0;
+    height: 100%;
+    padding: 16px 8px;
+    border-radius: 0;
+  }
+
+  .daangn-shell--responsive .geo-tabbar__item {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 56px;
+    padding: 8px 4px;
+    border-radius: 12px;
+  }
+
+  .daangn-shell--responsive .geo-tabbar__item--active {
+    background: #f0fdf4;
+  }
+
+  .daangn-shell--responsive .geo-tabbar--four .geo-tabbar__label,
+  .daangn-shell--responsive .geo-tabbar--three .geo-tabbar__label,
+  .daangn-shell--responsive .geo-tabbar--five .geo-tabbar__label {
+    font-size: 11px;
+  }
+
+  .tab-page-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tab-page-shell__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  /* ═══ 1. 지도 탭 ═══ */
+  .map-tab-page--geo {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #fff;
+  }
+
+  .daangn-shell:has(.map-tab-page--geo) .daangn-shell__main {
+    overflow: hidden;
+  }
+
+  .map-tab-page--geo .map-desktop-split {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .map-tab-page--geo .map-desktop-sidebar {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 var(--desktop-sidebar-w);
+    width: var(--desktop-sidebar-w);
+    min-width: 360px;
+    max-width: 420px;
+    border-right: 1px solid #e5e7eb;
+    background: #fafafa;
+    overflow: hidden;
+  }
+
+  .map-tab-page--geo .map-desktop-sidebar__idle {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px 20px;
+    text-align: center;
+    color: #6b7280;
+  }
+
+  .map-tab-page--geo.map-tab-page--search-panel-open .map-desktop-sidebar__idle,
+  .map-tab-page--geo.map-tab-page--map-card-open .map-desktop-sidebar__idle {
+    display: none;
+  }
+
+  .map-tab-page--geo .map-desktop-sidebar__idle-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 900;
+    color: #374151;
+  }
+
+  .map-tab-page--geo .map-desktop-sidebar__idle-desc {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+
+  .map-tab-page--geo .map-desktop-map-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .map-tab-page--geo .map-geo-stage {
+    position: relative;
+    inset: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .map-tab-page--geo .map-geo-stage__map-column {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .map-tab-page--geo .map-geo-stage__canvas {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* 검색·목록·상세 → 좌측 패널 고정 */
+  .map-tab-page--geo .map-search-panel-layer {
+    position: fixed;
+    left: var(--desktop-nav-w);
+    top: 0;
+    bottom: 0;
+    width: var(--desktop-sidebar-w);
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto;
+    background: #fff;
+    border-right: 1px solid #e5e7eb;
+    box-shadow: none;
+  }
+
+  .map-tab-page--geo .map-search-panel-layer .map-card-container,
+  .map-tab-page--geo .map-search-panel-layer .map-search-panel-card {
+    position: static;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100%;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none;
+  }
+
+  .map-tab-page--geo .map-geo-stage__map-column .map-place-overlay-card,
+  .map-tab-page--geo .map-geo-stage__map-column .map-notification-overlay-card {
+    position: fixed !important;
+    left: var(--desktop-nav-w) !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: auto !important;
+    width: var(--desktop-sidebar-w) !important;
+    max-width: none !important;
+    height: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    transform: none !important;
+    z-index: 125;
+    box-shadow: none;
+  }
+
+  .map-tab-page--geo .map-geo-stage__top {
+    position: relative;
+    z-index: 30;
+  }
+
+  /* ═══ 2. 인원 탭 ═══ */
+  .contacts-tab-page.tab-page-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .contacts-tab-page .tab-page-shell__body {
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .contacts-desktop-split {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    min-height: 0;
+    height: 100%;
+    flex: 1 1 auto;
+  }
+
+  .contacts-desktop-list {
+    flex: 0 0 var(--contacts-list-w);
+    width: var(--contacts-list-w);
+    min-width: 320px;
+    max-width: 420px;
+    overflow-y: auto;
+    border-right: 1px solid #e5e7eb;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .contacts-desktop-detail-pane {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    background: #f9fafb;
+  }
+
+  .contacts-desktop-detail-pane__hint {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #9ca3af;
+    text-align: center;
+  }
+
+  body.person-card-open .contacts-desktop-detail-pane__hint {
+    display: none;
+  }
+
+  .field-card-sheet--person-detail {
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .field-card-sheet--person-detail .field-card-sheet__backdrop {
+    display: none;
+  }
+
+  body:has(.contacts-tab-page) .field-card-sheet--person-detail .field-card-sheet__panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: calc(var(--desktop-nav-w) + var(--contacts-list-w));
+    width: auto;
+    max-width: none;
+    height: 100%;
+    border-radius: 0;
+    box-shadow: -4px 0 24px rgba(15, 23, 42, 0.06);
+  }
+
+  .contacts-tab-page .floating-action-button-root {
+    right: 24px;
+    bottom: 24px;
+  }
+
+  /* ═══ 3. 일정 탭 ═══ */
+  .schedule-tab-page.tab-page-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .schedule-tab-page__body {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .schedule-desktop-split.schedule-page--oyaji-split {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    height: 100%;
+  }
+
+  .schedule-desktop-split .schedule-page__calendar-zone--oyaji {
+    flex: 1 1 52%;
+    min-width: 0;
+    max-width: none;
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: auto;
+    border-right: 1px solid #e5e7eb;
+  }
+
+  .schedule-desktop-split .schedule-oyaji-list {
+    flex: 1 1 48%;
+    min-width: 0;
+    height: auto !important;
+    max-height: none !important;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  .schedule-desktop-split .schedule-oyaji-list__scroll {
+    flex: 1 1 auto;
+    overflow-y: auto;
+  }
+
+  /* ═══ 4. 설정 탭 ═══ */
+  .settings-desktop-hub .tab-page-shell__body,
+  .settings-desktop-hub .my-tab-page__body {
+    max-width: 560px;
+    margin: 0 auto;
+    width: 100%;
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 1200px) {
+  :root {
+    --desktop-nav-w: 200px;
+    --desktop-sidebar-w: 400px;
+    --contacts-list-w: 400px;
+  }
+
+  .daangn-shell--responsive .geo-tabbar {
+    padding: 20px 12px;
+    gap: 6px;
+  }
+
+  .daangn-shell--responsive .geo-tabbar__item {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 14px;
+    min-height: 48px;
+  }
+
+  .daangn-shell--responsive .geo-tabbar--four .geo-tabbar__label,
+  .daangn-shell--responsive .geo-tabbar--three .geo-tabbar__label,
+  .daangn-shell--responsive .geo-tabbar--five .geo-tabbar__label {
+    font-size: 14px;
+  }
+
+  .settings-desktop-hub .tab-page-shell__body,
+  .settings-desktop-hub .my-tab-page__body {
+    max-width: 600px;
+  }
+}

@@ -1,0 +1,1589 @@
+/* ═══ 거지맵형 모바일 지도 (일당맵) ═══ */
+
+@media (max-width: 1023px) {
+  :root {
+  /* 플로팅 탭바 + 하단 여백 (FAB 위치 계산용) */
+    --daangn-tabbar-base-h: 56px;
+    --geo-tabbar-float-h: 56px;
+    --geo-map-topbar-stack-h: 124px;
+    --geo-map-hud-offset: calc(max(6px, env(safe-area-inset-top, 0px)) + var(--geo-map-topbar-stack-h) + 8px);
+  }
+}
+
+.map-tab-page--geo {
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  background: #e8eaed;
+}
+
+.map-tab-page--geo .map-desktop-sidebar {
+  display: none;
+}
+
+.map-tab-page--geo .map-geo-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.map-tab-page--geo .map-tool-header {
+  display: none;
+}
+
+.map-tab-page--geo .map-geo-stage__top {
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 20;
+  padding-top: 0;
+  pointer-events: none;
+  background: #ffffff;
+  box-shadow: 0 1px 0 #f0f0f2;
+  isolation: isolate;
+}
+
+.map-tab-page--geo .map-geo-stage__top .map-page-head {
+  pointer-events: auto;
+  background: #ffffff;
+}
+
+.map-tab-page--geo .map-geo-stage__top .map-page-head--geo-stack .map-page-head__row--primary {
+  padding-left: var(--app-page-pad-x, 14px);
+  padding-right: var(--app-page-pad-x, 14px);
+}
+
+.map-tab-page--geo .map-geo-stage__canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* pointer-events: map-touch-passthrough.css (map-surface / overlays) */
+
+.map-tab-page--geo .map-geo-stage__canvas .map-geo-stage__chips-anchor .map-layer-chips,
+.map-tab-page--geo .map-geo-stage__canvas .map-floating-btn,
+.map-tab-page--geo .map-geo-stage__canvas .map-card-container,
+.map-tab-page--geo .map-geo-stage__canvas .map-operation-context-card {
+  pointer-events: auto;
+}
+
+/* ─── HUD chrome ─── */
+.geo-map-chrome {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  overflow: visible;
+  z-index: 12;
+  pointer-events: none;
+}
+
+.geo-map-hud,
+.geo-map-area-btn,
+.geo-map-rail__btn,
+.geo-map-filter-chip,
+.geo-map-fab,
+.geo-map-pill,
+.geo-map-status,
+.geo-map-chrome .map-search-panel {
+  pointer-events: auto;
+}
+
+/* 상단 HUD — 브랜드 + 액션 2개 (약 56~64px) */
+.geo-map-hud {
+  position: absolute;
+  top: max(4px, env(safe-area-inset-top, 0px));
+  left: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 50px;
+  max-height: 56px;
+  padding: 6px 8px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+}
+
+.geo-map-hud__brand {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.geo-map-hud__title {
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #111827;
+  line-height: 1.15;
+}
+
+.geo-map-hud__sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.geo-map-hud__actions {
+  flex-shrink: 0;
+  display: flex;
+  gap: 6px;
+}
+
+.geo-map-hud__action {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.geo-map-hud__action--light {
+  background: rgba(254, 243, 199, 0.95);
+}
+
+.geo-map-hud__action--dark {
+  background: rgba(30, 41, 59, 0.94);
+  color: #fff;
+}
+
+.geo-map-hud__action-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.geo-map-hud__action--notify {
+  position: relative;
+}
+
+.geo-map-hud__action-glyph {
+  display: block;
+  width: 20px;
+  height: 20px;
+  background: center / contain no-repeat;
+}
+
+.geo-map-hud__action-glyph--post {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff' stroke-width='2.6'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
+}
+
+.geo-map-hud__action-glyph--bell {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff' stroke-width='2.2'%3E%3Cpath d='M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5'/%3E%3Cpath d='M9.5 17a2.5 2.5 0 0 0 5 0'/%3E%3C/svg%3E");
+}
+
+.geo-map-hud__action-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 2행 HUD — 좌 기록 추가 · 중 이 지역 · 우 검색·찜·필터 */
+.geo-map-rail {
+  position: absolute;
+  top: var(--geo-map-hud-offset);
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 13;
+}
+
+.geo-map-rail--row {
+  flex-direction: row;
+  gap: 6px;
+}
+
+/* 좌상단 글쓰기+ */
+.geo-map-pill--write {
+  top: var(--geo-map-hud-offset);
+  left: 8px;
+  right: auto;
+  bottom: auto;
+  z-index: 13;
+  height: 42px;
+  min-height: 42px;
+  padding: 0 16px;
+  gap: 2px;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.geo-map-area-btn {
+  position: absolute;
+  top: var(--geo-map-hud-offset);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  min-height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.1);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+}
+
+.geo-map-chrome--minimal .geo-map-filter-chip {
+  top: var(--geo-map-hud-offset);
+}
+
+.geo-map-filter-chip {
+  position: absolute;
+  top: calc(var(--geo-map-hud-offset) + 6px);
+  right: 12px;
+  z-index: 13;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 26px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+}
+
+.geo-map-filter-chip__x {
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.geo-map-rail__btn {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.geo-map-rail__btn:active {
+  transform: scale(0.96);
+}
+
+.geo-map-rail__glyph {
+  display: block;
+  width: 42px;
+  height: 42px;
+  background: center / 18px 18px no-repeat;
+}
+
+.geo-map-rail__glyph--search {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2.2'%3E%3Ccircle cx='11' cy='11' r='6'/%3E%3Cpath d='M16 16l5 5'/%3E%3C/svg%3E");
+}
+
+.geo-map-rail__glyph--heart {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff' stroke-width='2.2'%3E%3Cpath d='M12 20s-7-4.4-7-9.2C5 7.6 7.8 5 11 5c1.8 0 3.3.9 4 2.2.7-1.3 2.2-2.2 4-2.2 3.2 0 6 2.6 6 5.8C21 15.6 12 20 12 20z'/%3E%3C/svg%3E");
+}
+
+.geo-map-rail__glyph--filter {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2.2'%3E%3Cpath d='M4 7h16M7 12h10M10 17h4'/%3E%3C/svg%3E");
+}
+
+.geo-map-rail__glyph--post {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2.6'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E");
+}
+
+.geo-map-rail__glyph--bell {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff' stroke-width='2.2'%3E%3Cpath d='M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5'/%3E%3Cpath d='M9.5 17a2.5 2.5 0 0 0 5 0'/%3E%3C/svg%3E");
+}
+
+.geo-map-rail--tools {
+  gap: 8px;
+}
+
+.geo-map-rail__badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 18px;
+  text-align: center;
+}
+
+.geo-map-status {
+  position: absolute;
+  top: calc(max(6px, env(safe-area-inset-top, 0px)) + 64px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 70%;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.geo-map-status.is-error {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* 하단 FAB — 내위치(좌) · 목록(우) */
+.geo-map-fab {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  min-width: var(--app-touch-min, 44px);
+  min-height: var(--app-touch-min, 44px);
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 3px 14px rgba(15, 23, 42, 0.18);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.geo-map-fab__glyph {
+  display: block;
+  width: 50px;
+  height: 50px;
+  background: center / 24px 24px no-repeat;
+}
+
+.geo-map-fab__glyph--loc {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232563eb' stroke-width='2.6'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 2v3M12 19v3M2 12h3M19 12h3'/%3E%3C/svg%3E");
+}
+
+.geo-map-fab__glyph--list {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2.6'%3E%3Cpath d='M5 7h14M5 12h14M5 17h14'/%3E%3C/svg%3E");
+}
+
+.geo-map-pill {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.geo-map-pill__text {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+.geo-map-pill__plus {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1;
+  color: #111827;
+}
+
+.geo-map-fab--loc {
+  left: 8px;
+  bottom: calc(var(--geo-tabbar-float-h, 56px) + 10px + env(safe-area-inset-bottom, 0px));
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.16);
+}
+
+.geo-map-fab--loc .geo-map-fab__glyph--loc {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2.6'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 2v3M12 19v3M2 12h3M19 12h3'/%3E%3C/svg%3E");
+}
+
+.geo-map-fab--list {
+  right: 8px;
+  bottom: calc(var(--geo-tabbar-float-h, var(--daangn-tabbar-base-h, 56px)) + 10px + env(safe-area-inset-bottom, 0px));
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.16);
+}
+
+.geo-map-fab--list .geo-map-fab__glyph {
+  color: #111827;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.geo-map-fab--list.is-active {
+  background: #2563eb;
+}
+
+.geo-map-fab--estimate {
+  right: 8px;
+  bottom: calc(var(--geo-tabbar-float-h, var(--daangn-tabbar-base-h, 56px)) + 10px + env(safe-area-inset-bottom, 0px) + 54px);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+}
+
+.geo-map-fab--estimate .geo-map-fab__glyph--estimate {
+  background-image: none;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.map-tab-page--job-list-open .geo-map-fab--estimate {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.geo-map-fab__count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #1c1917;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 18px;
+  text-align: center;
+}
+
+.geo-map-fab.is-busy {
+  opacity: 0.5;
+}
+
+.map-tab-page--job-list-open .geo-map-fab--list {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* 검색 카드 — map-search-panel-layer에서 최상위 z-index 관리 */
+.geo-map-chrome .map-search-panel-card.map-card-container {
+  z-index: var(--z-search-panel, 210);
+}
+
+/* ─── 현장목록: 대형 리스트 레이어 (상단바~하단 nav 사이) ─── */
+.map-job-list-overlay.map-job-list-overlay--geo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: stretch;
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  padding: calc(var(--geo-map-topbar-stack-h, 72px) + 6px + env(safe-area-inset-top, 0px)) 10px
+    calc(var(--geo-tabbar-float-h, 56px) + 8px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.map-job-list-overlay--geo .map-job-list-overlay__backdrop {
+  pointer-events: auto;
+  position: absolute;
+  inset: 0;
+  border: none;
+  padding: 0;
+  background: rgba(15, 23, 42, 0.28);
+  cursor: pointer;
+}
+
+.map-job-list-overlay--geo .geo-job-sheet {
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  width: min(100%, 420px);
+  max-width: 420px;
+  min-height: 0;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 20px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.22);
+  box-sizing: border-box;
+}
+
+.geo-job-sheet__head {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.map-job-list-overlay--geo .geo-job-sheet__head::before {
+  display: none;
+}
+
+.geo-job-sheet__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+.geo-job-sheet__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.geo-job-sheet__close {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: #f3f4f6;
+  font-size: 20px;
+  line-height: 1;
+  color: #374151;
+  cursor: pointer;
+}
+
+.geo-job-sheet__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 8px 12px 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #b8bec8 #f3f4f6;
+}
+
+.geo-job-sheet__body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.geo-job-sheet__body::-webkit-scrollbar-track {
+  margin: 4px 0;
+  background: #f3f4f6;
+  border-radius: 999px;
+}
+
+.geo-job-sheet__body::-webkit-scrollbar-thumb {
+  background: #b8bec8;
+  border-radius: 999px;
+  border: 1px solid #f3f4f6;
+}
+
+.geo-job-sheet__body::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.map-job-list-overlay--geo .field-job-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.field-job-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 72px;
+  min-height: 72px;
+  max-height: 72px;
+  padding: 0 10px 0 0;
+  border-radius: 12px;
+  border: 1px solid #eceef1;
+  background: #fff;
+  box-shadow: none;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.field-job-card.is-selected {
+  border-color: #111827;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+}
+
+.field-job-card__thumb {
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  margin-left: 10px;
+  border-radius: 8px;
+  background: linear-gradient(145deg, #111 0%, #2d2d2d 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  line-height: 1;
+}
+
+.field-job-card__thumb-date {
+  font-size: 9px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: -0.03em;
+}
+
+.field-job-card__thumb-day {
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: -0.04em;
+}
+
+.field-job-card__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.field-job-card__title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-job-card__addr {
+  font-size: 13px;
+  font-weight: 600;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field-job-card__dist {
+  font-size: 14px;
+  font-weight: 800;
+  color: #2563eb;
+  letter-spacing: -0.02em;
+}
+
+.field-job-card__apply {
+  flex-shrink: 0;
+  align-self: center;
+  height: 40px;
+  min-width: 60px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.field-job-card__apply.is-disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: default;
+}
+
+/* ─── compact row (~70px) — legacy ─── */
+.geo-job-list {
+  background: #fff;
+}
+
+.geo-job-row {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 52px;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  min-height: 70px;
+  max-height: 70px;
+  padding: 0 12px;
+  margin: 0;
+  border: none;
+  border-bottom: 1px solid #f0f1f3;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.geo-job-row:last-child {
+  border-bottom: none;
+}
+
+.geo-job-row:active {
+  background: #f8fafc;
+}
+
+.geo-job-row.is-selected {
+  background: #f1f5f9;
+  box-shadow: inset 3px 0 0 #2563eb;
+}
+
+.geo-job-row__pay {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: #111827;
+  white-space: nowrap;
+}
+
+.geo-job-row--help .geo-job-row__pay,
+.geo-job-row--urgent .geo-job-row__pay {
+  color: #c2410c;
+}
+
+.geo-job-row__body {
+  min-width: 0;
+}
+
+.geo-job-row__title {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.geo-job-row__meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.geo-job-row__state {
+  font-size: 11px;
+  font-weight: 900;
+  text-align: right;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.geo-job-row__state--recruiting {
+  color: #16a34a;
+}
+
+.geo-job-row__state--closing {
+  color: #ea580c;
+}
+
+.geo-job-row__state--working {
+  color: #2563eb;
+}
+
+.geo-job-row__state--closed,
+.geo-job-row__state--settled {
+  color: #64748b;
+}
+
+.geo-job-row__state--help-critical {
+  color: #dc2626;
+}
+
+.geo-job-row__state--help-warning {
+  color: #ea580c;
+}
+
+/* 선택 미리보기 — 지도 하단 카드 */
+.map-job-preview--geo {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: calc(var(--geo-tabbar-float-h, 72px) + 12px + 48px + 16px + env(safe-area-inset-bottom, 0px));
+  z-index: 11;
+  pointer-events: auto;
+}
+
+.map-job-preview--geo .map-job-preview__card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 12px 14px 10px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.1);
+  background: #fff;
+}
+
+.map-job-preview--geo .map-job-preview__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-job-preview--geo .map-job-preview__title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.map-job-preview--geo .map-job-preview__pay {
+  font-size: 17px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.map-job-preview--geo .map-job-preview__row {
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
+  line-height: 1.35;
+}
+
+.map-job-preview--geo .map-job-preview__region {
+  color: #9ca3af;
+}
+
+.map-job-preview--geo .map-job-preview__actions {
+  flex-direction: row;
+  gap: 8px;
+}
+
+.map-job-preview--geo .map-job-preview__btn {
+  flex: 1;
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 10px;
+}
+
+.map-job-preview--geo .map-job-preview__close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-location-toast {
+  z-index: 13;
+}
+
+@media (min-width: 1024px) {
+  .map-tab-page--geo .map-desktop-sidebar {
+    display: flex;
+  }
+
+  .map-tab-page--geo .map-geo-stage {
+    position: relative;
+    flex: 1 1 auto;
+  }
+
+  .map-tab-page--geo .map-tool-header {
+    display: flex;
+  }
+
+  .geo-map-chrome {
+    display: none !important;
+  }
+
+  .map-job-list-overlay--mobile-only {
+    display: none !important;
+  }
+}
+
+/* 지도 탭: 메인 스크롤 잠금 */
+.daangn-shell:has(.map-tab-page--geo) .daangn-shell__main {
+  overflow: hidden;
+}
+
+/* ─── 지도 현장 마커: 상단 MM/DD + 하단 금액 (추천3) ─── */
+.geo-marker-anchor {
+  position: relative;
+  transform: translate(-50%, -100%) scale(var(--geo-hmarker-scale, 0.82));
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.geo-pay-marker {
+  --geo-pay-marker-accent: #111827;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 54px;
+  max-width: 72px;
+  padding: 0;
+  margin-bottom: 5px;
+  border-radius: 15px;
+  background: #fff;
+  border: 1.5px solid var(--geo-pay-marker-accent);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
+  pointer-events: auto;
+  cursor: pointer;
+  overflow: visible;
+  touch-action: none;
+}
+
+/* 하단 말풍선 꼬리 */
+.geo-pay-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  background: #fff;
+  border-right: 1.5px solid var(--geo-pay-marker-accent);
+  border-bottom: 1.5px solid var(--geo-pay-marker-accent);
+  transform: rotate(45deg);
+  box-shadow: 2px 2px 3px rgba(15, 23, 42, 0.06);
+  pointer-events: none;
+}
+
+.geo-pay-marker__date {
+  display: block;
+  padding: 4px 8px 3px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: #555;
+  text-align: center;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.geo-pay-marker__pay {
+  display: block;
+  padding: 2px 6px 5px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.06em;
+  color: var(--geo-pay-marker-accent);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.geo-pay-marker__pay--compact {
+  font-size: 19px;
+  letter-spacing: -0.05em;
+}
+
+.geo-pay-marker__pay--dense {
+  font-size: 16px;
+  letter-spacing: -0.04em;
+}
+
+/* 상태 — 테두리 + 금액 색만 */
+.geo-pay-marker--help {
+  --geo-pay-marker-accent: #ea580c;
+}
+
+.geo-pay-marker--beginner {
+  --geo-pay-marker-accent: #16a34a;
+}
+
+.geo-pay-marker--closing {
+  --geo-pay-marker-accent: #dc2626;
+}
+
+.geo-pay-marker--night {
+  --geo-pay-marker-accent: #7c3aed;
+}
+
+.geo-marker-anchor--selected {
+  transform: translate(-50%, -100%) scale(calc(var(--geo-hmarker-scale, 0.82) * 1.05));
+}
+
+.geo-marker-anchor--selected .geo-pay-marker {
+  border-width: 2px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22);
+}
+
+/* 견적 마커 — geo-map-market.css */
+
+/* 지도 글쓰기 메뉴 (상단 pill → 시트) */
+.geo-write-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  pointer-events: none;
+}
+
+.geo-write-sheet-root[data-open="true"] {
+  pointer-events: auto;
+}
+
+.geo-write-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.32);
+  cursor: pointer;
+}
+
+.geo-write-sheet-panel {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--daangn-tabbar-base-h, 56px) + env(safe-area-inset-bottom, 0px) + 12px);
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 14px 14px 10px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.18);
+}
+
+.geo-write-sheet-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.geo-write-sheet-panel__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.geo-write-sheet-panel__close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.geo-write-sheet-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.geo-write-sheet-menu__btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  cursor: pointer;
+}
+
+.geo-write-sheet-menu__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+}
+
+.geo-write-sheet-menu__desc {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.geo-write-sheet-menu__icon {
+  width: 28px;
+  text-align: center;
+  font-size: 16px;
+}
+
+/* 견적 요청 상세 시트 */
+.estimate-detail-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1180;
+  pointer-events: auto;
+}
+
+.estimate-detail-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.28);
+  cursor: pointer;
+}
+
+.estimate-detail-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: var(--estimate-sheet-vh, 58vh);
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px 18px 0 0;
+  background: #fff;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.14);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.estimate-detail-sheet__head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.estimate-detail-sheet__grab {
+  grid-column: 1 / -1;
+  width: 36px;
+  height: 4px;
+  margin: 0 auto 4px;
+  border: none;
+  border-radius: 999px;
+  background: #e5e7eb;
+  cursor: default;
+}
+
+.estimate-detail-sheet__title-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.estimate-detail-sheet__badge {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef6ff;
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.estimate-detail-sheet__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.estimate-detail-sheet__close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  cursor: pointer;
+}
+
+.estimate-detail-sheet__body {
+  flex: 1;
+  overflow: auto;
+  padding: 12px 14px;
+}
+
+.estimate-detail-sheet__facts {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.estimate-detail-sheet__fact {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.estimate-detail-sheet__fact dt {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.estimate-detail-sheet__fact dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.estimate-detail-sheet__memo {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.estimate-detail-sheet__memo-label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.estimate-detail-sheet__memo-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.estimate-detail-sheet__photo-hint {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.estimate-detail-sheet__support-meta {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #4b5563;
+}
+
+.estimate-detail-sheet__support-meta--muted {
+  color: #9ca3af;
+}
+
+.estimate-detail-sheet__foot {
+  padding: 10px 14px 14px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.estimate-detail-sheet__support-btn {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 14px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.estimate-detail-sheet__support-btn:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: default;
+}
+
+/* ─── 거지맵형 하단 탭바 (6칸, 하단 고정 플랫 바) ─── */
+.geo-tabbar-shell {
+  flex: 0 0 auto;
+  padding: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: #fff;
+  pointer-events: none;
+  border-top: 1px solid #e5e7eb;
+}
+
+.daangn-shell:has(.map-tab-page--geo) .geo-tabbar-shell {
+  background: #fff;
+}
+
+.geo-tabbar {
+  pointer-events: auto;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0;
+  min-height: 54px;
+  padding: 4px 2px 6px;
+  margin: 0;
+  border-radius: 0;
+  background: #fff;
+  border: none;
+  box-shadow: none;
+}
+
+.geo-tabbar--three,
+.geo-tabbar--four,
+.geo-tabbar--five {
+  min-height: 56px;
+  padding: 6px 6px 8px;
+}
+
+.geo-tabbar--three .geo-tabbar__item,
+.geo-tabbar--four .geo-tabbar__item,
+.geo-tabbar--five .geo-tabbar__item {
+  gap: 2px;
+}
+
+.geo-tabbar--three .geo-tabbar__label,
+.geo-tabbar--four .geo-tabbar__label,
+.geo-tabbar--five .geo-tabbar__label {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #9ca3af;
+}
+
+.geo-tabbar--three .geo-tabbar__item--active .geo-tabbar__label,
+.geo-tabbar--four .geo-tabbar__item--active .geo-tabbar__label,
+.geo-tabbar--five .geo-tabbar__item--active .geo-tabbar__label {
+  color: var(--ildang-green, #2f8f46);
+  font-weight: 900;
+}
+
+.geo-tabbar--five .geo-tabbar__label {
+  font-size: 11px;
+}
+
+.geo-tabbar__icon--home {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2'%3E%3Cpath d='M4 10.5L12 4l8 6.5V20a1 1 0 01-1 1h-5v-6H10v6H5a1 1 0 01-1-1v-9.5z'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar--five .geo-tabbar__item--active .geo-tabbar__icon--home {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ff6b00' stroke-width='2.2'%3E%3Cpath d='M4 10.5L12 4l8 6.5V20a1 1 0 01-1 1h-5v-6H10v6H5a1 1 0 01-1-1v-9.5z'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__item {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--app-touch-min, 44px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 5px 0;
+  text-decoration: none;
+  color: #6b7280;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.geo-tabbar__item--active {
+  color: #111827;
+}
+
+.geo-tabbar__icon-wrap {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.geo-tabbar__icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+  background: center / 20px 20px no-repeat;
+  opacity: 0.5;
+}
+
+.geo-tabbar__item--active .geo-tabbar__icon {
+  opacity: 1;
+  filter: contrast(1.08);
+}
+
+.geo-tabbar__icon--map {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2'%3E%3Cpath d='M4 6l7-3 9 4v11l-9-4-7 3V6z'/%3E%3Cpath d='M11 3v11M20 7v11'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__icon--chat {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2'%3E%3Cpath d='M5 6h14a2 2 0 012 2v6a2 2 0 01-2 2H9l-4 3v-3H5a2 2 0 01-2-2V8a2 2 0 012-2z'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__icon--gift {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23dc2626' stroke-width='2'%3E%3Cpath d='M4 10h16v10H4zM12 10V4M8 7h8M7 7h2M15 7h2'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__icon--store {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2316a34a' stroke-width='2'%3E%3Cpath d='M4 10l2-6h12l2 6v10H4V10zM4 10h16M9 14h6'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__icon--tag {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2'%3E%3Cpath d='M4 12l8-8 8 8-8 8-8-8zM14 10a2 2 0 100-4 2 2 0 000 4z'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__icon--more {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2'%3E%3Cpath d='M5 7h14M5 12h14M5 17h14'/%3E%3Ccircle cx='8' cy='7' r='1' fill='%23111827'/%3E%3Ccircle cx='16' cy='12' r='1' fill='%23111827'/%3E%3Ccircle cx='10' cy='17' r='1' fill='%23111827'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__icon--schedule {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2'%3E%3Crect x='4' y='5' width='16' height='15' rx='2'/%3E%3Cpath d='M8 3v4M16 3v4M4 10h16'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__icon--settings {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23111827' stroke-width='2'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cpath d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar--three .geo-tabbar__item--active .geo-tabbar__icon,
+.geo-tabbar--four .geo-tabbar__item--active .geo-tabbar__icon,
+.geo-tabbar--five .geo-tabbar__item--active .geo-tabbar__icon {
+  opacity: 1;
+}
+
+.geo-tabbar__icon--contacts {
+  background: center / contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__item--active .geo-tabbar__icon--contacts {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111827' stroke-width='2.2'%3E%3Cpath d='M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/%3E%3Ccircle cx='9' cy='7' r='4'/%3E%3Cpath d='M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/%3E%3C/svg%3E");
+}
+
+.geo-tabbar__badge {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 4px);
+  transform: translateX(-50%);
+  max-width: 72px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+  z-index: 2;
+}
+
+.geo-tabbar__badge--red {
+  color: #dc2626;
+}
+
+.geo-tabbar__badge--green {
+  color: #16a34a;
+}
+
+.geo-tabbar__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (min-width: 1024px) {
+  .geo-tabbar-shell {
+    display: none;
+  }
+}

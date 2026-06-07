@@ -7,15 +7,20 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
-    "axios": "^1.15.2",
-    "lucide-react": "^1.9.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.14.1",
     "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
+    "tesseract.js": "^7.0.0",
+    "web-vitals": "^2.1.4",
+    "zustand": "^5.0.13"
   },
   "scripts": {
+    "smoke:jobs": "node scripts/smoke-get-jobs.mjs",
+    "smoke:jobs:contract": "node scripts/smoke-job-contract.mjs",
+    "smoke:jobs:map": "node scripts/smoke-job-map-data.mjs",
+    "smoke:create-job": "node scripts/smoke-create-job.mjs",
+    "smoke:apply-job": "node scripts/smoke-apply-job.mjs",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:ildangmap;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    defer-datasource-initialization: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  sql:
+    init:
+      mode: never
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: smoke-client-id
+            client-secret: smoke-client-secret
+
+app:
+  frontend-origin: http://localhost:3000
+
+server:
+  servlet:
+    session:
+      cookie:
+        name: ILDANGMAPSESSION
+        same-site: none
+        secure: false
+
+logging:
+  level:
+    org.hibernate.SQL: warn

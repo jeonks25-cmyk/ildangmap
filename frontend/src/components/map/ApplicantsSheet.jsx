@@ -1,17 +1,23 @@
 import React from "react";
-import { JOB_STATUS } from "../../utils/jobModel";
+import { getApplicantsArray, JOB_STATUS, normalizeLifecycleStatus } from "../../utils/jobModel";
+import { normalizeParticipantStatus } from "../../utils/jobPrivacyPolicy";
 
 function applicantStatusKo(st) {
-  if (st === "applied") return "지원";
-  if (st === "confirmed") return "확정";
-  if (st === "rejected") return "거절";
+  const normalized = normalizeParticipantStatus(st);
+  if (normalized === "pending") return "지원";
+  if (normalized === "approved" || normalized === "checked_in" || normalized === "completed") return "확정";
+  if (normalized === "rejected") return "거절";
   return String(st || "");
 }
 
-export default function ApplicantsSheet({ job, onClose, onConfirm, onReject }) {
+export default function ApplicantsSheet({ job, onClose, onConfirm, onReject, canManageApplicants }) {
   if (!job) return null;
-  const list = Array.isArray(job.applicants) ? job.applicants : [];
-  const canManage = job.status === JOB_STATUS.RECRUITING;
+  const list = getApplicantsArray(job);
+  const lifecycle = normalizeLifecycleStatus(job);
+  const defaultManage =
+    lifecycle === JOB_STATUS.RECRUITING || lifecycle === JOB_STATUS.FULL || lifecycle === JOB_STATUS.CONFIRMED;
+  const canManage =
+    typeof canManageApplicants === "boolean" ? canManageApplicants : defaultManage;
 
   return (
     <div className="applicants-sheet-backdrop" role="presentation" onClick={onClose}>
@@ -19,12 +25,12 @@ export default function ApplicantsSheet({ job, onClose, onConfirm, onReject }) {
         className="applicants-sheet"
         role="dialog"
         aria-modal="true"
-        aria-label="지원자 목록"
+        aria-label="참여 요청 목록"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="applicants-sheet__grab" aria-hidden="true" />
         <div className="applicants-sheet__head">
-          <h2 className="applicants-sheet__title">지원자 ({list.length}명)</h2>
+          <h2 className="applicants-sheet__title">참여 요청 ({list.length}명)</h2>
           <button type="button" className="applicants-sheet__close" onClick={onClose} aria-label="닫기">
             ✕
           </button>
@@ -32,11 +38,12 @@ export default function ApplicantsSheet({ job, onClose, onConfirm, onReject }) {
         <p className="applicants-sheet__sub">{job.title}</p>
 
         <div className="applicants-sheet__list">
-          {list.length === 0 ? <p className="applicants-sheet__empty">지원자가 없습니다.</p> : null}
+          {list.length === 0 ? <p className="applicants-sheet__empty">참여 요청이 없습니다.</p> : null}
           {list.map((a) => {
             if (!a) return null;
-            const confirmed = a.status === "confirmed";
-            const rejected = a.status === "rejected";
+            const normalizedStatus = normalizeParticipantStatus(a.status);
+            const confirmed = normalizedStatus === "approved" || normalizedStatus === "checked_in" || normalizedStatus === "completed";
+            const rejected = normalizedStatus === "rejected";
             return (
               <div
                 key={a.id}
@@ -53,7 +60,7 @@ export default function ApplicantsSheet({ job, onClose, onConfirm, onReject }) {
                     작업 {a.experience ?? 0}회 · 노쇼 {a.noShow ?? 0}회 · {applicantStatusKo(a.status)}
                   </div>
                 </div>
-                {canManage && a.status === "applied" ? (
+                {canManage && normalizedStatus === "pending" ? (
                   <div className="applicants-sheet__actions">
                     <button type="button" className="applicants-sheet__btn applicants-sheet__btn--ok" onClick={() => onConfirm?.(a.id)}>
                       확정

@@ -1,0 +1,33 @@
+/* 탭 공통 추가 FAB — 지도(+장소) / 일정(+일정) / 인원(+인원) 동일 좌표·스타일 */
+
+.floating-action-button-anchor {
+  position: fixed;
+  left: 50%;
+  right: auto;
+  bottom: var(--fab-anchor-bottom, calc(84px + env(safe-area-inset-bottom, 0px)));
+  top: auto;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  z-index: var(--z-floating-action, 52);
+}
+
+.floating-action-button-anchor .floating-action-button,
+.floating-action-button-anchor .map-floating-btn {
+  position: relative;
+  right: auto;
+  bottom: auto;
+  pointer-events: auto;
+}
+
+.floating-action-button.map-floating-btn {
+  --map-floating-bg: var(--fab-action-bg, #1fa35b);
+  --map-floating-bg-active: var(--fab-action-bg-active, #188f4e);
+  box-shadow: var(--fab-action-shadow, 0 4px 14px rgba(31, 163, 91, 0.32));
+}
+
+.floating-action-button.is-open .map-floating-btn__svg--add {
+  transform: rotate(45deg);
+}

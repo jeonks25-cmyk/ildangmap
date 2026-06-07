@@ -1,0 +1,104 @@
+/* + FAB 말풍선 퀵액션 — 주차·화장실·식당 (앵커: floating-action-button.css) */
+
+.map-quick-add-bubble {
+  position: absolute;
+  bottom: calc(var(--map-floating-size, 48px) + 10px);
+  left: 50%;
+  transform: translateX(-50%) translateY(10px) scale(0.96);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease,
+    visibility 180ms ease;
+}
+
+.map-quick-add-bubble.is-open {
+  transform: translateX(-50%) translateY(0) scale(1);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.map-quick-add-bubble__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.map-quick-add-bubble__action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 2px 6px;
+  border: none;
+  background: transparent;
+  color: #1c1917;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  min-width: 52px;
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.map-quick-add-bubble.is-open .map-quick-add-bubble__action {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    transform 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease;
+}
+
+.map-quick-add-bubble.is-open .map-quick-add-bubble__action:nth-child(1) {
+  transition-delay: 40ms;
+}
+.map-quick-add-bubble.is-open .map-quick-add-bubble__action:nth-child(2) {
+  transition-delay: 70ms;
+}
+.map-quick-add-bubble.is-open .map-quick-add-bubble__action:nth-child(3) {
+  transition-delay: 100ms;
+}
+
+.map-quick-add-bubble__action:active {
+  opacity: 0.75;
+}
+
+.map-quick-add-bubble__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #f5f5f4;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.map-quick-add-bubble__label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #44403c;
+  white-space: nowrap;
+}
+
+.map-quick-add-bubble__tail {
+  width: 0;
+  height: 0;
+  margin-top: -1px;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-top: 9px solid #ffffff;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.08));
+}

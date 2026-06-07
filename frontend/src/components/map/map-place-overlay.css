@@ -1,0 +1,166 @@
+/* 목록 행 — 플로팅 버튼은 FloatingButton (floating-button.css) */
+
+.map-place-overlay__sort {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+}
+
+.map-place-overlay__sort-btn {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-place-overlay__sort-btn.is-active {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
+}
+
+.map-place-overlay-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 22px 28px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 14px;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: none;
+  border-bottom: 1px solid #eef0f4;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-place-overlay-row:last-child {
+  border-bottom: none;
+}
+
+.map-place-overlay-row:active {
+  background: #f8fafc;
+}
+
+.map-place-overlay-row.is-selected {
+  background: #f0fdf4;
+  box-shadow: inset 3px 0 0 #16a34a;
+}
+
+.map-place-overlay-row__rank {
+  font-size: 12px;
+  font-weight: 800;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.map-place-overlay-row__icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.map-place-overlay-row__body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.map-place-overlay-row__title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-place-overlay-row__desc {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-place-overlay-row__distance {
+  font-size: 13px;
+  font-weight: 900;
+  color: #16a34a;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.map-place-overlay__empty {
+  margin: 0;
+  padding: 32px 20px 40px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.map-place-overlay-card--detail .place-detail-card__scroll {
+  overflow: visible;
+  flex: none;
+}
+
+/* 알림 목록 — 읽음/안읽음 (장소 목록 행 재사용) */
+.map-place-overlay-row--notification.is-unread {
+  background: #fff;
+  box-shadow: inset 3px 0 0 #6b7280;
+}
+
+.map-place-overlay-row--notification.is-unread .map-place-overlay-row__title {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.map-place-overlay-row--notification.is-read {
+  background: #f3f4f6;
+}
+
+.map-place-overlay-row--notification.is-read .map-place-overlay-row__title {
+  font-weight: 600;
+  color: #64748b;
+}
+
+.map-place-overlay-row__unread-dot {
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.map-place-overlay-row__time {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+@media (max-width: 380px) {
+  .map-place-overlay-row {
+    grid-template-columns: 18px 24px minmax(0, 1fr) auto;
+    gap: 6px;
+    padding: 10px 12px;
+  }
+}

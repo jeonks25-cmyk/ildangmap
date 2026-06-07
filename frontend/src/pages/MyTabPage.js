@@ -1,86 +1,171 @@
-import React, { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
-import {
-  PREF_CRAFT_OPTIONS,
-  PREF_TRADE_OPTIONS,
-  REGION_OPTIONS,
-  useUserMapPreferences,
-} from "../context/UserMapPreferencesContext";
+import React, { useCallback, useState } from "react";
+import { isDevLoginShortcutEnabled, isMockApiEnabled } from "../api/client";
+import { useAuth } from "../context/AuthContext";
+import { useJobs } from "../context/JobsContext";
+import { useUiStore } from "../store/useUiStore";
+import { runNextFieldFlowSim } from "../utils/fieldFlowSimulator";
+import { useUserProfile } from "../context/UserProfileContext";
+import SettingsMenuSection from "../components/settings/SettingsMenuSection";
+import SettingsProfileBanner from "../components/settings/SettingsProfileBanner";
+import AppTabHeader from "../components/layout/AppTabHeader";
+import MapNotificationOverlay from "../components/map/MapNotificationOverlay";
+import { useTabNotificationOverlay } from "../hooks/useTabNotificationOverlay";
+import { SETTINGS_MENU_SECTIONS, SETTINGS_SUPPORT_EMAIL, SETTINGS_APP_VERSION } from "../constants/settingsMenuMock";
+import { getDisplayNickname } from "../utils/displayNickname";
+import "../styles/settings-tab-mobile.css";
 
 export default function MyTabPage() {
-  const { prefs, setPrefs } = useUserMapPreferences();
-  const location = useLocation();
-  const mapPrefsRef = useRef(null);
+  const overlay = useTabNotificationOverlay();
+  const { authUser, isAuthenticated, authReady, loginWithKakaoMock, startKakaoOAuthLogin, logout, meBootstrapLoading } =
+    useAuth();
+  const { profile } = useUserProfile();
+  const { jobs, setJobs } = useJobs();
+  const showAppToast = useUiStore((state) => state.showAppToast);
+  const [kakaoBusy, setKakaoBusy] = useState(false);
 
-  useEffect(() => {
-    if (location.hash !== "#map-prefs") return;
-    const t = window.setTimeout(() => {
-      mapPrefsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
-    return () => window.clearTimeout(t);
-  }, [location.hash, location.pathname]);
+  const displayName = getDisplayNickname(profile, authUser);
+  const displayImage = profile?.profileImage || authUser?.profileImage;
+
+  const onKakaoFromMy = useCallback(async () => {
+    if (kakaoBusy || meBootstrapLoading) return;
+    if (isMockApiEnabled()) {
+      setKakaoBusy(true);
+      try {
+        await loginWithKakaoMock();
+      } finally {
+        setKakaoBusy(false);
+      }
+      return;
+    }
+    setKakaoBusy(true);
+    try {
+      await startKakaoOAuthLogin();
+    } finally {
+      setKakaoBusy(false);
+    }
+  }, [kakaoBusy, meBootstrapLoading, loginWithKakaoMock, startKakaoOAuthLogin]);
+
+  const onDevMockLogin = async () => {
+    if (kakaoBusy || meBootstrapLoading) return;
+    setKakaoBusy(true);
+    try {
+      await loginWithKakaoMock();
+    } finally {
+      setKakaoBusy(false);
+    }
+  };
+
+  const onLogout = useCallback(() => {
+    logout();
+    showAppToast("로그아웃했습니다.");
+  }, [logout, showAppToast]);
+
+  const handleMenuItemClick = useCallback(
+    (item) => {
+      switch (item.action) {
+        case "email":
+          window.location.href = `mailto:${SETTINGS_SUPPORT_EMAIL}`;
+          break;
+        case "mock":
+          showAppToast(`${item.label} — 준비 중입니다.`);
+          break;
+        default:
+          break;
+      }
+    },
+    [showAppToast]
+  );
 
   return (
-    <div className="my-tab-page">
-      <header className="my-tab-page__hero">
-        <h1 className="my-tab-page__title">내 정보</h1>
-        <p className="my-tab-page__lead">프로필·내 공고·설정이 이곳에 모입니다. (준비 중)</p>
-      </header>
+    <div
+      ref={overlay.pageRef}
+      className={`my-tab-page my-tab-page--settings-hub tab-page-shell settings-desktop-hub${overlay.notificationOverlayOpen ? " my-tab-page--overlay-open" : ""}`}
+    >
+      <AppTabHeader
+        title="설정"
+        onOpenNotifications={overlay.handleOpenNotificationCenter}
+        unreadCount={overlay.unreadCount}
+      />
 
-      <section id="map-prefs" ref={mapPrefsRef} className="my-tab-page__card" aria-labelledby="map-prefs-heading">
-        <h2 id="map-prefs-heading" className="my-tab-page__card-title">
-          지도 맞춤
-        </h2>
-        <p className="my-tab-page__card-desc">홈 지도에 보이는 지역·직군·공정은 여기서만 바꿀 수 있어요.</p>
+      <div className="my-tab-page__body tab-page-shell__body">
+        {isAuthenticated ? (
+          <SettingsProfileBanner displayName={displayName} displayImage={displayImage} />
+        ) : null}
 
-        <div className="my-tab-page__field">
-          <div className="my-tab-page__label">지역</div>
-          <div className="my-tab-page__chips" role="group" aria-label="지역 선택">
-            {REGION_OPTIONS.map((r) => (
+        {!isAuthenticated && authReady ? (
+          <section className="my-tab-page__login-area" aria-label="로그인">
+            <button
+              type="button"
+              className="my-tab-page__kakao-btn"
+              onClick={onKakaoFromMy}
+              disabled={kakaoBusy || meBootstrapLoading}
+            >
+              {kakaoBusy || meBootstrapLoading ? "연결 중…" : "카카오 로그인"}
+            </button>
+            {!isMockApiEnabled() && isDevLoginShortcutEnabled() ? (
               <button
-                key={r}
                 type="button"
-                className={`daangn-chip${prefs.regionLabel === r ? " daangn-chip--active" : ""}`}
-                onClick={() => setPrefs({ regionLabel: r })}
+                className="my-tab-page__dev-login-btn"
+                onClick={onDevMockLogin}
+                disabled={kakaoBusy || meBootstrapLoading}
               >
-                {r}
+                개발용 로그인 (Mock)
               </button>
-            ))}
-          </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        <div className="settings-menu-hub">
+          {SETTINGS_MENU_SECTIONS.map((section) => (
+            <SettingsMenuSection
+              key={section.id}
+              title={section.title}
+              items={section.items}
+              onItemClick={handleMenuItemClick}
+            />
+          ))}
         </div>
 
-        <div className="my-tab-page__field">
-          <div className="my-tab-page__label">직군</div>
-          <div className="my-tab-page__chips" role="group" aria-label="직군 선택">
-            {PREF_TRADE_OPTIONS.map((t) => (
-              <button
-                key={t}
-                type="button"
-                className={`daangn-chip${prefs.trade === t ? " daangn-chip--active" : ""}`}
-                onClick={() => setPrefs({ trade: t })}
-              >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
+        {isAuthenticated ? (
+          <footer className="settings-app-footer" aria-label="계정">
+            <button type="button" className="settings-app-footer__logout" onClick={onLogout}>
+              로그아웃
+            </button>
+            <p className="settings-app-footer__version">v{SETTINGS_APP_VERSION}</p>
+          </footer>
+        ) : null}
 
-        <div className="my-tab-page__field">
-          <div className="my-tab-page__label">공정</div>
-          <div className="my-tab-page__chips" role="group" aria-label="공정 선택">
-            {PREF_CRAFT_OPTIONS.map((opt) => (
-              <button
-                key={opt.label}
-                type="button"
-                className={`daangn-chip${prefs.craft === opt.value ? " daangn-chip--active" : ""}`}
-                onClick={() => setPrefs({ craft: opt.value })}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+        {isMockApiEnabled() && isAuthenticated ? (
+          <section className="my-tab-page__card my-tab-page__card--dev" aria-label="현장 흐름 mock">
+            <h2 className="my-tab-page__card-title">현장 흐름 시뮬 (dev)</h2>
+            <p className="my-tab-page__card-desc my-tab-page__card-desc--one">
+              mock API 전용 · 긴급·연결완료·시작·종료 순환
+            </p>
+            <button
+              type="button"
+              className="my-tab-page__dev-login-btn"
+              onClick={() => {
+                const { jobs: next, toast } = runNextFieldFlowSim(jobs);
+                setJobs(next);
+                showAppToast(toast);
+              }}
+            >
+              다음 흐름 단계
+            </button>
+          </section>
+        ) : null}
+      </div>
+
+      <MapNotificationOverlay
+        open={overlay.notificationOverlayOpen}
+        mode={overlay.notificationOverlayMode}
+        detailNotification={overlay.notificationOverlayDetail}
+        notifications={overlay.notificationItems}
+        mapContainerRef={overlay.pageRef}
+        onClose={overlay.handleCloseNotificationOverlay}
+        onBack={overlay.handleNotificationOverlayBack}
+        onSelectNotification={overlay.handleNotificationOverlaySelect}
+      />
     </div>
   );
 }

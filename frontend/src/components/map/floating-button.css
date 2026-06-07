@@ -1,0 +1,170 @@
+/* 지도 플로팅 앵커 — 개별 버튼 절대 배치 (배경 패널 없음) */
+
+.map-floating-anchor {
+  position: absolute;
+  top: 8px;
+  z-index: var(--z-fab, 20);
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+.map-floating-anchor--list {
+  left: var(--app-page-pad-x, 14px);
+}
+
+.map-floating-anchor--location {
+  right: var(--app-page-pad-x, 14px);
+}
+
+.map-floating-anchor .map-floating-btn {
+  pointer-events: auto;
+}
+
+/* 지도 플로팅 버튼 — 목록 / 내위치 / 장소 공통 */
+
+.map-floating-btn {
+  --map-floating-bg: var(--fab-action-bg, var(--ildang-green, #2f8f46));
+  --map-floating-bg-active: var(--fab-action-bg-active, var(--ildang-green-dark, #267339));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: var(--map-floating-bg);
+  color: #ffffff;
+  border-radius: var(--app-btn-radius, 999px);
+  box-shadow: var(--app-btn-shadow);
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease,
+    background-color 180ms ease;
+  box-sizing: border-box;
+}
+
+.map-floating-btn:active {
+  background: var(--map-floating-bg-active);
+  opacity: 0.95;
+}
+
+.map-floating-btn.is-busy {
+  --map-floating-bg: var(--app-color-disabled-bg, #f3f4f6);
+  color: var(--app-color-disabled, #d1d5db);
+  opacity: 1;
+  cursor: wait;
+  box-shadow: none;
+}
+
+/* 목록 · 내위치 — 기본 화이트+그린 아웃라인, 열림/선택 시 시그니처 그린 */
+.map-floating-btn--list,
+.map-floating-btn--location {
+  --map-floating-bg: #ffffff;
+  --map-floating-bg-active: #f0fdf4;
+  border: 1px solid var(--ildang-signature-green, #1fa35b);
+  box-shadow: 0 2px 8px rgba(31, 163, 91, 0.12);
+}
+
+.map-floating-btn--list .map-floating-btn__label,
+.map-floating-btn--list .map-floating-btn__svg,
+.map-floating-btn--location .map-floating-btn__label,
+.map-floating-btn--location .map-floating-btn__svg {
+  color: var(--ildang-signature-green, #1fa35b);
+}
+
+.map-floating-btn--list.is-open,
+.map-floating-btn--location.is-open {
+  --map-floating-bg: var(--ildang-signature-green, #1fa35b);
+  --map-floating-bg-active: var(--ildang-signature-green-dark, #188f4e);
+  border-color: var(--ildang-signature-green, #1fa35b);
+  box-shadow: var(--fab-action-shadow, 0 4px 14px rgba(31, 163, 91, 0.32));
+}
+
+.map-floating-btn--list.is-open .map-floating-btn__label,
+.map-floating-btn--list.is-open .map-floating-btn__svg,
+.map-floating-btn--location.is-open .map-floating-btn__label,
+.map-floating-btn--location.is-open .map-floating-btn__svg {
+  color: #ffffff;
+}
+
+.map-floating-btn--icon {
+  width: var(--map-floating-size, 48px);
+  height: var(--map-floating-size, 48px);
+  min-width: var(--map-floating-size, 48px);
+  min-height: var(--map-floating-size, 48px);
+}
+
+.map-floating-btn--labeled,
+.map-floating-btn--list,
+.map-floating-btn--location,
+.map-floating-btn--place {
+  min-height: var(--map-floating-size, 48px);
+  height: var(--map-floating-size, 48px);
+  padding: 0 14px;
+}
+
+.map-floating-btn--place.is-open .map-floating-btn__svg--add {
+  transform: rotate(45deg);
+}
+
+.map-floating-btn__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #ffffff;
+  line-height: 0;
+}
+
+.map-floating-btn__svg {
+  width: 20px;
+  height: 20px;
+  transition: transform 180ms ease;
+}
+
+.map-floating-btn__label {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.map-floating-btn__emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.map-notification-fab-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.map-notification-fab-wrap__badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+  border: 1.5px solid #fff;
+  box-sizing: border-box;
+  pointer-events: none;
+}

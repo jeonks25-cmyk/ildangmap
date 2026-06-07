@@ -1,0 +1,76 @@
+.field-flow-strip {
+  display: flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 2px var(--home-feed-pad, 16px) 4px;
+  background: transparent;
+  border-bottom: none;
+}
+
+.field-flow-strip__line {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.field-flow-strip__dot {
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #e5e7eb;
+}
+
+.field-flow-strip__line--urgent .field-flow-strip__dot {
+  background: #d6d3d1;
+}
+
+.field-flow-strip__text {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field-flow-strip__line--urgent .field-flow-strip__text {
+  color: #78716c;
+  font-weight: 600;
+}
+
+.field-flow-strip__line--afternoon .field-flow-strip__text {
+  color: #9ca3af;
+}
+
+.field-flow-strip__line--active .field-flow-strip__text {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.field-flow-strip--map,
+.field-flow-strip--board {
+  padding: 1px 0 4px;
+  background: transparent;
+}
+
+.field-flow-strip--map .field-flow-strip__text,
+.field-flow-strip--board .field-flow-strip__text {
+  font-size: 13px;
+  color: #a8a29e;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .field-flow-strip__text {
+    transition: none;
+  }
+}

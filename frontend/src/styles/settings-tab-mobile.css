@@ -1,0 +1,676 @@
+/* 설정 탭 — 치지직형 메뉴 허브 */
+
+.my-tab-page.my-tab-page--settings-hub,
+.my-tab-page.my-tab-page--profile-hub {
+  padding: 0 0 calc(var(--geo-tabbar-float-h, 56px) + 12px + env(safe-area-inset-bottom, 0px));
+  background: var(--app-color-surface-muted, #f3f4f6);
+  min-height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.my-tab-page--settings-hub .my-tab-page__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 4px;
+}
+
+/* ─── 로그인 ─── */
+.my-tab-page__login-area {
+  margin: 0 var(--app-page-pad-x, 16px) 16px;
+}
+
+.my-tab-page__login-area .my-tab-page__kakao-btn {
+  width: 100%;
+}
+
+/* ─── 프로필 (로그인 후 간단 표시) ─── */
+.settings-profile-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: calc(100% - var(--app-page-pad-x, 16px) * 2);
+  margin: 0 var(--app-page-pad-x, 16px) 16px;
+  padding: 14px 14px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.settings-profile-banner__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+
+.settings-profile-banner__avatar--fallback {
+  display: grid;
+  place-items: center;
+  background: #f3f4f6;
+  font-size: 18px;
+  font-weight: 900;
+  color: #374151;
+}
+
+.settings-profile-banner__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.settings-profile-banner__name {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+/* ─── 메뉴 섹션 ─── */
+.settings-menu-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.settings-menu-section__title {
+  margin: 0 0 8px;
+  padding: 0 var(--app-page-pad-x, 16px);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #6b7280;
+}
+
+.settings-menu-section__card {
+  margin: 0 var(--app-page-pad-x, 16px);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
+}
+
+.settings-menu-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 14px;
+  border: none;
+  border-bottom: 1px solid #f3f4f6;
+  background: #fff;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.settings-menu-row:last-child {
+  border-bottom: none;
+}
+
+button.settings-menu-row--action {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.settings-menu-row--action:active {
+  background: #fafafa;
+}
+
+.settings-menu-row__icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.settings-menu-row__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.settings-menu-row__label {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #111827;
+}
+
+.settings-menu-row__value {
+  flex-shrink: 1;
+  max-width: 52%;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: -0.01em;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-menu-row--static .settings-menu-row__main {
+  justify-content: flex-start;
+}
+
+.settings-menu-row--static .settings-menu-row__value {
+  margin-left: auto;
+}
+
+.settings-menu-row__chev {
+  flex-shrink: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #d1d5db;
+  line-height: 1;
+}
+
+/* ─── 닉네임 시트 ─── */
+.settings-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal-backdrop, 900);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.settings-sheet {
+  width: 100%;
+  max-height: min(88vh, 640px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px 18px 0 0;
+  background: #fff;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.settings-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.settings-sheet__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.settings-sheet__close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: #f3f4f6;
+  font-size: 22px;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.settings-sheet__body .settings-nickname {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  padding: 16px;
+}
+
+.my-tab-page--settings-hub .my-tab-page__card--login,
+.my-tab-page--settings-hub .my-tab-page__card--dev,
+.my-tab-page--profile-hub .my-tab-page__card--login {
+  margin: 0 var(--app-page-pad-x, 16px) 12px;
+  padding: var(--app-card-padding, 14px);
+  border-radius: var(--app-card-radius, 18px);
+  border: var(--app-card-border);
+  box-shadow: none;
+  background: var(--app-color-surface-muted, #f3f4f6);
+}
+
+.my-tab-page--settings-hub .my-tab-page__card-title,
+.my-tab-page--profile-hub .my-tab-page__card-title {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: var(--app-font-title-weight, 800);
+  color: var(--app-color-title, #111827);
+}
+
+.my-tab-page--settings-hub .my-tab-page__card-desc--one,
+.my-tab-page--profile-hub .my-tab-page__card-desc--one {
+  margin: 0 0 12px;
+  font-size: var(--app-font-lead, 15px);
+  color: var(--app-color-muted, #9ca3af);
+  line-height: var(--app-line-normal, 1.5);
+}
+
+.settings-section-title {
+  margin: 0 0 10px;
+  padding: 0 var(--app-page-pad-x, 16px);
+  font-size: 18px;
+  font-weight: var(--app-font-title-weight, 800);
+  letter-spacing: var(--app-font-title-spacing, -0.03em);
+  color: var(--app-color-title, #111827);
+}
+
+/* ─── 내 명함 ─── */
+.settings-profile {
+  margin-bottom: 24px;
+}
+
+.settings-profile__card {
+  margin: 0 var(--app-page-pad-x, 16px);
+  padding: 18px 18px 18px;
+  border-radius: var(--app-card-radius, 18px);
+  border: var(--app-card-border);
+  background: var(--app-color-surface, #fff);
+}
+
+.settings-profile__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.settings-profile__avatar,
+.settings-profile__avatar-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  flex-shrink: 0;
+}
+
+.settings-profile__avatar {
+  display: grid;
+  place-items: center;
+  background: var(--app-color-surface-muted, #f3f4f6);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--app-color-title, #111827);
+}
+
+.settings-profile__avatar-img {
+  object-fit: cover;
+  display: block;
+}
+
+.settings-profile__name {
+  display: block;
+  font-size: var(--app-font-body-lg, 17px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--app-color-title, #111827);
+  line-height: var(--app-line-tight, 1.38);
+}
+
+.settings-profile__role {
+  margin: 5px 0 0;
+  font-size: var(--app-font-lead, 15px);
+  font-weight: 700;
+  color: var(--app-color-body, #374151);
+  line-height: var(--app-line-normal, 1.5);
+}
+
+.settings-profile__region {
+  margin: 3px 0 0;
+  font-size: var(--app-font-lead, 15px);
+  color: var(--app-color-muted, #9ca3af);
+  line-height: var(--app-line-normal, 1.5);
+}
+
+.settings-profile__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.settings-profile__stat {
+  margin: 0;
+  padding: 12px 8px;
+  border-radius: var(--app-card-radius-sm, 10px);
+  background: var(--app-color-surface-muted, #f3f4f6);
+  text-align: center;
+}
+
+.settings-profile__stat dt {
+  margin: 0 0 5px;
+  font-size: var(--app-font-caption, 14px);
+  font-weight: 700;
+  color: var(--app-color-muted, #9ca3af);
+}
+
+.settings-profile__stat dd {
+  margin: 0;
+  font-size: var(--app-font-body-lg, 17px);
+  font-weight: 800;
+  color: var(--app-color-title, #111827);
+}
+
+.settings-profile__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.settings-profile__btn {
+  flex: 1;
+  min-height: var(--app-btn-height, 44px);
+  border: 1px solid var(--app-color-border-soft, #f3f4f6);
+  border-radius: var(--app-card-radius-sm, 10px);
+  background: var(--app-color-surface-muted, #f3f4f6);
+  font-size: var(--app-font-lead, 15px);
+  font-weight: 800;
+  color: var(--app-color-title, #111827);
+  cursor: pointer;
+}
+
+.settings-profile__btn--primary {
+  background: var(--app-color-primary, #111827);
+  border-color: var(--app-color-primary, #111827);
+  color: #fff;
+}
+
+/* ─── 활동 기록 리스트 ─── */
+.settings-activity {
+  margin-bottom: 20px;
+}
+
+.settings-activity__block {
+  margin-bottom: 10px;
+}
+
+.settings-activity__block-title {
+  margin: 0;
+  padding: 12px var(--app-page-pad-x, 16px) 8px;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--app-color-body, #374151);
+  letter-spacing: -0.01em;
+}
+
+.settings-activity__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--app-color-border, #f0f0f2);
+}
+
+.settings-activity-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 62px;
+  padding: 14px var(--app-page-pad-x, 16px);
+  border-bottom: 1px solid var(--app-color-border-soft, #f3f4f6);
+  background: var(--app-color-surface, #fff);
+}
+
+.settings-activity-row__main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.settings-activity-row__title {
+  display: block;
+  font-size: var(--app-font-body, 16px);
+  font-weight: 800;
+  color: var(--app-color-title, #111827);
+  line-height: var(--app-line-normal, 1.5);
+}
+
+.settings-activity-row__sub {
+  margin: 5px 0 0;
+  font-size: var(--app-font-lead, 15px);
+  font-weight: 500;
+  color: var(--app-color-sub, #6b7280);
+  line-height: var(--app-line-normal, 1.5);
+}
+
+.settings-activity-row__when {
+  flex-shrink: 0;
+  font-size: var(--app-font-caption, 14px);
+  font-weight: 600;
+  color: var(--app-color-muted, #9ca3af);
+  line-height: var(--app-line-normal, 1.5);
+}
+
+/* ─── 앱 설정 (하단) ─── */
+.settings-app-footer {
+  margin-top: 8px;
+  padding: 16px var(--app-page-pad-x, 16px) 8px;
+  border-top: 1px solid var(--app-color-border, #f0f0f2);
+}
+
+.settings-app-footer__logout {
+  width: 100%;
+  min-height: var(--app-btn-height, 44px);
+  border: none;
+  border-radius: var(--app-card-radius-sm, 10px);
+  background: transparent;
+  font-size: var(--app-font-body, 16px);
+  font-weight: 800;
+  color: var(--app-color-sub, #6b7280);
+  cursor: pointer;
+}
+
+.settings-app-footer__version {
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: var(--app-font-caption, 14px);
+  color: var(--app-color-muted, #9ca3af);
+}
+
+/* ─── 내 현장 설정 ─── */
+.settings-prefs {
+  margin-bottom: 24px;
+}
+
+.settings-prefs__lead {
+  margin: -4px 0 14px;
+  padding: 0 var(--app-page-pad-x, 16px);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--app-color-muted, #9ca3af);
+  line-height: 1.45;
+}
+
+.settings-prefs__group {
+  margin: 0 var(--app-page-pad-x, 16px) 14px;
+}
+
+.settings-prefs__label {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--app-color-sub, #6b7280);
+}
+
+.settings-prefs__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-prefs__chip {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--app-color-border, #e5e7eb);
+  border-radius: 999px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--app-color-title, #111827);
+}
+
+.settings-prefs__chip.is-active {
+  border-color: var(--ildang-brand, #c45a16);
+  background: var(--ildang-brand-soft, #fff4e8);
+  color: var(--ildang-brand-dark, #9a4312);
+}
+
+.settings-prefs__region,
+.settings-prefs__link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--app-color-border, #e5e7eb);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--app-color-title, #111827);
+}
+
+.settings-prefs__hint {
+  margin: 4px var(--app-page-pad-x, 16px) 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--app-color-muted, #9ca3af);
+}
+
+.settings-region-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.settings-region-sheet {
+  width: 100%;
+  max-height: 70vh;
+  padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-radius: 18px 18px 0 0;
+  background: #fff;
+}
+
+.settings-region-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.settings-region-sheet__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.settings-region-sheet__item {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.settings-region-sheet__item.is-active {
+  border-color: var(--ildang-brand, #c45a16);
+  background: var(--ildang-brand-soft, #fff4e8);
+}
+
+.settings-nickname {
+  margin: 0 var(--app-page-pad-x, 16px) 16px;
+  padding: var(--app-card-padding, 14px);
+  border-radius: var(--app-card-radius, 18px);
+  border: var(--app-card-border, 1px solid #e7e5e4);
+  background: #fff;
+}
+
+.settings-nickname__lead {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  color: #6b7280;
+}
+
+.settings-nickname__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-nickname__label {
+  font-size: 12px;
+  font-weight: 900;
+  color: #57534e;
+}
+
+.settings-nickname__input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+  box-sizing: border-box;
+}
+
+.settings-nickname__error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #b91c1c;
+}
+
+.settings-nickname__preview {
+  margin: 10px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #78716c;
+}
+
+.settings-nickname__preview strong {
+  color: #1c1917;
+  font-weight: 900;
+}
+
+.settings-nickname__save {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 12px;
+  border: none;
+  border-radius: 12px;
+  background: #111827;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.settings-nickname__save:disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+}

@@ -1,212 +1,42 @@
 import { TRADE_KEYS } from "./jobTrade";
 import { migrateJob } from "./jobModel";
+import { prepareOyajiDemoJobs } from "./demoOyajiWeekAlign";
+import { initialJobs as initialJobsSeed } from "./initialJobsSeed";
+import { isBetaSeedMode } from "./betaSeed";
+import { BETA_JOBS } from "./betaTestSeed";
 
 export const TRADE_SET = new Set(TRADE_KEYS);
 
-export const JOBS_STORAGE_KEY = "jobs_v5";
+export const JOBS_STORAGE_KEY = "jobs_v7";
 const LEGACY_KEYS = ["jobs_v4", "jobs_v3", "jobs_v2"];
 
-/** 데모·스크린샷용 풍부한 시드 (실서비스 느낌 UI 검증용) */
-export const initialJobs = [
-  {
-    id: 1,
-    title: "둔산동 상가 필름 기공",
-    siteKind: "상가",
-    trade: "기공",
-    craft: "film",
-    workDate: "2026-05-12",
-    lat: 36.356,
-    lng: 127.378,
-    pay: "140,000원",
-    status: "recruiting",
-    isUrgent: true,
-    workType: "fullDay",
-    workTime: "08:00~17:00",
-    distanceKm: 1.2,
-    shortRegion: "대전 서구 둔산동",
-    fullAddress: "대전 서구 둔산대로 123 둔산힐스아파트 102동",
-    address: "대전 서구 둔산동",
-    shortAddress: "대전 서구 둔산동",
-    memo: "당일지급",
-    likeCount: 24,
-    listImage: "https://picsum.photos/seed/ildang-site-1/112/112",
-    applicants: [
-      { id: "a-1-1", name: "김준호", role: "기공", experience: 24, noShow: 0, status: "applied" },
-      { id: "a-1-2", name: "이영희", role: "준기공", experience: 18, noShow: 0, status: "applied" },
-    ],
-  },
-  {
-    id: 2,
-    title: "노은동 아파트 도장 마감",
-    siteKind: "아파트",
-    beginnerOk: true,
-    trade: "기공",
-    craft: "paint",
-    workDate: "2026-05-12",
-    lat: 36.341,
-    lng: 127.39,
-    pay: "150,000원",
-    status: "recruiting",
-    isUrgent: false,
-    workType: "morning",
-    workTime: "07:30~12:00",
-    distanceKm: 2.4,
-    shortRegion: "대전 유성구 노은동",
-    fullAddress: "대전 유성구 노은동로 45 현대아파트 상가 2층",
-    address: "대전 유성구",
-    shortAddress: "대전 유성구",
-    memo: "당일지급",
-    likeCount: 8,
-    listImage: "https://picsum.photos/seed/ildang-site-2/112/112",
-    applicants: [{ id: "a-2-1", name: "박민수", role: "기공", experience: 32, noShow: 0, status: "confirmed" }],
-  },
-  {
-    id: 3,
-    title: "용운동 현장 타일 줄눈·보조",
-    siteKind: "아파트",
-    beginnerOk: true,
-    longTerm: true,
-    trade: "조공",
-    craft: "tile",
-    workDate: "2026-05-13",
-    lat: 36.328,
-    lng: 127.43,
-    pay: "200,000원",
-    status: "recruiting",
-    isUrgent: false,
-    workType: "afternoon",
-    workTime: "13:00~18:00",
-    distanceKm: 3.1,
-    shortRegion: "대전 동구 용운동",
-    fullAddress: "대전 동구 용운로 88 용운2차아파트 305동",
-    address: "대전 동구",
-    shortAddress: "대전 동구",
-    likeCount: 41,
-    listImage: "https://picsum.photos/seed/ildang-site-3/112/112",
-    applicants: [],
-  },
-  {
-    id: 4,
-    title: "은행동 오피스텔 도배 감리",
-    siteKind: "오피스텔",
-    trade: "오야지",
-    craft: "wallpaper",
-    workDate: "2026-05-12",
-    lat: 36.365,
-    lng: 127.395,
-    pay: "180,000원",
-    status: "recruiting",
-    isUrgent: false,
-    isPremium: true,
-    workType: "shortHelp",
-    workTime: "09:00~14:00",
-    distanceKm: 0.8,
-    shortRegion: "대전 중구 은행동",
-    fullAddress: "대전 중구 중앙로 101 오피스텔 7층",
-    address: "대전 중구",
-    shortAddress: "대전 중구",
-    payTerms: "당일지급",
-    likeCount: 15,
-    listImage: "https://picsum.photos/seed/ildang-site-4/112/112",
-    applicants: [{ id: "a-4-1", name: "한상우", role: "기공", experience: 40, noShow: 0, status: "confirmed" }],
-  },
-  {
-    id: 5,
-    title: "탄방동 상가 전기 배선 보강",
-    siteKind: "상가",
-    longTerm: true,
-    trade: "기공",
-    craft: "electric",
-    workDate: "2026-05-12",
-    lat: 36.3475,
-    lng: 127.382,
-    pay: "220,000원",
-    status: "recruiting",
-    isUrgent: true,
-    workType: "fullDay",
-    workTime: "08:00~18:00",
-    distanceKm: 1.9,
-    shortRegion: "대전 서구 탄방동",
-    fullAddress: "대전 서구 문정로 77 상가 3층",
-    address: "대전 서구",
-    shortAddress: "대전 서구",
-    description: "익일 지급 협의",
-    likeCount: 56,
-    listImage: "https://picsum.photos/seed/ildang-site-5/112/112",
-    applicants: [],
-  },
-  {
-    id: 6,
-    title: "관저동 신축 설비 배관",
-    siteKind: "신축",
-    longTerm: true,
-    trade: "준기공",
-    craft: "facility",
-    workDate: "2026-05-14",
-    lat: 36.302,
-    lng: 127.365,
-    pay: "190,000원",
-    status: "recruiting",
-    isUrgent: false,
-    workType: "fullDay",
-    workTime: "07:00~16:00",
-    distanceKm: 4.2,
-    shortRegion: "대전 서구 관저동",
-    fullAddress: "대전 서구 관저로 200 신축 현장",
-    address: "대전 서구",
-    shortAddress: "대전 서구",
-    likeCount: 12,
-    listImage: "https://picsum.photos/seed/ildang-site-6/112/112",
-    applicants: [],
-  },
-  {
-    id: 7,
-    title: "봉명동 학원 도배 준공 정리",
-    siteKind: "학원",
-    beginnerOk: true,
-    trade: "준기공",
-    craft: "wallpaper",
-    workDate: "2026-05-12",
-    lat: 36.351,
-    lng: 127.402,
-    pay: "135,000원",
-    status: "recruiting",
-    isUrgent: false,
-    workType: "morning",
-    workTime: "08:30~13:00",
-    distanceKm: 2.0,
-    shortRegion: "대전 유성구 봉명동",
-    fullAddress: "대전 유성구 대학로 88 3층",
-    address: "대전 유성구",
-    shortAddress: "대전 유성구",
-    likeCount: 33,
-    listImage: "https://picsum.photos/seed/ildang-site-7/112/112",
-    applicants: [],
-  },
-  {
-    id: 8,
-    title: "대흥동 카페 필름 단기",
-    siteKind: "카페",
-    trade: "조공",
-    craft: "film",
-    workDate: "2026-05-13",
-    lat: 36.326,
-    lng: 127.371,
-    pay: "120,000원",
-    status: "recruiting",
-    isUrgent: true,
-    workType: "afternoon",
-    workTime: "12:00~17:00",
-    distanceKm: 2.8,
-    shortRegion: "대전 중구 대흥동",
-    fullAddress: "대전 중구 중앙로 12 카페",
-    address: "대전 중구",
-    shortAddress: "대전 중구",
-    likeCount: 19,
-    listImage: "https://picsum.photos/seed/ildang-site-8/112/112",
-    applicants: [],
-  },
-];
+/** 데모 시드 — canonical fields: id, title, address, addressDetail?, date, participants, briefing, alerts (+ extras) */
+export const initialJobs = isBetaSeedMode() ? BETA_JOBS : initialJobsSeed;
+
+export function mergeJobsWithSeedData(list) {
+  const parsed = Array.isArray(list) ? list.filter((job) => job && typeof job === "object") : [];
+  const seedById = new Map(
+    initialJobs
+      .filter((job) => job && typeof job === "object")
+      .map((job) => [Number(job.id), job])
+      .filter(([id]) => Number.isFinite(id))
+  );
+
+  const merged = parsed.map((job, index) => {
+    const normalizedId = Number(job.id);
+    const seed = Number.isFinite(normalizedId) ? seedById.get(normalizedId) : null;
+    if (seed) seedById.delete(normalizedId);
+    return migrateJob({
+      ...(seed || {}),
+      ...job,
+      id: Number.isFinite(job.id) ? job.id : Date.now() + index,
+      trade: TRADE_SET.has(job.trade) ? job.trade : seed?.trade || "조공",
+    });
+  });
+
+  const missingSeeds = [...seedById.values()].map((job) => migrateJob(job));
+  return prepareOyajiDemoJobs([...merged, ...missingSeeds]);
+}
 
 export function loadStoredJobs() {
   try {
@@ -217,19 +47,21 @@ export function loadStoredJobs() {
         if (raw) break;
       }
     }
-    if (!raw) return initialJobs.map(migrateJob);
+    if (!raw) return prepareOyajiDemoJobs(initialJobs.map(migrateJob));
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return initialJobs.map(migrateJob);
-    return parsed
-      .filter((job) => job && typeof job === "object")
-      .map((job, index) =>
-        migrateJob({
-          ...job,
-          id: Number.isFinite(job.id) ? job.id : Date.now() + index,
-          trade: TRADE_SET.has(job.trade) ? job.trade : "조공",
-        })
-      );
+    if (!Array.isArray(parsed)) return prepareOyajiDemoJobs(initialJobs.map(migrateJob));
+    return mergeJobsWithSeedData(parsed);
   } catch (e) {
-    return initialJobs.map(migrateJob);
+    return prepareOyajiDemoJobs(initialJobs.map(migrateJob));
   }
+}
+
+export function saveStoredJobs(list) {
+  const normalized = mergeJobsWithSeedData(Array.isArray(list) ? list : []);
+  try {
+    localStorage.setItem(JOBS_STORAGE_KEY, JSON.stringify(normalized));
+  } catch (_) {
+    /* noop */
+  }
+  return normalized;
 }

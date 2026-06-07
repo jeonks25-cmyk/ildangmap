@@ -1,0 +1,2814 @@
+/* ═══ 지도 탭 — 실시간 현장 시장 UI (시안 v2) ═══ */
+
+:root {
+  --geo-brand: var(--ildang-signature-green, #1fa35b);
+  --geo-brand-soft: #e8f5e9;
+  --ildang-brand: var(--ildang-signature-green, #1fa35b);
+  --ildang-brand-dark: var(--ildang-signature-green-dark, #188f4e);
+  --ildang-brand-soft: #e8f5e9;
+  --ildang-brand-line: rgba(31, 163, 91, 0.2);
+  --geo-map-dock-h: 32vh;
+  --geo-map-dock-h-expanded: 72vh;
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --geo-map-topbar-stack-h: 124px;
+  }
+}
+
+/* ─── 레이아웃: 상단 + 지도 + 하단 고정 목록 ─── */
+.map-tab-page--geo .map-geo-stage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.map-tab-page--geo .map-geo-stage__top {
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 20;
+  padding-top: 0;
+  pointer-events: none;
+  background: #fff;
+  box-shadow: 0 1px 0 var(--app-color-border, #e5e7eb);
+}
+
+.map-tab-page--geo .map-geo-stage__canvas {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* pointer-events: map-touch-passthrough.css */
+
+/* 날짜 필터 변경 시 마커 표시 전환 */
+.geo-marker-anchor,
+.geo-place-marker-anchor,
+.job-pin-marker-anchor {
+  transition: opacity 0.16s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .geo-marker-anchor,
+  .geo-place-marker-anchor,
+  .job-pin-marker-anchor {
+    transition: none;
+  }
+}
+
+/* ─── 핀형 마커 ─── */
+.geo-pin-marker {
+  --geo-pin-accent: #111827;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 68px;
+  min-height: 82px;
+  margin-bottom: 8px;
+  padding: 0;
+  border-radius: 14px;
+  background: #fff;
+  border: 2px solid var(--geo-pin-accent);
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.18);
+  pointer-events: auto;
+  cursor: pointer;
+  overflow: visible;
+  touch-action: none;
+}
+
+.geo-pin-marker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: #fff;
+  border-right: 2px solid var(--geo-pin-accent);
+  border-bottom: 2px solid var(--geo-pin-accent);
+  transform: rotate(45deg);
+  box-shadow: 2px 2px 4px rgba(15, 23, 42, 0.08);
+  pointer-events: none;
+}
+
+.geo-pin-marker__date {
+  display: block;
+  padding: 5px 6px 4px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #555;
+  text-align: center;
+  border-bottom: 1px solid #eceef1;
+}
+
+.geo-pin-marker__pay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 2px 4px;
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+  color: var(--geo-pin-accent);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.geo-pin-marker__pay--compact {
+  font-size: 28px;
+}
+
+.geo-pin-marker__pay--dense {
+  font-size: 24px;
+}
+
+.geo-pin-marker__status {
+  display: block;
+  margin: 0 5px 5px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  letter-spacing: -0.03em;
+  color: var(--geo-pin-accent);
+  background: #fff;
+  border: 1px solid var(--geo-pin-accent);
+}
+
+.geo-pin-marker--help {
+  --geo-pin-accent: var(--geo-brand);
+}
+
+.geo-pin-marker--beginner {
+  --geo-pin-accent: #16a34a;
+}
+
+.geo-pin-marker--closing {
+  --geo-pin-accent: #dc2626;
+}
+
+.geo-pin-marker--night {
+  --geo-pin-accent: #7c3aed;
+}
+
+.geo-pin-marker--urgent {
+  --geo-pin-accent: #dc2626;
+}
+
+/* 목록 카드용 축소 마커 */
+.geo-pin-marker--card {
+  width: 52px;
+  min-height: 62px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.geo-pin-marker--card::after {
+  display: none;
+}
+
+.geo-pin-marker--card .geo-pin-marker__date {
+  font-size: 10px;
+  padding: 4px 4px 3px;
+}
+
+.geo-pin-marker--card .geo-pin-marker__pay {
+  min-height: 28px;
+  font-size: 22px;
+}
+
+.geo-pin-marker--card .geo-pin-marker__pay--compact {
+  font-size: 18px;
+}
+
+.geo-pin-marker--card .geo-pin-marker__pay--dense {
+  font-size: 15px;
+}
+
+.geo-pin-marker--card .geo-pin-marker__status {
+  font-size: 8px;
+  margin: 0 4px 4px;
+  padding: 2px 5px;
+}
+
+.geo-marker-anchor--selected .geo-pin-marker {
+  border-width: 2.5px;
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.24);
+  transform: scale(1.04);
+}
+
+/* ─── 견적 요청 마커 — 호갱노노형 집형 (일반 일자리 핀과 분리) ─── */
+.geo-estimate-marker-anchor {
+  position: relative;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity 0.2s ease;
+}
+
+.geo-estimate-marker {
+  --geo-estimate-bg: #1f2937;
+  --geo-estimate-roof: #111827;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 46px;
+  min-height: 48px;
+  padding: 14px 6px 6px;
+  border-radius: 8px 8px 10px 10px;
+  background: var(--geo-estimate-bg);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.28);
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: none;
+  transition: opacity 0.2s ease, transform 0.15s ease, filter 0.2s ease;
+}
+
+/* 지붕(⌂) — clip-path 집 실루엣 */
+.geo-estimate-marker__roof {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 52px;
+  height: 22px;
+  transform: translateX(-50%);
+  background: var(--geo-estimate-roof);
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  border-radius: 2px 2px 0 0;
+  pointer-events: none;
+}
+
+.geo-estimate-marker__label {
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: #fff;
+  user-select: none;
+}
+
+/* 신규 견적 — 진한 네이비 */
+.geo-estimate-marker--display-new {
+  --geo-estimate-bg: #1f2937;
+  --geo-estimate-roof: #0f172a;
+  opacity: 1;
+  filter: drop-shadow(0 2px 6px rgba(15, 23, 42, 0.35));
+}
+
+/* 방문 예정 — 흐린 회색 */
+.geo-estimate-marker-anchor--display-visit .geo-estimate-marker,
+.geo-estimate-marker--display-visit {
+  --geo-estimate-bg: #9ca3af;
+  --geo-estimate-roof: #6b7280;
+  opacity: 0.78;
+  box-shadow: 0 1px 4px rgba(107, 114, 128, 0.35);
+  filter: none;
+}
+
+/* 협의중 — 슬레이트 */
+.geo-estimate-marker--display-negotiating {
+  --geo-estimate-bg: #475569;
+  --geo-estimate-roof: #334155;
+  opacity: 0.92;
+}
+
+/* 마감임박 — 앰버 포인트 */
+.geo-estimate-marker--display-closing {
+  --geo-estimate-bg: #b45309;
+  --geo-estimate-roof: #92400e;
+  opacity: 1;
+  filter: drop-shadow(0 2px 6px rgba(180, 83, 9, 0.35));
+}
+
+.geo-estimate-marker__status {
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 72px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: #f3f4f6;
+  color: #4b5563;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+  z-index: 2;
+}
+
+.geo-estimate-marker--display-closing .geo-estimate-marker__status {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+/* 보조 배지 — 데이터 연결용 (기본 숨김, 필요 시 --show-badge) */
+.geo-estimate-marker__badge {
+  display: none;
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: #fff4eb;
+  color: #c2410c;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(255, 107, 0, 0.2);
+  z-index: 2;
+}
+
+.geo-estimate-marker--open.geo-estimate-marker--show-badge .geo-estimate-marker__badge,
+.geo-estimate-marker-anchor--show-badge .geo-estimate-marker__badge {
+  display: block;
+}
+
+.geo-estimate-marker-anchor--selected .geo-estimate-marker {
+  filter: drop-shadow(0 3px 8px rgba(15, 23, 42, 0.38));
+  transform: scale(1.06);
+}
+
+.geo-estimate-marker-anchor--selected.geo-estimate-marker-anchor--display-visit .geo-estimate-marker {
+  transform: scale(1.04);
+}
+
+@media (min-width: 1024px) {
+  .geo-map-dock-shell {
+    display: none !important;
+  }
+}
+
+/* 일당맵 공통 marker (restaurant/restroom/parking 등 다음 레이어용) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.geo-life-marker-anchor {
+  transform: translateY(-4px);
+}
+
+.geo-life-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(68, 64, 60, 0.12);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 3px 10px rgba(28, 25, 23, 0.14);
+  color: #1c1917;
+  font-size: 17px;
+  line-height: 1.25;
+  cursor: pointer;
+}
+
+.geo-life-marker__icon {
+  transform: translateY(0.5px);
+}
+
+.geo-life-marker__label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #57534e;
+}
+
+.geo-life-marker--restaurant,
+.geo-life-marker--parking,
+.geo-life-marker--restroom {
+  border-color: rgba(87, 83, 78, 0.2);
+  background: rgba(250, 250, 249, 0.96);
+  color: #44403c;
+}
+
+.geo-life-marker--parking .geo-life-marker__label,
+.geo-life-marker--restroom .geo-life-marker__label,
+.geo-life-marker--restaurant .geo-life-marker__label {
+  color: #57534e;
+}
+
+.geo-life-marker--access_info,
+.geo-life-marker--elevator,
+.geo-life-marker--material_pickup,
+.geo-life-marker--site_memo {
+  border-color: rgba(87, 83, 78, 0.18);
+  background: rgba(250, 250, 249, 0.96);
+}
+
+.geo-life-marker--sos {
+  border-color: rgba(220, 38, 38, 0.24);
+  background: rgba(254, 242, 242, 0.96);
+}
+
+.geo-life-marker--sos .geo-life-marker__label {
+  color: #b91c1c;
+}
+
+.geo-life-marker--search-draft {
+  border-color: rgba(107, 114, 128, 0.32);
+  background: rgba(243, 244, 246, 0.96);
+  color: #4b5563;
+  box-shadow: 0 3px 12px rgba(75, 85, 99, 0.18);
+}
+
+.map-center-draft-pin {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 34;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.map-center-draft-pin.is-moving {
+  transform: translate(-50%, calc(-100% - 8px));
+}
+
+.map-center-draft-pin__pin {
+  width: 34px;
+  height: 34px;
+  border: 3px solid #fff;
+  border-radius: 999px 999px 999px 0;
+  background: #6b7280;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.22);
+  transform: rotate(-45deg);
+}
+
+.map-center-draft-pin__pin::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #fff;
+  transform: translate(-50%, -50%);
+}
+
+.map-center-draft-pin__hint {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(17, 24, 39, 0.72);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+  transform: translateY(2px);
+}
+
+.map-center-draft-pin.is-moving .map-center-draft-pin__hint {
+  background: rgba(154, 67, 18, 0.82);
+}
+
+.map-field-location-pick-bar {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--map-floating-bottom, 16px) + 8px);
+  z-index: 12;
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 16px;
+  background: rgba(17, 24, 39, 0.88);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
+  pointer-events: auto;
+}
+
+.map-field-location-pick-bar__secondary,
+.map-field-location-pick-bar__primary {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.map-field-location-pick-bar__secondary {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: transparent;
+  color: #f5f5f4;
+}
+
+.map-field-location-pick-bar__primary {
+  border: none;
+  background: #111827;
+  color: #fff;
+}
+
+.map-team-invite-sheet {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--geo-tabbar-float-h, var(--daangn-tabbar-base-h, 56px)) + 12px + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  padding: 12px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.2);
+}
+
+.map-team-invite-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.map-team-invite-sheet__head strong {
+  font-size: 14px;
+  font-weight: 900;
+  color: #1c1917;
+}
+
+.map-team-invite-sheet__head button {
+  border: none;
+  background: transparent;
+  color: #78716c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.map-team-invite-sheet__sub {
+  margin: 6px 0 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #57534e;
+}
+
+.map-team-invite-sheet__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.map-team-invite-sheet__chips button {
+  border: 1px solid rgba(120, 113, 108, 0.2);
+  border-radius: 999px;
+  background: #fafaf9;
+  color: #1c1917;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* ─── 팀원 부르기 (작업 배치판) ─── */
+/* 현장 등록 날짜 기준 자동 추천 시트 */
+.field-recommend-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 96;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.field-recommend-sheet__panel {
+  width: 100%;
+  max-height: min(86vh, 680px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px 18px 0 0;
+  background: #fafaf9;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.field-recommend-sheet__head {
+  padding: 16px 16px 12px;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  border-bottom: 1px solid rgba(120, 113, 108, 0.12);
+}
+
+.field-recommend-sheet__eyebrow {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  color: #16a34a;
+}
+
+.field-recommend-sheet__title {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: #1c1917;
+  letter-spacing: -0.02em;
+}
+
+.field-recommend-sheet__count {
+  margin: 6px 0 0;
+  font-size: 15px;
+  color: #44403c;
+}
+
+.field-recommend-sheet__count strong {
+  font-size: 17px;
+  font-weight: 900;
+  color: #16a34a;
+}
+
+.field-recommend-sheet__req {
+  color: #9ca3af;
+  font-weight: 700;
+}
+
+.field-recommend-sheet__shortage {
+  margin: 12px 16px 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  background: rgba(254, 226, 226, 0.55);
+}
+
+.field-recommend-sheet__shortage-line {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #7f1d1d;
+}
+
+.field-recommend-sheet__shortage-warn {
+  margin: 4px 0 10px;
+  font-size: 15px;
+  font-weight: 900;
+  color: #b91c1c;
+}
+
+.field-recommend-sheet__urgent {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.field-recommend-sheet__list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 8px 12px;
+}
+
+.field-recommend-sheet__empty {
+  margin: 24px 8px;
+  text-align: center;
+  color: #78716c;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.field-recommend__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 8px;
+  border-bottom: 1px solid rgba(120, 113, 108, 0.1);
+  cursor: pointer;
+}
+
+.field-recommend__check {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  accent-color: #16a34a;
+}
+
+.field-recommend__row-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.field-recommend__name-btn {
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+  cursor: pointer;
+}
+
+.field-recommend__identity {
+  font-size: 13px;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field-recommend__tier {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.field-recommend__tier--ok {
+  color: #16a34a;
+}
+
+.field-recommend__tier--partial {
+  color: #ca8a04;
+}
+
+.field-recommend__tier--unknown {
+  color: #9ca3af;
+}
+
+.field-recommend__tier--busy {
+  color: #6b7280;
+}
+
+.field-recommend-sheet__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid rgba(120, 113, 108, 0.12);
+  background: #fff;
+}
+
+.field-recommend-sheet__invite-all {
+  width: 100%;
+  min-height: 54px;
+  border: none;
+  border-radius: 14px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.field-recommend-sheet__invite-all:disabled {
+  background: #d6d3d1;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+.field-recommend-sheet__manual {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(120, 113, 108, 0.28);
+  border-radius: 14px;
+  background: #fff;
+  color: #44403c;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.field-team-roster-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.field-team-roster-sheet__panel {
+  width: 100%;
+  max-height: min(88vh, 720px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px 18px 0 0;
+  background: #fafaf9;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.field-team-roster-sheet__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid rgba(120, 113, 108, 0.12);
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+}
+
+.field-team-roster-sheet__head h2 {
+  margin: 2px 0 0;
+  font-size: 17px;
+  font-weight: 900;
+  color: #1c1917;
+  letter-spacing: -0.02em;
+}
+
+.field-team-roster-sheet__head button {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: #78716c;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 4px 0;
+}
+
+.field-team-roster-sheet__eyebrow {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  color: #ea580c;
+  letter-spacing: -0.01em;
+}
+
+.field-team-roster-sheet__sub {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #57534e;
+  line-height: 1.35;
+}
+
+.field-team-roster-sheet__content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 10px 12px 16px;
+}
+
+.field-team-roster__section h3 {
+  margin: 14px 0 6px;
+  font-size: 14px;
+  font-weight: 900;
+  color: #1c1917;
+}
+
+.field-team-roster__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.field-team-roster__invite-all {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid #1c1917;
+  border-radius: 999px;
+  background: #1c1917;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.field-team-roster__invite-all:active {
+  filter: brightness(0.95);
+}
+
+.field-team-roster__lead {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #78716c;
+  line-height: 1.4;
+}
+
+.field-team-roster__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-team-roster__card {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(120, 113, 108, 0.14);
+}
+
+.field-team-roster__card--ok {
+  border-left: 3px solid #16a34a;
+}
+
+.field-team-roster__card--partial {
+  border-left: 3px solid #ca8a04;
+}
+
+.field-team-roster__card--busy {
+  border-left: 3px solid #a8a29e;
+  opacity: 0.92;
+}
+
+.field-team-roster__card-main {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.field-team-roster__avatar {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #f5f5f4;
+  color: #44403c;
+  font-size: 15px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.field-team-roster__card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.field-team-roster__card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.field-team-roster__card-top strong {
+  font-size: 15px;
+  font-weight: 900;
+  color: #1c1917;
+}
+
+.field-team-roster__avail {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.field-team-roster__avail--ok {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.field-team-roster__avail--partial {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.field-team-roster__avail--busy {
+  background: #f5f5f4;
+  color: #57534e;
+}
+
+.field-team-roster__identity {
+  margin: 3px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #44403c;
+  line-height: 1.3;
+}
+
+.field-team-roster__meta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #78716c;
+  line-height: 1.35;
+}
+
+.field-team-roster__actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.field-team-roster__actions button {
+  flex: 1;
+  min-height: 36px;
+  border: 1px solid rgba(120, 113, 108, 0.2);
+  border-radius: 10px;
+  background: #fafaf9;
+  color: #1c1917;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.field-team-roster__actions button:disabled {
+  opacity: 0.45;
+}
+
+.field-team-roster__actions-primary {
+  border-color: #1c1917 !important;
+  background: #1c1917 !important;
+  color: #fff !important;
+}
+
+.geo-life-marker__title,
+.geo-life-marker__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.geo-life-marker__title {
+  font-weight: 900;
+}
+
+.geo-life-marker__meta {
+  color: #57534e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.geo-life-marker-anchor--selected .geo-life-marker {
+  border-color: #1c1917;
+  background: #1c1917;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(28, 25, 23, 0.22);
+  transform: scale(1.06);
+}
+
+.geo-life-marker-anchor--selected .geo-life-marker__label {
+  color: #e7e5e4;
+}
+
+.geo-life-marker--arrival {
+  border-color: rgba(28, 25, 23, 0.32);
+  box-shadow: 0 0 0 2px rgba(28, 25, 23, 0.1), 0 6px 16px rgba(28, 25, 23, 0.14);
+}
+
+.geo-life-marker-anchor--arrival {
+  transform: translateY(-5px);
+}
+
+.geo-life-marker--dimmed {
+  opacity: 0.48;
+  filter: grayscale(0.12);
+}
+
+.geo-life-marker--sticky {
+  border-style: dashed;
+}
+
+.geo-life-marker[data-priority="critical"] {
+  border-color: rgba(185, 28, 28, 0.3);
+}
+
+.geo-life-marker[data-priority="critical"] .geo-life-marker__label {
+  color: #b91c1c;
+}
+
+.geo-life-marker[data-priority="important"] {
+  border-color: rgba(154, 52, 18, 0.28);
+}
+
+/* ─── 일당맵 확인 card ─── */
+.map-operation-context-card {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--geo-tabbar-float-h, 56px) + 118px + env(safe-area-inset-bottom, 0px));
+  z-index: 24;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 12px;
+  border: 1px solid rgba(68, 64, 60, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 252, 249, 0.96);
+  box-shadow: 0 8px 26px rgba(28, 25, 23, 0.14);
+  pointer-events: auto;
+}
+
+/* canvas 오버레이: 카드/버튼만 터치, 빈 영역은 지도로 통과 */
+.map-floating-action-layer,
+.map-floating-action-layer__menu,
+.geo-map-chrome,
+.map-geo-stage__chips-anchor,
+.map-place-list-fab-anchor,
+.map-card-shell,
+.map-place-overlay,
+.map-location-toast {
+  pointer-events: none;
+}
+
+.map-floating-btn,
+.map-floating-action-layer__add-fab,
+.floating-action-button,
+.floating-action-button-anchor,
+.map-geo-stage__loc-fab,
+.map-quick-add-bubble,
+.map-quick-add-bubble__action,
+.map-quick-add-anchor,
+.geo-map-fab,
+.geo-map-filter-chip,
+.geo-map-chrome .map-search-panel,
+.map-geo-stage__chips-anchor .map-layer-chips,
+.map-card-container,
+.map-place-overlay__panel,
+.map-operation-context-card {
+  pointer-events: auto;
+}
+
+.map-operation-context-card__eyebrow {
+  margin: 0;
+  color: #78716c;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.map-operation-context-card__title {
+  margin: 3px 0 8px;
+  color: #1c1917;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.map-operation-context-card__schedule {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.map-operation-context-card__schedule span,
+.map-operation-context-card__schedule strong {
+  min-width: 0;
+  padding: 6px 7px;
+  border-radius: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.map-operation-context-card__schedule span {
+  background: #f5f5f4;
+  color: #44403c;
+}
+
+.map-operation-context-card__schedule strong {
+  grid-column: 1 / -1;
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.map-operation-context-card__list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.map-operation-context-card__checkin {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 13px;
+  background: #f9fafb;
+}
+
+.map-operation-context-card__checkin-text {
+  margin: 0;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-operation-context-card__checkin-btn {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-operation-context-card__save {
+  width: 100%;
+  min-height: 34px;
+  margin-top: 7px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-operation-context-card__context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.map-operation-context-card__context-chip {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.map-operation-context-card__row {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid #e7e5e4;
+  border-radius: 12px;
+  background: #fff;
+  color: #1c1917;
+  text-align: left;
+}
+
+.map-operation-context-card__row--critical {
+  border-color: rgba(185, 28, 28, 0.2);
+  background: #fff7f7;
+}
+
+.map-operation-context-card__row--important {
+  border-color: rgba(154, 52, 18, 0.18);
+  background: #fff7ed;
+}
+
+.map-operation-context-card__row.is-sticky {
+  border-style: dashed;
+}
+
+.map-operation-context-card__icon {
+  font-size: 15px;
+}
+
+.map-operation-context-card__text {
+  overflow: hidden;
+  color: #292524;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-operation-context-card__priority {
+  padding: 3px 6px;
+  border-radius: 999px;
+  background: rgba(120, 113, 108, 0.08);
+  color: #57534e;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.map-operation-context-card__recent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e7e5e4;
+}
+
+.map-operation-context-card__recent span,
+.map-operation-context-card__timeline-title {
+  margin: 0;
+  color: #78716c;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.map-operation-context-card__recent strong {
+  color: #292524;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-operation-context-card__timeline {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e7e5e4;
+}
+
+.map-operation-context-card__timeline-row {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 5px;
+  margin-top: 5px;
+  color: #292524;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* ─── 일당맵 category chips ─── */
+.map-layer-chips {
+  display: flex;
+  gap: 6px;
+  padding: 0 var(--app-page-pad-x, 14px) 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  pointer-events: auto;
+}
+
+.map-layer-chips--oyaji {
+  gap: 6px;
+}
+
+.map-layer-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.map-layer-chip {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--ildang-signature-green, #1fa35b);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--ildang-signature-green, #1fa35b);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.map-layer-chip__label {
+  font-size: 12px;
+  line-height: 1.1;
+}
+
+.map-layer-chip__sub {
+  font-size: 10px;
+  line-height: 1.1;
+  color: var(--ildang-signature-green, #1fa35b);
+  opacity: 0.75;
+}
+
+.map-layer-chip.is-active {
+  border-color: var(--ildang-signature-green, #1fa35b);
+  background: var(--ildang-signature-green, #1fa35b);
+  color: #ffffff;
+}
+
+.map-layer-chip--more {
+  border-style: dashed;
+  background: #fff;
+}
+
+.map-layer-chip.is-active .map-layer-chip__sub {
+  color: #ffffff;
+  opacity: 0.85;
+}
+
+.map-layer-chips--mvp .map-layer-chip,
+.map-layer-chips--oyaji .map-layer-chip {
+  min-height: 32px;
+}
+
+/* ─── 일당맵 정보 sheet ─── */
+.map-life-info-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+}
+
+.map-life-info-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: transparent;
+  pointer-events: none;
+}
+
+/* 카드 밖 지도 드래그·줌 — 전체 화면 터치 가로채기 없음 */
+.map-life-info-sheet--pass-through {
+  pointer-events: none;
+}
+
+.map-life-info-sheet--pass-through .map-life-info-sheet__panel {
+  pointer-events: auto;
+  touch-action: pan-y;
+}
+
+.map-life-info-sheet__panel {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--geo-tabbar-float-h, 56px) + 10px + env(safe-area-inset-bottom, 0px));
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 14px;
+  border: 1px solid rgba(68, 64, 60, 0.14);
+  border-radius: 18px;
+  background: #fffcf9;
+  box-shadow: 0 -8px 28px rgba(28, 25, 23, 0.13);
+  pointer-events: auto;
+}
+
+.map-life-info-sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.map-life-info-sheet__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 12px;
+  background: #faf8f5;
+  color: #57534e;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.map-life-info-sheet__title {
+  margin: 10px 0 0;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #1c1917;
+}
+
+.map-life-info-sheet__arrival {
+  display: inline-flex;
+  margin: 8px 0 0;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__priority {
+  display: inline-flex;
+  margin: 8px 6px 0 0;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #faf8f5;
+  color: #57534e;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__priority--critical {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.map-life-info-sheet__priority--important {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.map-life-info-sheet__meta {
+  margin: 5px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #57534e;
+}
+
+.map-life-info-sheet__address {
+  margin: 8px 0 0;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.map-life-info-sheet__addresses {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.map-life-info-sheet__address-row {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 9px;
+  border-radius: 12px;
+  background: #f9fafb;
+}
+
+.map-life-info-sheet__address-label {
+  color: #78716c;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__address-text {
+  min-width: 0;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.map-life-info-sheet__copy {
+  min-height: 30px;
+  border: 1px solid var(--ildang-brand-line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ildang-brand-dark);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__map-links {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.map-life-info-sheet__link-row {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: 7px;
+  min-height: 42px;
+  padding: 7px 9px;
+  border: 1px solid #e7e5e4;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.map-life-info-sheet__link-label {
+  color: var(--ildang-brand-dark);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__link-url {
+  min-width: 0;
+  overflow: hidden;
+  color: #374151;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-life-info-sheet__edit {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__comments {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e7e5e4;
+}
+
+.map-life-info-sheet__comments-title {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__comment {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #f9fafb;
+  line-height: 1.35;
+}
+
+.map-life-info-sheet__comment-meta {
+  margin: 0;
+  color: var(--ildang-brand-dark);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__comment-text {
+  margin: 4px 0 0;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.map-life-info-sheet__comment--empty {
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.map-search-draft-sheet__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  overflow-x: auto;
+  padding-bottom: 1px;
+  scrollbar-width: none;
+}
+
+.map-search-draft-sheet__actions::-webkit-scrollbar {
+  display: none;
+}
+
+.map-search-draft-sheet__panel {
+  padding: 12px;
+  border-radius: 16px;
+}
+
+.map-search-draft-sheet {
+  pointer-events: none;
+}
+
+.map-search-draft-sheet__head {
+  margin-bottom: 8px;
+}
+
+.map-search-draft-sheet__name {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 900;
+  padding: 0 10px;
+  outline: none;
+}
+
+.map-search-draft-sheet__name:focus {
+  border-color: var(--ildang-brand);
+  box-shadow: 0 0 0 3px rgba(196, 90, 22, 0.12);
+}
+
+.map-search-draft-sheet__address {
+  margin: 6px 0 0;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.map-search-draft-sheet__address--sub {
+  margin-top: 2px;
+  color: #78716c;
+  font-size: 11px;
+}
+
+.map-search-draft-sheet__hint {
+  margin: 7px 0 0;
+  color: var(--ildang-brand-dark);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.map-search-draft-sheet__register {
+  flex: 1 1 0;
+  min-width: 64px;
+  min-height: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--app-color-border, #e5e7eb);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 8px 4px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.map-search-draft-sheet__register:active {
+  opacity: 0.92;
+}
+
+.map-search-draft-sheet__register-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+
+.map-search-draft-sheet__register-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.map-search-draft-sheet__register.is-active {
+  border-color: var(--ildang-signature-green, #1fa35b);
+  background: var(--ildang-signature-green, #1fa35b);
+}
+
+.map-search-draft-sheet__register.is-active .map-search-draft-sheet__register-icon {
+  filter: none;
+  opacity: 1;
+}
+
+.map-search-draft-sheet__register.is-active .map-search-draft-sheet__register-label {
+  color: #ffffff;
+}
+
+.map-search-panel__recent-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.map-search-panel__recent-text strong,
+.map-search-panel__recent-text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-search-panel__recent-text small {
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.map-life-info-sheet__experience {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.map-life-info-sheet__experience-tag {
+  padding: 5px 8px;
+  border-radius: 10px;
+  background: #f5f5f4;
+  color: #292524;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__trust {
+  margin: 8px 0 0;
+  color: #78716c;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.map-life-info-sheet__distance {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 900;
+  color: #9a3412;
+}
+
+.map-life-info-sheet__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.map-life-info-sheet__tag {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #faf8f5;
+  color: #57534e;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.map-life-info-sheet__body {
+  margin-top: 12px;
+}
+
+.map-life-info-sheet__facts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.map-life-info-sheet__fact {
+  display: grid;
+  grid-template-columns: 74px 1fr;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #e7e5e4;
+}
+
+.map-life-info-sheet__fact:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.map-life-info-sheet__fact dt,
+.map-life-info-sheet__fact dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.map-life-info-sheet__fact dt {
+  color: #78716c;
+  font-weight: 800;
+}
+
+.map-life-info-sheet__fact dd {
+  color: #1c1917;
+  font-weight: 700;
+}
+
+.map-life-info-sheet__empty {
+  margin: 0;
+  color: #78716c;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.map-life-info-sheet__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.map-life-info-sheet__quick-save {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e7e5e4;
+}
+
+.map-life-info-sheet__quick-title {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__quick-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.map-life-info-sheet__quick-chip {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--ildang-brand);
+  border-radius: 999px;
+  background: var(--ildang-brand);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__action {
+  min-height: 38px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-life-info-sheet__action--primary {
+  border-color: var(--ildang-brand);
+  background: var(--ildang-brand);
+  color: #fff;
+}
+
+/* ─── 지도 FAB 좌표 ─── */
+.map-tab-page--geo {
+  --map-floating-size: 48px;
+  --map-floating-side: 18px;
+  --map-floating-bottom: var(--fab-anchor-bottom, calc(84px + env(safe-area-inset-bottom, 0px)));
+}
+
+.map-floating-action-layer {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  overflow: visible;
+  z-index: 52;
+  pointer-events: none;
+}
+
+/* + FAB·말풍선 — map-quick-add.css */
+
+/* ─── 현장 경험 quick save ─── */
+.map-experience-save {
+  position: fixed;
+  inset: 0;
+  z-index: 88;
+  pointer-events: none;
+}
+
+.map-experience-save__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(17, 24, 39, 0.08);
+  pointer-events: auto;
+}
+
+.map-experience-save__panel {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: calc(var(--geo-tabbar-float-h, 56px) + 10px + env(safe-area-inset-bottom, 0px));
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 14px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 -8px 28px rgba(17, 24, 39, 0.16);
+  pointer-events: auto;
+}
+
+.map-experience-save__head {
+  position: relative;
+  padding-right: 40px;
+}
+
+.map-experience-save__eyebrow {
+  margin: 0;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.map-experience-save__title {
+  margin: 3px 0 0;
+  color: #111827;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.map-experience-save__close {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 12px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 22px;
+}
+
+.map-experience-save__hint {
+  margin: 8px 0 0;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.map-experience-save__prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 9px;
+}
+
+.map-experience-save__prompt {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.map-experience-save__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.map-experience-save__chip {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--ildang-brand);
+  border-radius: 999px;
+  background: var(--ildang-brand);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.map-experience-save__memo {
+  display: block;
+  margin-top: 12px;
+}
+
+.map-experience-save__memo span {
+  display: block;
+  margin-bottom: 6px;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.map-experience-save__memo textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  color: #111827;
+  font-size: 13px;
+  resize: none;
+}
+
+.map-experience-save__submit {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 12px;
+  background: #f3f4f6;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.map-experience-save__submit:disabled {
+  color: #9ca3af;
+}
+
+/* ─── 현장목록 열기 FAB ─── */
+.geo-map-job-list-fab {
+  position: absolute;
+  right: 14px;
+  bottom: calc(var(--geo-tabbar-float-h, 56px) + 12px + env(safe-area-inset-bottom, 0px));
+  z-index: 19;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.22);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.geo-map-job-list-fab:active {
+  transform: scale(0.97);
+}
+
+.geo-map-job-list-fab.is-open {
+  background: #374151;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.2);
+}
+
+.geo-map-job-list-fab__icon {
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.95;
+}
+
+.geo-map-job-list-fab__text {
+  white-space: nowrap;
+}
+
+/* ─── 드래그 bottom sheet shell ─── */
+.geo-map-dock-shell {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 18;
+  display: none;
+  pointer-events: none;
+  box-sizing: border-box;
+  will-change: transform, height;
+  transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.24s ease;
+}
+
+@media (max-width: 1023px) {
+  .geo-map-dock-shell {
+    display: block;
+  }
+}
+
+.geo-map-dock-shell--closed {
+  transform: translateY(110%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.geo-map-dock-shell--open {
+  transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: none;
+}
+
+.geo-map-dock-shell__loc-fab,
+.geo-map-dock-shell .geo-map-dock {
+  pointer-events: auto;
+}
+
+.geo-map-dock-shell .geo-map-dock__loc-fab {
+  position: absolute;
+  left: 18px;
+  bottom: 100%;
+  margin-bottom: 10px;
+  z-index: 2;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.18);
+}
+
+.geo-map-dock-shell .geo-map-dock__loc-fab .geo-map-fab__glyph {
+  width: 52px;
+  height: 52px;
+  background-size: 24px 24px;
+}
+
+.geo-map-dock {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -6px 28px rgba(15, 23, 42, 0.12);
+  overflow: hidden;
+}
+
+.geo-map-dock-shell--collapsed .geo-map-dock__body {
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.geo-map-dock-shell--collapsed .geo-map-dock__head {
+  opacity: 0.92;
+}
+
+.geo-map-dock__handle-zone {
+  flex: 0 0 auto;
+  width: 100%;
+  padding: 10px 0 6px;
+  border: none;
+  background: transparent;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.geo-map-dock__handle-zone:active {
+  cursor: grabbing;
+}
+
+.geo-map-dock__handle {
+  display: block;
+  width: 40px;
+  height: 4px;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: #d1d5db;
+}
+
+.geo-map-dock__head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 16px 10px;
+  border-bottom: 1px solid #f0f1f3;
+}
+
+.geo-map-dock__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+.geo-map-dock__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 10px 12px;
+}
+
+/* ─── 현장 카드 (market) ─── */
+.field-job-card--market {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  height: auto;
+  min-height: 88px;
+  max-height: none;
+  padding: 10px;
+  border-radius: 14px;
+}
+
+.field-job-card--market.is-selected {
+  border-color: var(--geo-brand);
+  box-shadow: 0 0 0 1px var(--geo-brand), 0 4px 14px rgba(255, 107, 0, 0.12);
+}
+
+.field-job-card__marker-col {
+  flex: 0 0 52px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.field-job-card__main {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 4px;
+}
+
+.field-job-card--market .field-job-card__title {
+  font-size: 15px;
+  font-weight: 800;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.field-job-card--market .field-job-card__addr {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.field-job-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.field-job-card__badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.field-job-card__badge--urgent {
+  background: var(--geo-brand-soft);
+  color: var(--geo-brand);
+}
+
+.field-job-card__badge--beginner {
+  background: #ecfdf3;
+  color: #16a34a;
+}
+
+.field-job-card__badge--closing {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.field-job-card__badge--recruit {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.field-job-card__side {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 88px;
+}
+
+.field-job-card__pay-line {
+  font-size: 15px;
+  font-weight: 900;
+  color: #111827;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.field-job-card__owner-memo {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.field-job-card__apply-memo {
+  align-self: flex-end;
+  max-width: 100%;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  line-height: 1.3;
+  text-align: right;
+  word-break: keep-all;
+}
+
+.field-job-card--market .field-job-card__state {
+  font-size: 12px;
+  font-weight: 800;
+  color: #16a34a;
+}
+
+.field-job-card--market .field-job-card__apply {
+  align-self: flex-end;
+  margin-top: 4px;
+  min-width: 52px;
+  height: 34px;
+  font-size: 13px;
+  background: var(--geo-brand);
+}
+
+.field-job-card--market .field-job-card__apply.is-disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+}
+
+.map-tab-page--geo .field-job-list {
+  gap: 10px;
+}
+
+/* 참여 요청 한줄 입력 시트 */
+.job-apply-quick {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--geo-tabbar-float-h, 56px) + env(safe-area-inset-bottom, 0px));
+  z-index: 32;
+  display: flex;
+  justify-content: center;
+  padding: 0 12px 10px;
+  pointer-events: none;
+}
+
+.job-apply-quick__panel {
+  width: 100%;
+  max-width: 480px;
+  padding: 14px 16px 12px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.16);
+  pointer-events: auto;
+}
+
+.job-apply-quick__title {
+  margin: 0 0 12px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+.job-apply-quick__field {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.job-apply-quick__label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.job-apply-quick__input {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  background: #fff;
+}
+
+.job-apply-quick__input.is-readonly {
+  background: #f9fafb;
+  color: #4b5563;
+}
+
+.job-apply-quick__count {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-align: right;
+}
+
+.job-apply-quick__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.job-apply-quick__btn {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+}
+
+.job-apply-quick__btn--ghost {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.job-apply-quick__btn--primary {
+  background: var(--geo-brand);
+  color: #fff;
+}
+
+/* ─── 오야지 ops 현장 스티커 (3줄 compact / minimal) ─── */
+.geo-pin-marker--ops {
+  --geo-pin-accent: #d1d5db;
+}
+
+.geo-pin-marker--ops.geo-pin-marker--flow-compact,
+.geo-pin-marker--ops.geo-pin-marker--minimal {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.geo-pin-marker--field-sticker.geo-pin-marker--flow-compact,
+.geo-pin-marker--ops.geo-pin-marker--flow-compact {
+  width: auto;
+  min-width: 114px;
+  max-width: 164px;
+  min-height: 0;
+  margin-bottom: 6px;
+  padding: 8px 10px 9px;
+  border-radius: 12px;
+  border-width: 1px;
+  gap: 3px;
+  box-shadow: 0 1px 5px rgba(15, 23, 42, 0.07);
+  background: #fffcf9;
+  border-color: #e7e5e4;
+}
+
+.geo-pin-marker--ops.geo-pin-marker--flow-compact::after {
+  bottom: -6px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+}
+
+.geo-pin-marker--ops .geo-pin-marker__site {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  color: #1f2937;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.geo-pin-marker--ops .geo-pin-marker__meta {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #6b7280;
+  letter-spacing: -0.01em;
+}
+
+.geo-pin-marker--ops .geo-pin-marker__pulse {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #4b5563;
+  letter-spacing: -0.01em;
+}
+
+.geo-pin-marker--ops .geo-pin-marker__pulse--warn {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.3;
+  color: #b91c1c;
+  letter-spacing: -0.01em;
+}
+
+.geo-pin-marker--ops.geo-pin-marker--has-warn .geo-pin-marker__pulse--warn {
+  order: -1;
+  margin-bottom: 1px;
+}
+
+.geo-pin-marker--ops.geo-pin-marker--help {
+  --geo-pin-accent: #a8a29e;
+}
+
+.geo-pin-marker--ops.geo-pin-marker--shortage:not(.geo-pin-marker--has-warn) {
+  --geo-pin-accent: #d6d3d1;
+}
+
+.geo-pin-marker--ops.geo-pin-marker--done {
+  opacity: 0.52;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06);
+}
+
+.geo-pin-marker--ops.geo-pin-marker--done .geo-pin-marker__site,
+.geo-pin-marker--ops.geo-pin-marker--done .geo-pin-marker__meta,
+.geo-pin-marker--ops.geo-pin-marker--done .geo-pin-marker__pulse {
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.geo-pin-marker--ops.geo-pin-marker--aft .geo-pin-marker__meta {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.geo-pin-marker--field-sticker.geo-pin-marker--minimal,
+.geo-pin-marker--ops.geo-pin-marker--minimal {
+  width: auto;
+  min-width: 90px;
+  max-width: 128px;
+  min-height: 0;
+  margin-bottom: 4px;
+  padding: 6px 8px 7px;
+  border-radius: 11px;
+  border-width: 1px;
+  gap: 2px;
+  box-shadow: 0 1px 4px rgba(28, 25, 23, 0.06);
+  background: #fffcf9;
+  border-color: #e7e5e4;
+}
+
+.geo-pin-marker--ops.geo-pin-marker--minimal::after {
+  display: none;
+}
+
+.geo-pin-marker--ops .geo-pin-marker__site--mini {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.4;
+  color: #374151;
+}
+
+.geo-pin-marker--ops.geo-pin-marker--minimal .geo-pin-marker__pulse {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.geo-pin-marker--ops.geo-pin-marker--minimal .geo-pin-marker__pulse--warn {
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.geo-marker-anchor--selected .geo-pin-marker--ops {
+  border-color: #1c1917;
+  transform: scale(1.03);
+  box-shadow: 0 4px 14px rgba(28, 25, 23, 0.18);
+}
+
+.geo-marker-anchor--selected .geo-pin-marker--ops .geo-pin-marker__site {
+  color: #1c1917;
+}
+
+/* ─── 마커 클릭 운영 시트 (오야지 단순화: 2버튼 + 더보기) ─── */
+.map-job-ops-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.map-job-ops-sheet__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.35);
+  cursor: pointer;
+}
+
+.map-job-ops-sheet__panel {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  padding: 16px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+  border-radius: 18px 18px 0 0;
+  background: #fff;
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.14);
+}
+
+.map-job-ops-sheet__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.map-job-ops-sheet__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.map-job-ops-sheet__close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: #f3f4f6;
+  font-size: 18px;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.map-job-ops-sheet__ops {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.map-job-ops-sheet__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.map-job-ops-sheet__actions--more {
+  margin-top: 8px;
+}
+
+.map-job-ops-sheet__btn {
+  min-height: 52px;
+  border: 1px solid #d1d5db;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  color: #111827;
+  cursor: pointer;
+}
+
+.map-job-ops-sheet__btn--primary {
+  border-color: transparent;
+  background: #111827;
+  color: #fff;
+}
+
+.map-job-ops-sheet__btn--urgent {
+  background: #fef2f2;
+  border-color: rgba(185, 28, 28, 0.2);
+  color: #b91c1c;
+}
+
+.map-job-ops-sheet__more {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+/* ─── 필터 시트: 상세 조건 접기 토글 ─── */
+.map-filter-sheet__detail-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 18px;
+  padding: 12px 0;
+  border: none;
+  border-top: 1px solid #f0f0f2;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 800;
+  color: #374151;
+  cursor: pointer;
+}

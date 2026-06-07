@@ -1,0 +1,765 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import {
+  AUTH_STORAGE_KEY,
+  LEGACY_USER_STORAGE_KEY,
+  ONBOARDING_STORAGE_KEY,
+  USER_PROFILE_STORAGE_KEY,
+} from "../constants/authStorage";
+import {
+  getFavoriteWorkers,
+  getMe,
+  getOyajiTrustProfile,
+  getProfileMeta,
+  loginWithKakaoMock as loginWithKakaoMockApi,
+} from "../api/userApi";
+import { getKakaoOAuthStartUrl, logoutSession, probeSpringOAuthBackend } from "../api/authApi";
+import { changeNickname, setInitialNickname } from "../api/nicknameApi";
+import { isNetworkError } from "../api/client";
+import {
+  createSafeJsonStorage,
+  isAuthError,
+  pickPersistedStoreState,
+  readJsonStorage,
+  removeStorageKey,
+  runAsyncStoreAction,
+  writeJsonStorage,
+} from "./storeUtils";
+import { useUiStore } from "./useUiStore";
+import { validateNicknameInput } from "../utils/displayNickname";
+
+const STORE_KEY = "ildangmap_user_store_v1";
+
+let refreshCurrentUserInFlight = null;
+const USER_MODE_STORAGE_KEY = "user_mode_v1";
+const USER_PREFS_STORAGE_KEY = "user_map_prefs_v1";
+const VALID_CRAFTS = ["film", "wallpaper", "tile", "electric", "facility", "paint"];
+const VALID_ROLES = ["조공", "준기공", "기공", "오야지", "소비자", "전체"];
+const VALID_REGIONS = ["대전 서구", "대전 유성구", "대전 동구", "대전 중구", "세종", "청주", "전국"];
+
+function createDefaultSession() {
+  return {
+    isAuthenticated: false,
+    provider: "",
+    accessToken: "",
+    user: null,
+  };
+}
+
+function createDefaultProfile() {
+  return {
+    id: "",
+    applicantUserId: null,
+    name: "",
+    /** 현장 실명 네트워크 — 명함/연락처/참여자/작성자/채팅 공통 표시 기준 */
+    realName: "",
+    birthYear: null,
+    residence: "",
+    careerYears: null,
+    /** 게시판·공개 표시용 활동명 */
+    nickname: "",
+    displayNickname: "",
+    nicknameSetupRequired: false,
+    canChangeNickname: true,
+    nicknameChangeAvailableAt: "",
+    profileImage: "",
+    loginProvider: "",
+    userType: "",
+    /** 기술자 / 오야지 / 소비자 — 하단 탭·배지 UX */
+    shellPersona: "",
+    needsPersonaChoice: false,
+    trade: "전체",
+    region: "대전 서구",
+    craft: "film",
+    role: "기공",
+    experienceYears: null,
+    setupCompleted: false,
+  };
+}
+
+function createDefaultPrefs() {
+  return {
+    regionLabel: "대전 서구",
+    trade: "전체",
+    craft: null,
+  };
+}
+
+function createDefaultProfileMeta() {
+  return {
+    name: "",
+    trade: "기공",
+    craft: "film",
+    region: "대전 서구",
+    profileImage: "",
+    trustStats: [],
+    verificationBadges: [],
+    workHistory: [],
+    recentCoworkers: [],
+    frequentRegions: [],
+    intro: "",
+  };
+}
+
+function createDefaultOyajiTrustProfile() {
+  return {
+    verificationBadges: [],
+    trustStats: [],
+    recentCoworkers: [],
+    note: "",
+    monthlySettlement: {
+      laborCost: "0원",
+    },
+    averageRate: {
+      label: "",
+      value: "",
+    },
+  };
+}
+
+function normalizeSession(raw) {
+  if (!raw || typeof raw !== "object") return createDefaultSession();
+  return {
+    isAuthenticated: raw.isAuthenticated === true,
+    provider: typeof raw.provider === "string" ? raw.provider : "",
+    accessToken: typeof raw.accessToken === "string" ? raw.accessToken : "",
+    user: raw.user && typeof raw.user === "object" ? raw.user : null,
+  };
+}
+
+function normalizePrefs(raw) {
+  const defaults = createDefaultPrefs();
+  if (!raw || typeof raw !== "object") return defaults;
+  const regionLabel =
+    typeof raw.regionLabel === "string" && VALID_REGIONS.includes(raw.regionLabel) ? raw.regionLabel : defaults.regionLabel;
+  const trade = typeof raw.trade === "string" && VALID_ROLES.includes(raw.trade) ? raw.trade : defaults.trade;
+  const craft =
+    raw.craft == null || VALID_CRAFTS.includes(raw.craft)
+      ? raw.craft ?? null
+      : defaults.craft;
+  return { regionLabel, trade, craft };
+}
+
+function normalizeProfile(raw) {
+  const defaults = createDefaultProfile();
+  if (!raw || typeof raw !== "object") return defaults;
+  const rawUserType = raw.userType;
+  const userType =
+    rawUserType === "foreman" || rawUserType === "FOREMAN"
+      ? "foreman"
+      : rawUserType === "consumer" || rawUserType === "CONSUMER"
+        ? "consumer"
+        : rawUserType === "worker" || rawUserType === "WORKER"
+          ? "worker"
+          : defaults.userType;
+  const idString = raw.id != null && raw.id !== "" ? String(raw.id) : defaults.id;
+  const applicantFromField = Number(raw.applicantUserId);
+  const applicantFromId = Number(raw.id);
+  const applicantUserId = Number.isFinite(applicantFromField) && applicantFromField > 0
+    ? applicantFromField
+    : Number.isFinite(applicantFromId) && applicantFromId > 0
+      ? applicantFromId
+      : defaults.applicantUserId;
+  const realNameRaw = typeof raw.realName === "string" ? raw.realName.trim() : "";
+  const nameRaw = typeof raw.name === "string" ? raw.name.trim() : "";
+  const realName = realNameRaw || nameRaw || defaults.realName;
+  const name = nameRaw || realName || defaults.name;
+  const birthYear = Number.isFinite(Number(raw.birthYear)) && Number(raw.birthYear) > 1900 ? Number(raw.birthYear) : defaults.birthYear;
+  const residence =
+    typeof raw.residence === "string" && raw.residence.trim()
+      ? raw.residence.trim()
+      : typeof raw.homeRegion === "string" && raw.homeRegion.trim()
+        ? raw.homeRegion.trim()
+        : defaults.residence;
+  const careerYears = Number.isFinite(Number(raw.careerYears))
+    ? Number(raw.careerYears)
+    : Number.isFinite(Number(raw.experienceYears))
+      ? Number(raw.experienceYears)
+      : defaults.careerYears;
+  const experienceYears = Number.isFinite(Number(raw.experienceYears))
+    ? Number(raw.experienceYears)
+    : careerYears;
+  const nicknameRaw = typeof raw.nickname === "string" ? raw.nickname.trim() : "";
+  const displayNicknameRaw = typeof raw.displayNickname === "string" ? raw.displayNickname.trim() : nicknameRaw;
+  const nickname = displayNicknameRaw || defaults.nickname;
+  const nicknameSetupRequired = raw.nicknameSetupRequired === true;
+  const setupCompleted = !nicknameSetupRequired && Boolean(displayNicknameRaw);
+  const tradeStr = typeof raw.trade === "string" && raw.trade.trim() ? raw.trade.trim() : defaults.trade;
+  const shellRaw = raw.shellPersona;
+  let shellPersona =
+    shellRaw === "foreman" || shellRaw === "technician" || shellRaw === "consumer" ? shellRaw : "";
+  if (!shellPersona) {
+    if (userType === "foreman") shellPersona = "foreman";
+    else if (userType === "consumer") shellPersona = "consumer";
+    else if (userType === "worker") shellPersona = "technician";
+  }
+  return {
+    id: idString,
+    applicantUserId,
+    name,
+    realName,
+    birthYear,
+    residence,
+    careerYears,
+    experienceYears,
+    nickname,
+    displayNickname: displayNicknameRaw || nickname,
+    nicknameSetupRequired,
+    canChangeNickname: raw.canChangeNickname !== false,
+    nicknameChangeAvailableAt:
+      typeof raw.nicknameChangeAvailableAt === "string" ? raw.nicknameChangeAvailableAt : defaults.nicknameChangeAvailableAt,
+    profileImage: typeof raw.profileImage === "string" ? raw.profileImage : defaults.profileImage,
+    loginProvider: typeof raw.loginProvider === "string" ? raw.loginProvider : defaults.loginProvider,
+    userType,
+    shellPersona,
+    needsPersonaChoice: raw.needsPersonaChoice === true,
+    trade: tradeStr,
+    region: typeof raw.region === "string" && VALID_REGIONS.includes(raw.region) ? raw.region : defaults.region,
+    craft: VALID_CRAFTS.includes(raw.craft) ? raw.craft : defaults.craft,
+    role: typeof raw.role === "string" && VALID_ROLES.includes(raw.role) ? raw.role : defaults.role,
+    setupCompleted,
+  };
+}
+
+/** GET /users/me 응답 → Zustand (세션이 진실 소스) */
+function applyMeResponse(state, me, providerOverride) {
+  if (!me || me.id == null) {
+    return {
+      authReady: true,
+      meBootstrapLoading: false,
+      meVerified: true,
+      session: normalizeSession({
+        ...state.session,
+        isAuthenticated: false,
+        user: null,
+        accessToken: "",
+      }),
+      profile: normalizeProfile(createDefaultProfile()),
+    };
+  }
+  const userId = String(me.id);
+  const displayNickname = String(me.displayNickname || "").trim();
+  const nicknameSetupRequired = Boolean(me.nicknameSetupRequired);
+  const applicantId = Number(me.id);
+  const provider = providerOverride || state.session.provider || state.profile.loginProvider || "kakao";
+  return {
+    authReady: true,
+    meBootstrapLoading: false,
+    meVerified: true,
+    session: normalizeSession({
+      ...state.profile,
+      id: userId,
+      applicantUserId: Number.isFinite(applicantId) && applicantId > 0 ? applicantId : state.profile.applicantUserId,
+      nickname: displayNickname,
+      displayNickname,
+      profileImage: me.profileImageUrl || state.profile.profileImage,
+      nicknameSetupRequired,
+      setupCompleted: !nicknameSetupRequired && Boolean(displayNickname),
+      canChangeNickname: me.canChangeNickname !== false,
+      nicknameChangeAvailableAt: me.nicknameChangeAvailableAt || "",
+      userType: me.userType ? String(me.userType).toLowerCase() : state.profile.userType,
+      loginProvider: provider,
+    }),
+  };
+}
+
+function normalizeUserMode(value) {
+  return value === "oyaji" ? "oyaji" : "worker";
+}
+
+function readLegacyUserState() {
+  const session = normalizeSession(readJsonStorage(AUTH_STORAGE_KEY, null));
+  const profile = normalizeProfile(readJsonStorage(USER_PROFILE_STORAGE_KEY, null));
+  const prefs = normalizePrefs(readJsonStorage(USER_PREFS_STORAGE_KEY, null));
+  const legacyUser = readJsonStorage(LEGACY_USER_STORAGE_KEY, {});
+  const rawMode = (() => {
+    try {
+      return localStorage.getItem(USER_MODE_STORAGE_KEY);
+    } catch (_) {
+      return "worker";
+    }
+  })();
+  const userMode = normalizeUserMode(rawMode);
+  const setupCompleted = (() => {
+    const displayNick = String(profile.displayNickname || profile.nickname || "").trim();
+    const setupRequired = profile.nicknameSetupRequired === true || !displayNick;
+    return !setupRequired && Boolean(displayNick);
+  })();
+
+  return {
+    session,
+    profile: normalizeProfile({
+      ...profile,
+      name: profile.name || legacyUser?.nickname || "",
+      nickname: profile.nickname || profile.name || legacyUser?.nickname || "",
+      profileImage: profile.profileImage || legacyUser?.profileImage || "",
+      loginProvider: profile.loginProvider || legacyUser?.loginProvider || session.provider || "",
+      setupCompleted,
+    }),
+    prefs,
+    userMode,
+    profileMeta: createDefaultProfileMeta(),
+    favoriteWorkers: [],
+    oyajiTrustProfile: createDefaultOyajiTrustProfile(),
+    loading: false,
+    error: "",
+    extrasLoading: false,
+    extrasError: "",
+    extrasLoaded: false,
+    authReady: false,
+    meBootstrapLoading: false,
+    /** /users/me 동기화 완료 — persist만으로 로그인 판정하지 않음 */
+    meVerified: false,
+  };
+}
+
+function syncLegacyUserState(state) {
+  if (!state) return;
+  const session = normalizeSession(state.session);
+  const profile = normalizeProfile(state.profile);
+  const prefs = normalizePrefs(state.prefs);
+  const userMode = normalizeUserMode(state.userMode);
+  writeJsonStorage(AUTH_STORAGE_KEY, session);
+  writeJsonStorage(USER_PROFILE_STORAGE_KEY, profile);
+  writeJsonStorage(USER_PREFS_STORAGE_KEY, prefs);
+  writeJsonStorage(LEGACY_USER_STORAGE_KEY, {
+      nickname: profile.nickname || "",
+    profileImage: profile.profileImage,
+    loginProvider: profile.loginProvider,
+  });
+  try {
+    localStorage.setItem(USER_MODE_STORAGE_KEY, userMode);
+    if (profile.setupCompleted) {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, "done");
+    } else {
+      localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    }
+  } catch (_) {
+    /* noop */
+  }
+}
+
+function createInitialState() {
+  const legacy = readLegacyUserState();
+  return {
+    session: legacy.session,
+    profile: legacy.profile,
+    prefs: legacy.prefs,
+    userMode: legacy.userMode,
+    authReady: legacy.authReady,
+    meBootstrapLoading: legacy.meBootstrapLoading,
+    meVerified: false,
+  };
+}
+
+export const useUserStore = create(
+  persist(
+    (set, get) => ({
+      ...createInitialState(),
+
+      setSession: (patch) =>
+        set((state) => ({
+          session: normalizeSession({
+            ...state.session,
+            ...(typeof patch === "function" ? patch(state.session) : patch),
+          }),
+        })),
+
+      refreshCurrentUser: async () => {
+        if (refreshCurrentUserInFlight) {
+          return refreshCurrentUserInFlight;
+        }
+        refreshCurrentUserInFlight = (async () => {
+          try {
+            return await runAsyncStoreAction({
+              set,
+              loadingKey: "meBootstrapLoading",
+              action: () => getMe(),
+              defaultErrorMessage: "사용자 정보를 불러오지 못했습니다.",
+              onSuccess: (state, me) => applyMeResponse(state, me),
+              onError: (state, error) => {
+                const next = { authReady: true, meBootstrapLoading: false, meVerified: true };
+                if (isAuthError(error)) {
+                  return {
+                    ...next,
+                    session: normalizeSession({
+                      ...state.session,
+                      isAuthenticated: false,
+                      user: null,
+                    }),
+                    profile: normalizeProfile({
+                      ...state.profile,
+                      applicantUserId: null,
+                    }),
+                  };
+                }
+                return next;
+              },
+            });
+          } finally {
+            refreshCurrentUserInFlight = null;
+          }
+        })();
+        return refreshCurrentUserInFlight;
+      },
+
+      startKakaoOAuthLogin: async () => {
+        if (typeof window === "undefined") return false;
+        const url = getKakaoOAuthStartUrl();
+        if (!url) {
+          useUiStore.getState().showAppToast(
+            "카카오 로그인 주소를 만들 수 없어요. REACT_APP_API_BASE_URL(백엔드) 또는 REACT_APP_KAKAO_CLIENT_ID를 설정해 주세요."
+          );
+          return false;
+        }
+        if (url.includes("kauth.kakao.com")) {
+          window.location.href = url;
+          return true;
+        }
+        const reachable = await probeSpringOAuthBackend();
+        if (!reachable) {
+          useUiStore.getState().showAppToast("로그인 서버에 연결할 수 없어요. Spring Boot(예: 8080)를 실행했는지 확인해 주세요.");
+          return false;
+        }
+        window.location.href = url;
+        return true;
+      },
+
+      loginWithKakaoMock: async () =>
+        runAsyncStoreAction({
+          set,
+          action: () => loginWithKakaoMockApi(),
+          defaultErrorMessage: "카카오 로그인을 진행하지 못했습니다.",
+          onSuccess: (state, pickedUser) => {
+            const uid = Number(pickedUser?.id);
+            const apl = Number.isFinite(uid) && uid > 0 ? uid : 1;
+            const userId = String(pickedUser.id ?? apl);
+            return {
+              meVerified: true,
+              session: normalizeSession({
+                accessToken: `mock-kakao-token-${Date.now()}`,
+                user: {
+                  id: userId,
+                  nickname: "",
+                  profileImage: pickedUser.profileImage || "",
+                },
+              }),
+              profile: normalizeProfile({
+                ...state.profile,
+                id: userId,
+                applicantUserId: apl,
+                nickname: "",
+                displayNickname: "",
+                nicknameSetupRequired: true,
+                profileImage: state.profile.profileImage || pickedUser.profileImage || "",
+                loginProvider: "kakao-mock",
+                region: state.prefs.regionLabel || state.profile.region,
+                craft: state.prefs.craft != null ? state.prefs.craft : state.profile.craft,
+                role: state.prefs.trade && state.prefs.trade !== "전체" ? state.prefs.trade : state.profile.role,
+                trade: state.prefs.trade || state.profile.trade,
+                setupCompleted: false,
+                needsPersonaChoice: false,
+              }),
+            };
+          },
+        }).then((pickedUser) => ({
+          id: pickedUser?.id,
+          nickname: pickedUser?.nickname,
+          profileImage: pickedUser?.profileImage,
+        })),
+
+      /** OAuth 콜백 등 — 세션만 반영 (닉네임은 /users/me 기준) */
+      commitSessionAfterKakao: (pickedUser, options = {}) => {
+        if (!pickedUser) return;
+        const id =
+          pickedUser.id != null && String(pickedUser.id).trim() !== ""
+            ? String(pickedUser.id).trim()
+            : `kakao-${Date.now()}`;
+        const uid = Number(id);
+        const applicantUserId = Number.isFinite(uid) && uid > 0 ? uid : null;
+        const accessToken =
+          typeof options.accessToken === "string" && options.accessToken.trim()
+            ? options.accessToken.trim()
+            : `kakao-token-${Date.now()}`;
+        const provider = typeof options.provider === "string" && options.provider.trim() ? options.provider.trim() : "kakao";
+        set((state) => ({
+          session: normalizeSession({
+            isAuthenticated: true,
+            provider,
+            accessToken,
+            user: {
+              id,
+              nickname: "",
+              profileImage: typeof pickedUser.profileImage === "string" ? pickedUser.profileImage : "",
+            },
+          }),
+          profile: normalizeProfile({
+            ...state.profile,
+            id,
+            nickname: "",
+            displayNickname: "",
+            nicknameSetupRequired: true,
+            ...(applicantUserId != null ? { applicantUserId } : {}),
+            profileImage:
+              typeof pickedUser.profileImage === "string" ? pickedUser.profileImage : state.profile.profileImage,
+            loginProvider: provider,
+            region: state.prefs.regionLabel || state.profile.region,
+            craft: state.prefs.craft != null ? state.prefs.craft : state.profile.craft,
+            role: state.prefs.trade && state.prefs.trade !== "전체" ? state.prefs.trade : state.profile.role,
+            trade: state.prefs.trade || state.profile.trade,
+            setupCompleted: false,
+            needsPersonaChoice: false,
+          }),
+          authReady: true,
+          meVerified: false,
+        }));
+      },
+
+      refreshUserExtras: async ({ force = false } = {}) => {
+        if (!force && get().extrasLoaded) {
+          return {
+            profileMeta: get().profileMeta,
+            favoriteWorkers: get().favoriteWorkers,
+            oyajiTrustProfile: get().oyajiTrustProfile,
+          };
+        }
+        return runAsyncStoreAction({
+          set,
+          loadingKey: "extrasLoading",
+          errorKey: "extrasError",
+          defaultErrorMessage: "사용자 부가 정보를 불러오지 못했습니다.",
+          action: async () => {
+            const [profileMeta, favoriteWorkers, oyajiTrustProfile] = await Promise.all([
+              getProfileMeta(),
+              getFavoriteWorkers(),
+              getOyajiTrustProfile(),
+            ]);
+            return {
+              profileMeta: profileMeta || createDefaultProfileMeta(),
+              favoriteWorkers: Array.isArray(favoriteWorkers) ? favoriteWorkers : [],
+              oyajiTrustProfile: oyajiTrustProfile || createDefaultOyajiTrustProfile(),
+            };
+          },
+          onSuccess: (_, payload) => ({
+            ...payload,
+            extrasLoaded: true,
+          }),
+          onError: (state, error) => {
+            if (!isNetworkError(error)) return {};
+            return {
+              extrasLoaded: true,
+              profileMeta:
+                state.profileMeta && typeof state.profileMeta === "object"
+                  ? state.profileMeta
+                  : createDefaultProfileMeta(),
+              favoriteWorkers: Array.isArray(state.favoriteWorkers) ? state.favoriteWorkers : [],
+              oyajiTrustProfile:
+                state.oyajiTrustProfile && typeof state.oyajiTrustProfile === "object"
+                  ? state.oyajiTrustProfile
+                  : createDefaultOyajiTrustProfile(),
+            };
+          },
+        });
+      },
+
+      logout: () => {
+        logoutSession().catch(() => {
+          /* noop */
+        });
+        const prefs = get().prefs;
+        const userMode = get().userMode;
+        const nextState = {
+          session: createDefaultSession(),
+          profile: createDefaultProfile(),
+          prefs,
+          userMode,
+          profileMeta: createDefaultProfileMeta(),
+          favoriteWorkers: [],
+          oyajiTrustProfile: createDefaultOyajiTrustProfile(),
+          loading: false,
+          error: "",
+          meBootstrapLoading: false,
+          authReady: true,
+          meVerified: false,
+          extrasLoading: false,
+          extrasError: "",
+          extrasLoaded: false,
+        };
+        set(nextState);
+        removeStorageKey(ONBOARDING_STORAGE_KEY);
+      },
+
+      setProfile: (patch) =>
+        set((state) => ({
+          profile: normalizeProfile({
+            ...state.profile,
+            ...(typeof patch === "function" ? patch(state.profile) : patch),
+          }),
+        })),
+
+      completeNicknameSetup: async (nextNickname) => {
+        const validated = validateNicknameInput(nextNickname);
+        if (!validated.ok) return { ok: false, message: validated.message };
+        try {
+          const me = await setInitialNickname(validated.value);
+          set((state) => applyMeResponse(state, me, state.session.provider || "kakao"));
+          return { ok: true };
+        } catch (error) {
+          return { ok: false, message: error?.message || "닉네임 설정에 실패했습니다." };
+        }
+      },
+
+      changeDisplayNickname: async (nextNickname) => {
+        const validated = validateNicknameInput(nextNickname);
+        if (!validated.ok) return { ok: false, message: validated.message };
+        const { profile } = get();
+        if (profile?.nicknameSetupRequired) {
+          return { ok: false, message: "활동명 설정을 먼저 완료해주세요." };
+        }
+        if (profile?.canChangeNickname === false) {
+          const at = profile?.nicknameChangeAvailableAt;
+          return {
+            ok: false,
+            message: at ? `닉네임은 30일에 1회 변경 가능합니다. (${at.slice(0, 10)} 이후)` : "닉네임 변경 대기 중입니다.",
+          };
+        }
+        try {
+          const me = await changeNickname(validated.value);
+          set((state) => applyMeResponse(state, me, state.session.provider || "kakao"));
+          return { ok: true };
+        } catch (error) {
+          return { ok: false, message: error?.message || "닉네임 변경에 실패했습니다." };
+        }
+      },
+
+      /** @deprecated changeDisplayNickname 사용 */
+      updateDisplayNickname: (nextNickname) => {
+        const validated = validateNicknameInput(nextNickname);
+        if (!validated.ok) return { ok: false, message: validated.message };
+        get()
+          .changeDisplayNickname(validated.value)
+          .catch(() => {
+            /* noop */
+          });
+        return { ok: true };
+      },
+
+      completeInitialProfile: (payload) =>
+        set((state) => {
+          const userId = payload?.id || state.profile?.id || state.session?.user?.id || "";
+          const displayNickname = String(payload?.displayNickname || payload?.nickname || "").trim();
+          return {
+            session: normalizeSession({
+              ...state.session,
+              user: state.session?.user
+                ? { ...state.session.user, nickname: displayNickname }
+                : userId
+                  ? { id: String(userId), nickname: displayNickname, profileImage: "" }
+                  : null,
+            }),
+            profile: normalizeProfile({
+              ...state.profile,
+              ...payload,
+              nickname: displayNickname,
+              displayNickname,
+              nicknameSetupRequired: !displayNickname,
+              setupCompleted: Boolean(displayNickname),
+            }),
+          };
+        }),
+
+      resetProfile: () =>
+        set(() => ({
+          profile: createDefaultProfile(),
+        })),
+
+      applyShellPersonaChoice: (persona) =>
+        set((state) => {
+          const isForeman = persona === "foreman";
+          const isConsumer = persona === "consumer";
+          const userMode = isForeman ? "oyaji" : "worker";
+          const userType = isConsumer ? "consumer" : isForeman ? "foreman" : "worker";
+          const nextRole =
+            isConsumer ? "소비자" : isForeman ? "오야지" : state.profile.role === "소비자" ? "기공" : state.profile.role;
+          return {
+            userMode: normalizeUserMode(userMode),
+            profile: normalizeProfile({
+              ...state.profile,
+              shellPersona: persona,
+              userType,
+              needsPersonaChoice: false,
+              role: VALID_ROLES.includes(nextRole) ? nextRole : state.profile.role,
+            }),
+          };
+        }),
+
+      setUserMode: (nextMode) =>
+        set(() => ({
+          userMode: normalizeUserMode(nextMode),
+        })),
+
+      setPrefs: (patch) =>
+        set((state) => ({
+          prefs: normalizePrefs({
+            ...state.prefs,
+            ...(typeof patch === "function" ? patch(state.prefs) : patch),
+          }),
+        })),
+
+      hydrateFromLegacy: () => {
+        const nextState = createInitialState();
+        set(nextState);
+        return nextState;
+      },
+
+      getAuthUser: () => get().session.user,
+      isProfileCompleted: () => {
+        const p = get().profile;
+        return Boolean(p?.setupCompleted && !p?.nicknameSetupRequired && p?.displayNickname);
+      },
+      isAuthReady: () => Boolean(get().authReady),
+      isMeVerified: () => Boolean(get().meVerified),
+      isAuthenticatedFromMe: () =>
+        Boolean(get().authReady && get().meVerified && get().session?.isAuthenticated),
+    }),
+    {
+      name: STORE_KEY,
+      storage: createSafeJsonStorage(),
+      partialize: (state) =>
+        pickPersistedStoreState(state, [
+          "session",
+          "profile",
+          "prefs",
+          "userMode",
+          "profileMeta",
+          "favoriteWorkers",
+          "oyajiTrustProfile",
+          "extrasLoaded",
+        ]),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          syncLegacyUserState(state);
+          if (state.profile?.needsPersonaChoice) {
+            state.profile = { ...state.profile, needsPersonaChoice: false };
+          }
+        }
+        // authReady는 persist 대상이 아님 — rehydrate 직후 UI 잠금 해제 (이후 /me는 백그라운드)
+        const patch = {
+          authReady: true,
+          meBootstrapLoading: false,
+          meVerified: false,
+          extrasLoading: false,
+        };
+        if (state?.profile?.needsPersonaChoice) {
+          patch.profile = { ...state.profile, needsPersonaChoice: false };
+        }
+        useUserStore.setState(patch);
+      },
+    }
+  )
+);
+
+syncLegacyUserState(useUserStore.getState());
+useUserStore.subscribe((state) => {
+  syncLegacyUserState(state);
+});

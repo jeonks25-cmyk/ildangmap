@@ -1,0 +1,59 @@
+/* 검색 패널 — 최상위 레이어 (상단 검색창 아래, FAB·지도 컨트롤 위) */
+
+.map-search-panel-layer {
+  position: fixed;
+  top: var(--map-card-sheet-top);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-search-panel, 210);
+  pointer-events: none;
+}
+
+.map-search-panel-layer .map-card-shell {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-search-panel, 210);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  padding: 0;
+  background: #ffffff;
+  pointer-events: auto;
+}
+
+.map-search-panel-layer .map-search-panel-card.map-card-container {
+  position: absolute;
+  top: 0;
+  bottom: var(--map-card-sheet-bottom);
+  left: 14px;
+  right: 14px;
+  width: auto;
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+  max-height: none;
+  z-index: calc(var(--z-search-panel, 210) + 1);
+}
+
+/* 검색 카드 — MapCardContainer 내부 콘텐츠 */
+
+.map-search-panel-card .map-search-panel__form {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0 14px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+}
+
+.map-search-panel-card .map-search-panel__section {
+  padding: 12px 0 4px;
+}
+
+.map-search-panel-card .map-search-panel__section:first-of-type {
+  padding-top: 8px;
+}

@@ -1,0 +1,125 @@
+package com.ildangmap.domain.user;
+
+import com.ildangmap.global.persistence.BaseTimeEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+@Getter
+@Entity
+@Table(
+        name = "users",
+        indexes = {
+                @Index(name = "idx_users_email", columnList = "email", unique = true),
+                @Index(name = "idx_users_provider", columnList = "provider, provider_id", unique = true),
+                @Index(name = "uk_users_display_nickname", columnList = "display_nickname", unique = true)
+        }
+)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+public class User extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(length = 120)
+    private String email;
+
+    /** 카카오 프로필 닉네임 — 내부 전용, API 미노출 (기존 name 컬럼 재사용) */
+    @Column(name = "name", nullable = false, length = 60)
+    private String kakaoName;
+
+    /** 공개 활동명 — 자유게시판·UI 표시용 */
+    @Column(name = "display_nickname", length = 16, unique = true)
+    private String displayNickname;
+
+    @Column(name = "display_nickname_changed_at")
+    private LocalDateTime displayNicknameChangedAt;
+
+    @Column(length = 30)
+    private String phone;
+
+    @Column(nullable = false, length = 80)
+    private String region;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "user_type", nullable = false, length = 20)
+    private UserType userType;
+
+    @Column(nullable = false, length = 30)
+    private String provider;
+
+    @Column(name = "provider_id", nullable = false, length = 80)
+    private String providerId;
+
+    @Column(name = "profile_image_url", length = 255)
+    private String profileImageUrl;
+
+    @Column(nullable = false)
+    private boolean active;
+
+    @Builder
+    public User(
+            String email,
+            String kakaoName,
+            String displayNickname,
+            LocalDateTime displayNicknameChangedAt,
+            String phone,
+            String region,
+            UserType userType,
+            String provider,
+            String providerId,
+            String profileImageUrl,
+            boolean active
+    ) {
+        this.email = email;
+        this.kakaoName = kakaoName;
+        this.displayNickname = displayNickname;
+        this.displayNicknameChangedAt = displayNicknameChangedAt;
+        this.phone = phone;
+        this.region = region;
+        this.userType = userType;
+        this.provider = provider;
+        this.providerId = providerId;
+        this.profileImageUrl = profileImageUrl;
+        this.active = active;
+    }
+
+    public void updateOAuthProfile(String email, String kakaoName, String profileImageUrl) {
+        if (email != null) {
+            this.email = email;
+        }
+        if (kakaoName != null && !kakaoName.isBlank()) {
+            this.kakaoName = kakaoName;
+        }
+        if (profileImageUrl != null) {
+            this.profileImageUrl = profileImageUrl;
+        }
+    }
+
+    public void setInitialDisplayNickname(String nickname) {
+        this.displayNickname = nickname;
+        // 최초 설정은 쿨다운 시작점이 아님 — PATCH 변경 시에만 changedAt 갱신
+    }
+
+    public void changeDisplayNickname(String nickname, LocalDateTime at) {
+        this.displayNickname = nickname;
+        this.displayNicknameChangedAt = at;
+    }
+
+    public boolean hasDisplayNickname() {
+        return displayNickname != null && !displayNickname.isBlank();
+    }
+}
