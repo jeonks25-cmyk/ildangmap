@@ -1,4 +1,4 @@
-/* ═══ 지도 터치 — HUD만 통과, Kakao 타일 pane은 기본 pan/zoom ═══ */
+/* ═══ 지도 터치 — HUD pointer-events만, map touch-action은 카카오 기본 ═══ */
 
 .map-tab-page--geo .map-geo-stage__map-column {
   position: relative;
@@ -20,7 +20,6 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  touch-action: none;
 }
 
 .map-tab-page--geo .map-geo-stage__map-surface .map-container {
@@ -28,7 +27,6 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  touch-action: none;
 }
 
 .map-tab-page--geo .map-geo-stage__overlays {
@@ -37,37 +35,9 @@
   z-index: 10;
   overflow: visible;
   pointer-events: none;
-  touch-action: none;
 }
 
-/* HUD — 컨테이너는 통과, 버튼·카드만 auto */
-.map-tab-page--geo .map-geo-stage__overlays .map-floating-btn,
-.map-tab-page--geo .map-geo-stage__overlays .map-floating-action-layer__add-fab,
-.map-tab-page--geo .map-geo-stage__overlays .floating-action-button,
-.map-tab-page--geo .map-geo-stage__overlays .floating-action-button-anchor,
-.map-tab-page--geo .map-geo-stage__overlays .map-quick-add-anchor,
-.map-tab-page--geo .map-geo-stage__overlays .map-quick-add-bubble,
-.map-tab-page--geo .map-geo-stage__overlays .map-quick-add-bubble__action,
-.map-tab-page--geo .map-geo-stage__overlays .geo-map-fab,
-.map-tab-page--geo .map-geo-stage__overlays .geo-map-filter-chip,
-.map-tab-page--geo .map-geo-stage__overlays .map-field-location-pick-bar,
-.map-tab-page--geo .map-geo-stage__overlays .map-filter-sheet,
-.map-tab-page--geo .map-geo-stage__overlays .map-location-toast,
-.map-tab-page--geo .map-geo-stage__overlays .map-operation-context-card,
-.map-tab-page--geo .map-search-marker,
-.map-tab-page--geo .map-search-marker-info,
-.map-tab-page--geo .map-floating-anchor .map-floating-btn,
-.map-tab-page--geo .map-geo-stage__map-column > .map-card-shell .map-card-container,
-.map-tab-page--geo .map-geo-stage__map-column > .map-card-shell .map-place-overlay-row,
-.map-tab-page--geo .map-geo-stage__map-column > .map-card-shell .map-place-overlay__sort-btn,
-.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-card-container,
-.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-search-panel__form,
-.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-search-panel__recent,
-.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-search-panel__keyword {
-  pointer-events: auto;
-  touch-action: manipulation;
-}
-
+/* HUD 통과 shell — pointer-events만 none (touch-action 미지정 → 지도 pinch 유지) */
 .map-tab-page--geo .map-geo-stage__map-column > .map-card-shell,
 .map-tab-page--geo .map-geo-stage__overlays .map-card-shell,
 .map-tab-page--geo .map-geo-stage__overlays .map-floating-action-layer,
@@ -75,5 +45,49 @@
 .map-tab-page--geo .map-geo-stage__overlays .map-center-draft-pin,
 .map-tab-page--geo .map-geo-stage__overlays .map-floating-anchor {
   pointer-events: none;
-  touch-action: none;
+}
+
+/* FAB · 플로팅 버튼 */
+.map-tab-page--geo .map-geo-stage__overlays .map-floating-btn,
+.map-tab-page--geo .map-geo-stage__overlays .map-floating-action-layer__add-fab,
+.map-tab-page--geo .map-geo-stage__overlays .floating-action-button,
+.map-tab-page--geo .map-geo-stage__overlays .map-quick-add-bubble__action,
+.map-tab-page--geo .map-geo-stage__overlays .geo-map-fab,
+.map-tab-page--geo .map-geo-stage__overlays .geo-map-filter-chip,
+.map-tab-page--geo .map-geo-stage__overlays .map-field-location-pick-bar,
+.map-tab-page--geo .map-search-marker,
+.map-tab-page--geo .map-search-marker-info,
+.map-tab-page--geo .map-floating-anchor .map-floating-btn,
+.map-tab-page--geo .map-geo-stage__map-column > .map-card-shell .map-place-overlay__sort-btn,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-place-overlay__sort-btn {
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+/* 말풍선·FAB 앵커 — 버튼만 조작, shell은 통과 */
+.map-tab-page--geo .map-geo-stage__overlays .map-quick-add-bubble.is-open,
+.map-tab-page--geo .map-geo-stage__overlays .floating-action-button-anchor .floating-action-button,
+.map-tab-page--geo .map-geo-stage__overlays .floating-action-button-anchor .map-floating-btn {
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+/* 카드 · 스크롤 패널 — 세로 스크롤만 허용 */
+.map-tab-page--geo .map-geo-stage__map-column > .map-card-shell .map-card-container,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-card-container,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-card-container__scroll,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-search-panel__form,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-search-panel__recent,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-search-panel__keyword,
+.map-tab-page--geo .map-geo-stage__overlays .map-filter-sheet,
+.map-tab-page--geo .map-geo-stage__overlays .map-operation-context-card,
+.map-tab-page--geo .map-geo-stage__map-column > .map-card-shell .map-place-overlay-row,
+.map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-place-overlay-row {
+  pointer-events: auto;
+  touch-action: pan-y;
+}
+
+/* 토스트 — 표시만, touch-action 미지정 */
+.map-tab-page--geo .map-geo-stage__overlays .map-location-toast {
+  pointer-events: auto;
 }

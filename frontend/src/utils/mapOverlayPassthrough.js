@@ -8,7 +8,6 @@ export function applyMapOverlayPassthrough(anchorEl, interactiveEl) {
   anchorEl.style.pointerEvents = "none";
   if (interactiveEl) {
     interactiveEl.style.pointerEvents = "auto";
-    interactiveEl.style.touchAction = "manipulation";
   }
 
   let node = anchorEl.parentElement;
