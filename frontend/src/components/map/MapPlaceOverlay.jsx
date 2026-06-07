@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo } from "react";
 import PlaceDetailCard from "./PlaceDetailCard";
+import PlaceInfoCardMenu from "./PlaceInfoCardMenu";
 import MapCardContainer from "./MapCardContainer";
+import { isPlaceInfoCard } from "../../utils/placeInfoCard";
 import { getMapItemKey } from "../../utils/mapItemModel";
 import {
   PLACE_SORT_DISTANCE,
@@ -133,6 +135,9 @@ function MapPlaceOverlay({
     );
   }
 
+  const showInfoMenu = isPlaceInfoCard(detailPlace);
+  const detailAddress = String(detailPlace?.address || detailPlace?.meta || "").trim();
+
   return (
     <MapCardContainer
       open={open}
@@ -141,11 +146,16 @@ function MapPlaceOverlay({
       title={headerTitle}
       onBack={handleBackClick}
       showBack
+      headerActions={
+        showInfoMenu ? (
+          <PlaceInfoCardMenu place={detailPlace} address={detailAddress} onEdit={onEditPlace} onToast={onToast} />
+        ) : null
+      }
       className="map-place-overlay-card map-place-overlay-card--detail"
       scrollClassName="map-place-overlay-card__scroll--detail"
       ariaLabel="장소 상세"
     >
-      <PlaceDetailCard place={detailPlace} onToast={onToast} onEdit={onEditPlace} />
+      <PlaceDetailCard place={detailPlace} onToast={onToast} onEdit={onEditPlace} showInfoMenu={showInfoMenu} />
     </MapCardContainer>
   );
 }

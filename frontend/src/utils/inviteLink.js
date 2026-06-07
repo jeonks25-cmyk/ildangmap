@@ -14,9 +14,52 @@ export function buildInviteLink({ ref, contactId, groupId } = {}) {
   return qs ? `${INVITE_BASE_URL}?${qs}` : INVITE_BASE_URL;
 }
 
-/** 문자/공유 본문 — 40~60대 오야지 말투, 끝에 가입 링크 */
-export function buildInviteMessage({ link } = {}) {
-  return `형님 일당맵 한번 써보세요.\n제가 현장 일정 공유하려고 합니다.\n${link || buildInviteLink()}`;
+function formatInviterName(name) {
+  const trimmed = String(name || "").trim();
+  return trimmed || "일당맵 회원";
+}
+
+/** 문자·클립보드용 본문 (링크 포함) */
+export function buildInviteMessageBody({ inviterName, link, includeLink = true } = {}) {
+  const name = formatInviterName(inviterName);
+  const lines = [
+    "[일당맵 초대]",
+    "",
+    `${name}님이`,
+    "일당맵에 초대했습니다.",
+    "",
+    "일당맵은",
+    "현장 위치, 주차장, 화장실,",
+    "식당, 일정, 인원 정보를",
+    "공유하는 현장 네트워크 서비스입니다.",
+    "",
+    "아래 링크를 통해 참여해주세요.",
+  ];
+  if (includeLink && link) {
+    lines.push("", link);
+  }
+  return lines.join("\n");
+}
+
+/**
+ * 문자/SNS/카카오톡 공유용 — 동일 문구, 링크 1회만.
+ * Web Share API는 text(링크 제외) + url 로 전달해 카카오톡 등에서 중복을 방지한다.
+ */
+export function buildInviteSharePayload({ link, inviterName, ref, contactId, groupId } = {}) {
+  const resolvedLink = link || buildInviteLink({ ref, contactId, groupId });
+  const text = buildInviteMessageBody({ inviterName, link: resolvedLink, includeLink: false });
+  const fullText = buildInviteMessageBody({ inviterName, link: resolvedLink, includeLink: true });
+  return {
+    title: "[일당맵 초대]",
+    text,
+    url: resolvedLink,
+    fullText,
+  };
+}
+
+/** @deprecated buildInviteSharePayload().fullText 사용 권장 */
+export function buildInviteMessage({ link, inviterName, ref, contactId, groupId } = {}) {
+  return buildInviteSharePayload({ link, inviterName, ref, contactId, groupId }).fullText;
 }
 
 /** sms: 스킴 href (번호 없으면 본문만) */

@@ -81,11 +81,19 @@
 .map-card-container__head {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: 40px 1fr 40px;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 12px 12px 10px;
   border-bottom: 1px solid #eef0f4;
+}
+
+.map-card-container__head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .map-card-container__lead {

@@ -7,7 +7,8 @@ import { useChatStore } from "../store/useChatStore";
 import { useUiStore } from "../store/useUiStore";
 import { useUserStore } from "../store/useUserStore";
 import { loadStoredJobs } from "../utils/jobsStorage";
-import { buildInviteLink, buildInviteMessage, buildSmsHref } from "../utils/inviteLink";
+import { getDisplayNickname } from "../utils/displayNickname";
+import { buildInviteLink, buildInviteSharePayload, buildSmsHref } from "../utils/inviteLink";
 import {
   CONTACT_QUICK_MODE,
   quickActionToastMessage,
@@ -89,6 +90,9 @@ export function PersonCardProvider({ children }) {
   const addedContacts = useContactsStore((s) => s.addedContacts);
   const coworkHistory = useContactsStore((s) => s.coworkHistory);
   const myUserId = useUserStore((s) => s.session?.userId ?? s.profile?.userId ?? 1);
+  const profile = useUserStore((s) => s.profile);
+  const sessionUser = useUserStore((s) => s.session?.user);
+  const myDisplayName = useMemo(() => getDisplayNickname(profile, sessionUser), [profile, sessionUser]);
   const [card, setCard] = useState(null);
   const [inviteContact, setInviteContact] = useState(null);
 
@@ -147,29 +151,29 @@ export function PersonCardProvider({ children }) {
   const handleSmsInvite = useCallback(() => {
     const contact = card?.contact;
     const link = buildInviteLink({ ref: myUserId, contactId: contact?.id });
-    const body = buildInviteMessage({ link });
-    window.location.href = buildSmsHref({ phone: contact?.phone, body });
+    const { fullText } = buildInviteSharePayload({ link, inviterName: myDisplayName });
+    window.location.href = buildSmsHref({ phone: contact?.phone, body: fullText });
     useUiStore.getState().showAppToast("문자 초대를 준비했습니다");
-  }, [card, myUserId]);
+  }, [card, myDisplayName, myUserId]);
 
   const handleKakaoInvite = useCallback(async () => {
     const link = buildInviteLink({ ref: myUserId, contactId: card?.contact?.id });
-    const text = buildInviteMessage({ link });
+    const { title, text, url, fullText } = buildInviteSharePayload({ link, inviterName: myDisplayName });
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: "일당맵 초대", text, url: link });
+        await navigator.share({ title, text, url });
         return;
       } catch (_) {
         return; // 사용자가 공유 취소 — 복사 폴백 생략
       }
     }
     try {
-      await navigator.clipboard.writeText(link);
-      useUiStore.getState().showAppToast("초대 링크를 복사했습니다");
+      await navigator.clipboard.writeText(fullText);
+      useUiStore.getState().showAppToast("초대 메시지를 복사했습니다");
     } catch (_) {
-      useUiStore.getState().showAppToast(link);
+      useUiStore.getState().showAppToast(fullText);
     }
-  }, [card, myUserId]);
+  }, [card, myDisplayName, myUserId]);
 
   const isUnregistered = isUnregisteredContact(card?.contact);
 

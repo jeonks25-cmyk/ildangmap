@@ -7,6 +7,7 @@ import { useUiStore } from "../../store/useUiStore";
 import { buildExternalMapLinks } from "../../utils/externalMapLinks";
 import { getDisplayNickname } from "../../utils/displayNickname";
 import { getPlaceRowDescription, getPlaceRowTitle, getPlaceTypeIcon } from "../../utils/placeDistance";
+import { getPlaceInfoKey, needsPlaceReview } from "../../utils/placeInfoCard";
 import SiteBoardComposeSheet from "./SiteBoardComposeSheet";
 import SiteBoardPostDetailSheet from "./SiteBoardPostDetailSheet";
 import "./map-place-detail-card.css";
@@ -32,7 +33,7 @@ function BoardPostRow({ post, onOpen }) {
 /**
  * 장소 상세 단일 카드 — 목록·마커·검색 등 모든 진입 경로 공통
  */
-export default function PlaceDetailCard({ place, onToast, onEdit }) {
+export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu = false }) {
   const profile = useUserStore((s) => s.profile);
   const sessionUser = useUserStore((s) => s.session?.user);
   const requireAuth = useRequireAuth("post");
@@ -74,6 +75,7 @@ export default function PlaceDetailCard({ place, onToast, onEdit }) {
   const description = getPlaceRowDescription(place);
   const address = String(place.address || place.meta || boardSeed.address || "").trim() || boardSeed.address;
   const title = getPlaceRowTitle(place);
+  const reviewNeeded = showInfoMenu && needsPlaceReview(getPlaceInfoKey(place));
 
   const links = buildExternalMapLinks({
     lat: place.lat,
@@ -136,7 +138,12 @@ export default function PlaceDetailCard({ place, onToast, onEdit }) {
             <span className="place-detail-card__place-icon" aria-hidden="true">
               {getPlaceTypeIcon(place.layer || place.type)}
             </span>
-            {title}
+            <span className="place-detail-card__place-title-text">{title}</span>
+            {reviewNeeded ? (
+              <span className="place-detail-card__review-badge" aria-label="검토 필요">
+                검토 필요
+              </span>
+            ) : null}
           </h3>
           <dl className="place-detail-card__meta">
             <div className="place-detail-card__meta-row">
@@ -160,27 +167,39 @@ export default function PlaceDetailCard({ place, onToast, onEdit }) {
           </dl>
           <div className="place-detail-card__maps">
             {links.naver ? (
-              <a className="place-detail-card__map-btn" href={links.naver} target="_blank" rel="noreferrer">
+              <a
+                className="place-detail-card__map-btn place-detail-card__map-btn--naver"
+                href={links.naver}
+                target="_blank"
+                rel="noreferrer"
+              >
                 네이버지도
               </a>
             ) : null}
             {links.kakao ? (
-              <a className="place-detail-card__map-btn" href={links.kakao} target="_blank" rel="noreferrer">
+              <a
+                className="place-detail-card__map-btn place-detail-card__map-btn--kakao"
+                href={links.kakao}
+                target="_blank"
+                rel="noreferrer"
+              >
                 카카오맵
               </a>
             ) : null}
           </div>
-          <button
-            type="button"
-            className="place-detail-card__edit"
-            onClick={() => {
-              if (!requireAuth()) return;
-              onEdit?.(place);
-              toast("현장명·주소 수정 (목업)");
-            }}
-          >
-            수정
-          </button>
+          {!showInfoMenu ? (
+            <button
+              type="button"
+              className="place-detail-card__edit"
+              onClick={() => {
+                if (!requireAuth()) return;
+                onEdit?.(place);
+                toast("현장명·주소 수정 (목업)");
+              }}
+            >
+              수정
+            </button>
+          ) : null}
         </section>
 
         <section className="place-detail-card__board site-board site-board--compact" aria-label="현장 자유게시판">

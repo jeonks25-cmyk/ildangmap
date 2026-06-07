@@ -67,13 +67,23 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e7e5e4;
+  border: none;
   border-radius: 10px;
-  background: #fff;
-  color: #1c1917;
   font-size: 13px;
   font-weight: 900;
   text-decoration: none;
+}
+
+.site-info-card__map-btn--naver {
+  background: #03c75a;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(3, 199, 90, 0.28);
+}
+
+.site-info-card__map-btn--kakao {
+  background: #fee500;
+  color: #191919;
+  box-shadow: 0 2px 8px rgba(254, 229, 0, 0.35);
 }
 
 .site-info-card__edit {

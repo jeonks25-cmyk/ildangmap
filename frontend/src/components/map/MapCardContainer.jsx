@@ -14,6 +14,7 @@ export default function MapCardContainer({
   showBack,
   lead = null,
   stickySlot = null,
+  headerActions = null,
   children,
   className = "",
   bodyClassName = "",
@@ -49,9 +50,12 @@ export default function MapCardContainer({
             <h2 id={titleId} className="map-card-container__title">
               {title}
             </h2>
-            <button type="button" className="map-card-container__close" onClick={onClose} aria-label="닫기">
-              ×
-            </button>
+            <div className="map-card-container__head-actions">
+              {headerActions}
+              <button type="button" className="map-card-container__close" onClick={onClose} aria-label="닫기">
+                ×
+              </button>
+            </div>
           </header>
           {stickySlot ? <div className="map-card-container__sticky-slot">{stickySlot}</div> : null}
         </div>

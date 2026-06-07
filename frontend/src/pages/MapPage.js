@@ -79,8 +79,12 @@ import {
   MAP_ITEM_TYPE,
   MAP_ITEM_TYPE_LABEL,
 } from "../constants/mapItemTypes";
+import { guardMemberAction } from "../hooks/useRequireAuth";
 import { createMapItemFromLifeInfo, filterMapItemsByLayers, findMapItemBySource, getMapItemKey } from "../utils/mapItemModel";
 import { filterLifeInfoItemsByMapContext } from "../utils/mapItemVisibility";
+import { getDisplayNickname } from "../utils/displayNickname";
+import { appendChangeHistory, getPlaceInfoKey } from "../utils/placeInfoCard";
+import { useUserStore } from "../store/useUserStore";
 import { applyViewerLocationToJob } from "../utils/jobPrivacyPolicy";
 import { getCompletionExperiencePrompts } from "../utils/fieldExperienceModel";
 import { buildExperienceContextSummary, buildFieldTimeline, summarizeRecentCheckIns } from "../utils/fieldCheckInModel";
@@ -222,6 +226,7 @@ export default function MapPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile } = useUserProfile();
+  const sessionUser = useUserStore((state) => state.session?.user);
   const { prefs, setPrefs } = useUserMapPreferences();
   const { jobs, setJobs, loading: jobsLoading, error: jobsError } = useJobs();
   const { briefingData } = useSchedules();
@@ -730,6 +735,21 @@ export default function MapPage() {
       openMapDetailPanel(enriched, enriched);
     },
     [enrichPlaceItem, openMapDetailPanel, panMapToPlace, setDetailJobId, setSelectedJobId],
+  );
+
+  const handleEditPlace = useCallback(
+    (place) => {
+      if (!place) return;
+      if (!guardMemberAction("post")) return;
+      appendChangeHistory(getPlaceInfoKey(place), {
+        at: new Date().toISOString(),
+        by: getDisplayNickname(profile, sessionUser),
+        action: "edit_opened",
+        detail: "정보 수정 화면을 열었습니다.",
+      });
+      showAppToast("장소 정보 수정 (목업)");
+    },
+    [profile, sessionUser, showAppToast],
   );
 
   const onJobMarkerClick = useCallback(
@@ -1807,6 +1827,7 @@ export default function MapPage() {
             onSortModeChange={setPlaceListSortMode}
             onSelectPlace={handlePlaceOverlaySelect}
             onToast={showAppToast}
+            onEditPlace={handleEditPlace}
           />
         ) : null}
 
