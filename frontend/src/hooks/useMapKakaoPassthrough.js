@@ -1,15 +1,37 @@
 import { useEffect } from "react";
+import { pickKakaoTilePane } from "../utils/mapKakaoTilePane";
 
 /**
- * Kakao map pan/zoom — pane inline 스타일 조작 없음.
- *
- * 이전: MutationObserver + 800ms interval로 pane pointer-events/touch-action을 재적용했으나,
- * pinch zoom 중 타일 DOM 변경 때마다 sync()가 실행되어 활성 터치 시퀀스가 끊김.
- *
- * 제스처: 카카오맵 기본 (CSS touch-action 강제 없음)
- * HUD: map-touch-passthrough.css (pointer-events pass-through)
- * 마커 tap: applyMapOverlayPassthrough (overlay hook)
+ * Kakao overlay pane 1회 pass-through — 타일 pane만 hit, 마커 bubble(auto)은 유지.
+ * MutationObserver/interval 없음 (pinch 중 DOM 변경 시 제스처 끊김 방지).
  */
-export default function useMapKakaoPassthrough(_mapContainerRef, _enabled) {
-  useEffect(() => undefined, []);
+export default function useMapKakaoPassthrough(mapContainerRef, enabled) {
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const container = mapContainerRef?.current;
+    if (!container) return undefined;
+
+    let cancelled = false;
+
+    const releaseOverlayPanes = () => {
+      if (cancelled) return;
+      const tilePane = pickKakaoTilePane(container);
+      Array.from(container.children).forEach((child) => {
+        if (!(child instanceof HTMLElement)) return;
+        if (child === tilePane) {
+          child.style.removeProperty("pointer-events");
+        } else {
+          child.style.pointerEvents = "none";
+        }
+      });
+    };
+
+    releaseOverlayPanes();
+    const timer = window.setTimeout(releaseOverlayPanes, 1200);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [enabled, mapContainerRef]);
 }

@@ -1,0 +1,10 @@
+/* CustomOverlay — bubble만 터치, 앵커·빈 영역은 지도로 통과 */
+
+.map-overlay-anchor--passthrough {
+  pointer-events: none;
+}
+
+.map-overlay-marker--interactive {
+  pointer-events: auto;
+  touch-action: manipulation;
+}

@@ -4,6 +4,7 @@ import "../App.css";
 import "../styles/geo-map-mobile.css";
 import "../styles/geo-map-market.css";
 import "../styles/map-touch-passthrough.css";
+import "../styles/map-overlay-passthrough.css";
 import "../styles/schedule-page-mobile.css";
 import useKakaoMap from "../hooks/useKakaoMap";
 import { useViewerApplicantUserId } from "../hooks/useJobOwnership";
