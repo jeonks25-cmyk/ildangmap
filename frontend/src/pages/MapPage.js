@@ -287,6 +287,7 @@ export default function MapPage() {
   const [shareField, setShareField] = useState(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [activePanel, setActivePanel] = useState(null);
   const [placeOverlayDetail, setPlaceOverlayDetail] = useState(null);
@@ -574,13 +575,18 @@ export default function MapPage() {
   });
 
   const placeListOrigin = useMemo(() => {
+    const uLat = Number(userLocation?.lat);
+    const uLng = Number(userLocation?.lng);
+    if (Number.isFinite(uLat) && Number.isFinite(uLng)) {
+      return { lat: uLat, lng: uLng };
+    }
     const lat = Number(mapCenterOption?.lat);
     const lng = Number(mapCenterOption?.lng);
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
       return { lat, lng };
     }
     return { lat: mapOption.center.lat, lng: mapOption.center.lng };
-  }, [mapCenterOption?.lat, mapCenterOption?.lng, mapOption.center.lat, mapOption.center.lng]);
+  }, [userLocation?.lat, userLocation?.lng, mapCenterOption?.lat, mapCenterOption?.lng, mapOption.center.lat, mapOption.center.lng]);
 
   const {
     open: notificationOverlayOpen,
@@ -620,6 +626,7 @@ export default function MapPage() {
     map,
     locating,
     setLocating,
+    setUserLocation,
     markerClickAtRef,
     myLocationMarkerRef,
     openRoomForJob,

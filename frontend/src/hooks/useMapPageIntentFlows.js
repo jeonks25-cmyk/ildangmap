@@ -16,6 +16,12 @@ import {
   WORKER_STAGE,
 } from "../utils/jobModel";
 import { distanceKmBetween } from "../utils/geoDistance";
+import {
+  getGeolocationErrorMessage,
+  isKakaoInAppBrowser,
+  MAP_GEOLOCATION_OPTIONS,
+  MAP_MY_LOCATION_LEVEL,
+} from "../utils/mapGeolocation";
 
 function openLoginPromptUnlessAuthed(reason) {
   return guardMemberAction(reason);
@@ -197,10 +203,28 @@ export default function useMapPageIntentFlows({
 
   const handleMoveToMyLocation = useCallback(() => {
     if (locating) return;
-    if (!isReady || !kakao || !map || !navigator.geolocation) {
-      showLocationToast("위치 기능을 사용할 수 없어요.");
+
+    const kakaoInApp = isKakaoInAppBrowser();
+
+    if (!isReady || !kakao || !map) {
+      showLocationToast("지도를 불러오는 중이에요. 잠시 후 다시 시도해 주세요.");
       return;
     }
+
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      if (kakaoInApp) {
+        showLocationToast("카카오톡에서는 위치 기능이 제한될 수 있어요. Chrome 또는 Safari에서 열어주세요.");
+      } else {
+        showLocationToast("이 브라우저에서는 위치 기능을 사용할 수 없어요.");
+      }
+      return;
+    }
+
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      showLocationToast("HTTPS 연결에서만 위치를 사용할 수 있어요.");
+      return;
+    }
+
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -211,26 +235,32 @@ export default function useMapPageIntentFlows({
           showLocationToast("현재 위치를 찾지 못했어요.");
           return;
         }
+
         const latLng = new kakao.maps.LatLng(lat, lng);
+
+        try {
+          map.setCenter(latLng);
+          map.setLevel(MAP_MY_LOCATION_LEVEL);
+          if (typeof map.relayout === "function") map.relayout();
+        } catch (_) {
+          map.panTo(latLng);
+        }
+
         if (!myLocationMarkerRef.current) {
           myLocationMarkerRef.current = new kakao.maps.Marker({ map, position: latLng, zIndex: 120 });
         } else {
           myLocationMarkerRef.current.setPosition(latLng);
           myLocationMarkerRef.current.setMap(map);
         }
-        map.panTo(latLng);
+
         setUserLocation?.({ lat, lng });
         setLocating(false);
       },
       (error) => {
         setLocating(false);
-        if (error?.code === 1) {
-          showLocationToast("위치 권한이 거부되었습니다.");
-        } else {
-          showLocationToast("위치를 가져오지 못했어요.");
-        }
+        showLocationToast(getGeolocationErrorMessage(error, { kakaoInApp }));
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      MAP_GEOLOCATION_OPTIONS
     );
   }, [isReady, kakao, locating, map, myLocationMarkerRef, setLocating, setUserLocation, showLocationToast]);
 
