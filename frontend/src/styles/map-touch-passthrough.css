@@ -20,6 +20,7 @@
   position: absolute;
   inset: 0;
   z-index: 0;
+  touch-action: none;
 }
 
 .map-tab-page--geo .map-geo-stage__map-surface .map-container {
@@ -36,6 +37,7 @@
   z-index: 10;
   overflow: visible;
   pointer-events: none;
+  touch-action: none;
 }
 
 /* HUD — 컨테이너는 통과, 버튼·카드만 auto */
@@ -63,6 +65,7 @@
 .map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-search-panel__recent,
 .map-tab-page--geo .map-geo-stage__overlays .map-card-shell .map-search-panel__keyword {
   pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .map-tab-page--geo .map-geo-stage__map-column > .map-card-shell,
@@ -72,4 +75,5 @@
 .map-tab-page--geo .map-geo-stage__overlays .map-center-draft-pin,
 .map-tab-page--geo .map-geo-stage__overlays .map-floating-anchor {
   pointer-events: none;
+  touch-action: none;
 }

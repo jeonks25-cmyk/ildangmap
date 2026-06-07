@@ -29,6 +29,8 @@ export default function useKakaoMap(mapContainerRef, mapOption) {
         const resolvedOption = {
           ...mapOption,
           center: resolvedCenter,
+          draggable: mapOption?.draggable !== false,
+          scrollwheel: mapOption?.scrollwheel !== false,
         };
 
         const map = new kakao.maps.Map(container, resolvedOption);
