@@ -98,6 +98,7 @@ import { getScheduleDurationDays } from "../utils/scheduleModel";
 import { searchKakaoPlaces } from "../utils/mapPlaceSearch";
 import { reverseGeocodeLatLngDetailed } from "../utils/mapReverseGeocode";
 import {
+  installMapPinchTouchDebug,
   isMapMinimalUiEnabled,
   isMapTouchDebugEnabled,
   logMapDraggableState,
@@ -356,6 +357,12 @@ export default function MapPage() {
   const mapMinimalUi = isMapMinimalUiEnabled();
   const mapTouchDebug = isMapTouchDebugEnabled();
   useMapKakaoPassthrough(mapRef, isReady);
+
+  useEffect(() => {
+    if (!mapTouchDebug) return undefined;
+    const root = mapCanvasRef.current || mapRef.current;
+    return installMapPinchTouchDebug(root);
+  }, [mapTouchDebug, isReady]);
 
   const ensureMapGestures = useCallback(() => {
     if (!map) return;
