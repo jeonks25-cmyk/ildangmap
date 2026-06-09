@@ -2,59 +2,60 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useFieldScheduleStore } from "../../store/useFieldScheduleStore";
 import { useSettlementStore } from "../../store/useSettlementStore";
 import { DAY_STATUS, monthMatrix, toDateKey } from "../../utils/fieldScheduleModel";
+import {
+  DAY_DEPLOY_STATUS,
+  getMyInvitedFieldDateKeysForContact,
+  personDayDeployStatusLabel,
+  resolvePersonDayDeployStatus,
+} from "../../utils/personCalendarModel";
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-export const DAY_DEPLOY_STATUS = {
-  available: "available",
-  busy: "busy",
-  none: "none",
-};
+const LEGEND_ITEMS = [
+  { status: DAY_DEPLOY_STATUS.available, label: "가능", className: "person-avail-cal__marker--available" },
+  { status: DAY_DEPLOY_STATUS.busy, label: "일정 있음", className: "person-avail-cal__marker--busy" },
+  { status: DAY_DEPLOY_STATUS.invited, label: "내 현장", className: "person-avail-cal__marker--invited" },
+];
 
-/** 날짜별 상태 — 점 없음(가능) / 채운 점(일정) / 빈 원(미공유) */
-export function resolvePersonDayDeployStatus({
-  dateKey,
-  availMap,
-  personalEvents,
-  fieldDateKeys,
-}) {
-  const raw = availMap?.[dateKey];
-  if (raw === DAY_STATUS.unavailable) return DAY_DEPLOY_STATUS.busy;
-  if (Array.isArray(personalEvents) && personalEvents.some((e) => e.dateKey === dateKey)) {
-    return DAY_DEPLOY_STATUS.busy;
+function AvailabilityDayMarker({ status }) {
+  if (status === DAY_DEPLOY_STATUS.invited) {
+    return <span className="person-avail-cal__marker person-avail-cal__marker--invited" aria-hidden="true" />;
   }
-  if (fieldDateKeys instanceof Set && fieldDateKeys.has(dateKey)) return DAY_DEPLOY_STATUS.busy;
-  if (raw === DAY_STATUS.available) return DAY_DEPLOY_STATUS.available;
-  return DAY_DEPLOY_STATUS.none;
+  if (status === DAY_DEPLOY_STATUS.busy) {
+    return <span className="person-avail-cal__marker person-avail-cal__marker--busy" aria-hidden="true" />;
+  }
+  return <span className="person-avail-cal__marker person-avail-cal__marker--available" aria-hidden="true" />;
 }
 
 /** 오늘 투입 가능 여부 */
-export function isPersonAvailableToday({ availMap, personalEvents, fieldDateKeys, today = new Date() }) {
+export function isPersonAvailableToday({
+  availMap,
+  personalEvents,
+  fieldDateKeys,
+  myFieldDateKeys,
+  today = new Date(),
+}) {
   return (
     resolvePersonDayDeployStatus({
       dateKey: toDateKey(today),
       availMap,
       personalEvents,
       fieldDateKeys,
+      myFieldDateKeys,
+      dayStatusUnavailable: DAY_STATUS.unavailable,
     }) === DAY_DEPLOY_STATUS.available
   );
 }
 
-/** 가능=표시 없음, 일정=●, 미공유=○ */
-function AvailabilityDayMarker({ status }) {
-  if (status === DAY_DEPLOY_STATUS.busy) {
-    return <span className="person-avail-cal__marker person-avail-cal__marker--busy" aria-hidden="true" />;
-  }
-  if (status === DAY_DEPLOY_STATUS.none) {
-    return <span className="person-avail-cal__marker person-avail-cal__marker--none" aria-hidden="true" />;
-  }
-  return <span className="person-avail-cal__marker person-avail-cal__marker--free" aria-hidden="true" />;
-}
-
 /**
- * 작업자 월간 가용 캘린더 — 점·원만으로 상태 표시 (읽기 전용).
+ * 작업자 월간 가용 캘린더 — ○ 가능 / ● 일정 / ◎ 내 현장 (읽기 전용).
  */
-export default function PersonAvailabilityCalendar({ ownerId, personName = "" }) {
+export default function PersonAvailabilityCalendar({
+  ownerId,
+  personName = "",
+  viewerUserId = null,
+  contactUserId = null,
+}) {
   const ensureSeeded = useFieldScheduleStore((s) => s.ensureSeeded);
   const seeded = useFieldScheduleStore((s) => s.seeded);
   const availMap = useFieldScheduleStore((s) => s.availabilityByOwner[ownerId]);
@@ -75,11 +76,28 @@ export default function PersonAvailabilityCalendar({ ownerId, personName = "" })
 
   const fieldDateKeys = useMemo(
     () => useFieldScheduleStore.getState().getFieldDateKeysForOwner(ownerId, schedules),
-    [ownerId, schedules]
+    [ownerId, schedules],
+  );
+
+  const myFieldDateKeys = useMemo(
+    () =>
+      getMyInvitedFieldDateKeysForContact({
+        viewerUserId,
+        contactUserId,
+        schedules,
+      }),
+    [viewerUserId, contactUserId, schedules],
   );
 
   const statusFor = (dateKey) =>
-    resolvePersonDayDeployStatus({ dateKey, availMap, personalEvents, fieldDateKeys });
+    resolvePersonDayDeployStatus({
+      dateKey,
+      availMap,
+      personalEvents,
+      fieldDateKeys,
+      myFieldDateKeys,
+      dayStatusUnavailable: DAY_STATUS.unavailable,
+    });
 
   const prevMonth = () => {
     if (viewMonth === 0) {
@@ -131,12 +149,7 @@ export default function PersonAvailabilityCalendar({ ownerId, personName = "" })
               const dateKey = toDateKey(date);
               const status = statusFor(dateKey);
               const isToday = dateKey === todayKey;
-              const statusLabel =
-                status === DAY_DEPLOY_STATUS.available
-                  ? "가능"
-                  : status === DAY_DEPLOY_STATUS.busy
-                    ? "일정 있음"
-                    : "미공유";
+              const statusLabel = personDayDeployStatusLabel(status);
               return (
                 <div
                   key={dateKey}
@@ -151,6 +164,17 @@ export default function PersonAvailabilityCalendar({ ownerId, personName = "" })
           </div>
         ))}
       </div>
+
+      <div className="person-avail-cal__legend" aria-label="캘린더 범례">
+        {LEGEND_ITEMS.map((item) => (
+          <span key={item.status} className="person-avail-cal__legend-item">
+            <span className={`person-avail-cal__marker ${item.className}`} aria-hidden="true" />
+            <span className="person-avail-cal__legend-label">{item.label}</span>
+          </span>
+        ))}
+      </div>
     </section>
   );
 }
+
+export { DAY_DEPLOY_STATUS, resolvePersonDayDeployStatus };

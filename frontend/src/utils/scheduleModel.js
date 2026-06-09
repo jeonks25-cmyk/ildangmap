@@ -238,6 +238,10 @@ function createScheduleSeed(rawJob, offsetDays, overrides = {}) {
             : null,
         }
       : {}),
+    ...(Number.isFinite(Number(overrides.createdByUserId)) && Number(overrides.createdByUserId) > 0
+      ? { createdByUserId: Number(overrides.createdByUserId) }
+      : {}),
+    ...(Array.isArray(overrides.scheduleInvites) ? { scheduleInvites: overrides.scheduleInvites } : {}),
   };
 }
 
@@ -282,6 +286,7 @@ export const initialSchedules = [
     settledWorkerCount: 1,
     createdByUserId: 1,
     partialSettlement: false,
+    scheduleInvites: [{ userId: 102, name: "박조공", status: "pending" }],
   }),
   createScheduleSeed(initialJobs[1], 0, {
     id: "sched-shared-field-demo",

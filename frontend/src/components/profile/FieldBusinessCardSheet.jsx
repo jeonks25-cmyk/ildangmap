@@ -2,8 +2,12 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import CoworkHistorySheet from "./CoworkHistorySheet";
 import PersonAvailabilityCalendar from "./PersonAvailabilityCalendar";
-import { CRAFT_LABEL } from "../../utils/jobModel";
-import { toFieldPerson } from "../../utils/fieldProfileCard";
+import {
+  formatBirthYearLabel,
+  formatCraftCareerLine,
+  formatPersonDailyPayLabel,
+  toFieldPerson,
+} from "../../utils/fieldProfileCard";
 
 /**
  * 인원 상세 — 투입 가능 여부 중심 (이름·직종·지역 + 달력 + 연락).
@@ -12,6 +16,8 @@ export default function FieldBusinessCardSheet({
   open,
   person,
   ownerId,
+  viewerUserId = null,
+  contactUserId = null,
   coworkHistoryEntries = [],
   isUnregistered = false,
   onClose,
@@ -28,10 +34,10 @@ export default function FieldBusinessCardSheet({
   const p = toFieldPerson(person);
   if (!p) return null;
 
-  const craftLabel = CRAFT_LABEL[p.craft] || p.craftLabel || p.craft || "필름";
-  const careerYears = Number.isFinite(Number(p.careerYears)) ? Number(p.careerYears) : null;
-  const craftCareerLine = careerYears ? `${craftLabel} ${careerYears}년` : craftLabel;
+  const birthLabel = formatBirthYearLabel(p.birthYear);
   const residence = p.residence || "지역 미입력";
+  const craftCareerLine = formatCraftCareerLine(p);
+  const payLine = formatPersonDailyPayLabel(p.basePay);
 
   return createPortal(
     <div className="field-card-sheet field-card-sheet--person-detail" role="dialog" aria-modal="true" aria-label={`${p.name} 인원 상세`}>
@@ -45,15 +51,22 @@ export default function FieldBusinessCardSheet({
         <div className="field-card-sheet__scroll">
           <header className="person-detail-head">
             <h2 className="person-detail-head__name">{p.name}</h2>
-            <p className="person-detail-head__craft">{craftCareerLine}</p>
+            {birthLabel ? <p className="person-detail-head__birth">{birthLabel}</p> : null}
             <p className="person-detail-head__region">{residence}</p>
+            {craftCareerLine ? <p className="person-detail-head__craft">{craftCareerLine}</p> : null}
+            {payLine ? <p className="person-detail-head__pay">{payLine}</p> : null}
           </header>
 
           {isUnregistered ? (
             <span className="field-card-sheet__unreg-badge">일당맵 미가입</span>
           ) : null}
 
-          <PersonAvailabilityCalendar ownerId={ownerId} personName={p.name} />
+          <PersonAvailabilityCalendar
+            ownerId={ownerId}
+            personName={p.name}
+            viewerUserId={viewerUserId}
+            contactUserId={contactUserId}
+          />
 
           {coworkHistoryEntries.length > 0 ? (
             <button type="button" className="person-detail-history-link" onClick={() => setHistoryOpen(true)}>

@@ -333,8 +333,10 @@
 .person-detail-head {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 2px 2px 4px;
+  gap: 6px;
+  padding: 2px 2px 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .person-detail-head__name {
@@ -346,9 +348,17 @@
   line-height: 1.2;
 }
 
+.person-detail-head__birth {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #374151;
+  letter-spacing: -0.02em;
+}
+
 .person-detail-head__craft {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 800;
   color: #374151;
   letter-spacing: -0.02em;
@@ -359,6 +369,14 @@
   font-size: 16px;
   font-weight: 600;
   color: #6b7280;
+}
+
+.person-detail-head__pay {
+  margin: 2px 0 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #15803d;
+  letter-spacing: -0.02em;
 }
 
 .person-detail-head__today {
@@ -514,22 +532,49 @@
   box-sizing: border-box;
 }
 
-/* 가능 — 표시 없음 (높이만 맞춤) */
-.person-avail-cal__marker--free {
-  visibility: hidden;
+/* ○ 가능 — 빈 원 */
+.person-avail-cal__marker--available {
+  border-radius: 50%;
+  border: 2px solid #9ca3af;
+  background: transparent;
 }
 
-/* 일정 있음 — 채운 점 */
+/* ● 일정 있음 — 채운 점 */
 .person-avail-cal__marker--busy {
   border-radius: 50%;
   background: #1f2937;
 }
 
-/* 미공유 — 빈 원 */
-.person-avail-cal__marker--none {
+/* ◎ 내 현장 — 이중 원 */
+.person-avail-cal__marker--invited {
   border-radius: 50%;
-  border: 2px solid #9ca3af;
-  background: transparent;
+  border: 2px solid #15803d;
+  background: #fff;
+  box-shadow: inset 0 0 0 2px #15803d;
+}
+
+.person-avail-cal__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 16px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.person-avail-cal__legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.person-avail-cal__legend-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  letter-spacing: -0.02em;
 }
 
 /* ─── 극장 객석형 좌석 마크 (색맹 접근성) ─── */

@@ -65,6 +65,7 @@ function resolvePerson(src, contacts, coworkHistory = []) {
     craftLabel: firstValue(src.craftLabel, base.tradeLabel),
     role: firstValue(src.role, "") || "",
     careerYears: firstValue(src.careerYears, src.experienceYears, base.experienceYears) ?? null,
+    basePay: firstValue(src.basePay, base.basePay) ?? null,
     photo: firstValue(src.photo, src.profileImage, src.authorImageUrl, base.profileImage) || "",
   };
 
@@ -80,7 +81,8 @@ function resolvePerson(src, contacts, coworkHistory = []) {
     coworkHistoryEntries = listCoworkHistoryForContact(match.id, coworkHistory);
   }
   const ownerId = resolveScheduleOwnerId(match || person);
-  return { person, coworkCount, lastWorkedAt, recentSites, coworkHistoryEntries, contact: match || null, ownerId };
+  const contactUserId = match ? contactStableUserId(match) : null;
+  return { person, coworkCount, lastWorkedAt, recentSites, coworkHistoryEntries, contact: match || null, ownerId, contactUserId };
 }
 
 export function PersonCardProvider({ children }) {
@@ -195,6 +197,8 @@ export function PersonCardProvider({ children }) {
         open={Boolean(card?.person)}
         person={card?.person}
         ownerId={card?.ownerId}
+        viewerUserId={myUserId}
+        contactUserId={card?.contactUserId}
         coworkCount={card?.coworkCount}
         lastWorkedAt={card?.lastWorkedAt}
         recentSites={card?.recentSites}

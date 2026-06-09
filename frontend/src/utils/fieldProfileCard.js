@@ -23,6 +23,22 @@ export function formatCareerLabel(years) {
   return `경력 ${n}년`;
 }
 
+/** 직종 + 경력 — "도배 3년" */
+export function formatCraftCareerLine(person) {
+  const craft = craftLabelOf(person?.craftLabel || person?.craft || person?.trade);
+  const years = Number(person?.careerYears ?? person?.experienceYears);
+  if (craft && Number.isFinite(years) && years > 0) return `${craft} ${years}년`;
+  return craft || "";
+}
+
+/** basePay(만원 단위 또는 원) → "현재 일당 160,000원" */
+export function formatPersonDailyPayLabel(basePay) {
+  const n = Number(basePay);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  const won = n < 1000 ? Math.round(n * 10000) : Math.round(n);
+  return `현재 일당 ${won.toLocaleString("ko-KR")}원`;
+}
+
 function craftLabelOf(value) {
   if (!value) return "";
   return CRAFT_LABEL[value] || value;
@@ -37,7 +53,7 @@ export function formatCraftRoleLabel(person) {
 
 /**
  * 프로필/연락처/초대 invitee 등 다양한 소스를 명함용 표준 인물로 정규화한다.
- * @returns {{id:any,name:string,birthYear:number|null,residence:string,craft:string,craftLabel:string,role:string,careerYears:number|null,photo:string,coworkCount:number|null,recentSites:Array}|null}
+ * @returns {{id:any,name:string,birthYear:number|null,residence:string,craft:string,craftLabel:string,role:string,careerYears:number|null,basePay:number|null,photo:string,coworkCount:number|null,recentSites:Array}|null}
  */
 export function toFieldPerson(source) {
   if (!source || typeof source !== "object") return null;
@@ -52,10 +68,12 @@ export function toFieldPerson(source) {
     : Number.isFinite(Number(source.experienceYears))
       ? Number(source.experienceYears)
       : null;
+  const basePayRaw = Number(source.basePay);
+  const basePay = Number.isFinite(basePayRaw) && basePayRaw > 0 ? basePayRaw : null;
   const photo = String(source.photo || source.profileImage || "").trim();
   const coworkCount = Number.isFinite(Number(source.coworkCount)) ? Number(source.coworkCount) : null;
   const recentSites = Array.isArray(source.recentSites) ? source.recentSites.filter(Boolean) : [];
-  return { id: source.id, name, birthYear, residence, craft, craftLabel, role, careerYears, photo, coworkCount, recentSites };
+  return { id: source.id, name, birthYear, residence, craft, craftLabel, role, careerYears, basePay, photo, coworkCount, recentSites };
 }
 
 /**
