@@ -242,17 +242,28 @@ function applyMeResponse(state, me, providerOverride) {
   const nicknameSetupRequired = Boolean(me.nicknameSetupRequired);
   const applicantId = Number(me.id);
   const provider = providerOverride || state.session.provider || state.profile.loginProvider || "kakao";
+  const profileImage = me.profileImageUrl || state.profile.profileImage || "";
   return {
     authReady: true,
     meBootstrapLoading: false,
     meVerified: true,
     session: normalizeSession({
+      isAuthenticated: true,
+      provider,
+      accessToken: state.session.accessToken || "",
+      user: {
+        id: userId,
+        nickname: displayNickname,
+        profileImage,
+      },
+    }),
+    profile: normalizeProfile({
       ...state.profile,
       id: userId,
       applicantUserId: Number.isFinite(applicantId) && applicantId > 0 ? applicantId : state.profile.applicantUserId,
       nickname: displayNickname,
       displayNickname,
-      profileImage: me.profileImageUrl || state.profile.profileImage,
+      profileImage,
       nicknameSetupRequired,
       setupCompleted: !nicknameSetupRequired && Boolean(displayNickname),
       canChangeNickname: me.canChangeNickname !== false,
@@ -408,7 +419,7 @@ export const useUserStore = create(
         const url = getKakaoOAuthStartUrl();
         if (!url) {
           useUiStore.getState().showAppToast(
-            "카카오 로그인 주소를 만들 수 없어요. REACT_APP_API_BASE_URL(백엔드) 또는 REACT_APP_KAKAO_CLIENT_ID를 설정해 주세요."
+            "로그인 서버 주소가 없어요. REACT_APP_API_BASE_URL을 설정해 주세요."
           );
           return false;
         }
@@ -418,7 +429,9 @@ export const useUserStore = create(
         }
         const reachable = await probeSpringOAuthBackend();
         if (!reachable) {
-          useUiStore.getState().showAppToast("로그인 서버에 연결할 수 없어요. Spring Boot(예: 8080)를 실행했는지 확인해 주세요.");
+          useUiStore.getState().showAppToast(
+            "로그인 서버에 연결할 수 없어요. 백엔드(Spring Boot)가 실행 중인지 확인해 주세요."
+          );
           return false;
         }
         window.location.href = url;
@@ -437,6 +450,8 @@ export const useUserStore = create(
             return {
               meVerified: true,
               session: normalizeSession({
+                isAuthenticated: true,
+                provider: "kakao-mock",
                 accessToken: `mock-kakao-token-${Date.now()}`,
                 user: {
                   id: userId,

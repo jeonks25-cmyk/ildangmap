@@ -1,0 +1,16 @@
+.auth-callback-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f8fafc;
+}
+
+.auth-callback-page__text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: -0.02em;
+}

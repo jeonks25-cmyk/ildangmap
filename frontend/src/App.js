@@ -6,6 +6,8 @@ import MyTabPage from "./pages/MyTabPage";
 import ContactsTabPage from "./pages/ContactsTabPage";
 import ScheduleTabPage from "./pages/ScheduleTabPage";
 import OAuthPage from "./OAuthPage";
+import AuthCallbackPage from "./pages/AuthCallbackPage";
+import "./styles/auth-callback.css";
 import { PersonCardProvider } from "./context/PersonCardContext";
 
 const FieldScheduleDetailPage = lazy(() => import("./pages/FieldScheduleDetailPage"));
@@ -137,6 +139,7 @@ export default function App() {
           }
         />
         <Route path="/oauth/kakao/callback" element={<OAuthPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         </Routes>
       </PersonCardProvider>
     </BrowserRouter>

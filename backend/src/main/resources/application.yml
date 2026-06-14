@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
   servlet:
     session:
       timeout: 30m
@@ -12,9 +12,9 @@ spring:
   application:
     name: ildangmap-backend
   datasource:
-    url: jdbc:mysql://localhost:3306/ildangmap?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
-    username: root
-    password: 1234
+    url: ${DB_URL:jdbc:mysql://localhost:3306/ildangmap?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:1234}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -70,10 +70,10 @@ springdoc:
     operations-sorter: method
 
 app:
-  frontend-origin: ${APP_FRONTEND_ORIGIN:http://localhost:3000}
-  cors-allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001}
-  # 카카오 로그인 성공 후 브라우저 이동 경로 (프론트 라우트). 쿼리 login=success 로 세션 동기화 트리거
-  post-login-redirect-path: /map
+  frontend-origin: ${FRONTEND_BASE_URL:${APP_FRONTEND_ORIGIN:http://localhost:3000}}
+  cors-allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,https://ildangmap.vercel.app}
+  # 카카오 로그인 성공·실패 후 SPA 콜백 (프론트 /auth/callback)
+  post-login-redirect-path: ${APP_POST_LOGIN_REDIRECT_PATH:/auth/callback}
 
 # --- 카카오 개발자 콘솔 (앱 > 플랫폼 Web 도메인 localhost 등록) ---
 # Redirect URI (Spring OAuth2): http://localhost:8080/login/oauth2/code/kakao

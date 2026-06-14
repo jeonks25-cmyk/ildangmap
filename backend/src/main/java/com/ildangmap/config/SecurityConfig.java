@@ -23,8 +23,9 @@ public class SecurityConfig {
 
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2LoginSuccessHandler oauth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oauth2LoginFailureHandler;
 
-    @Value("${app.cors-allowed-origins:http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001}")
+    @Value("${app.cors-allowed-origins:http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,https://ildangmap.vercel.app}")
     private String corsAllowedOrigins;
 
     private List<String> resolveCorsOrigins() {
@@ -69,13 +70,14 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/jobs", "/jobs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/jobs", "/jobs/*/apply", "/jobs/*/close-recruitment", "/jobs/*/start-work", "/jobs/*/complete", "/jobs/*/cancel", "/jobs/*/briefing-posts").permitAll()
                         .requestMatchers(HttpMethod.POST, "/applications/*/approve", "/applications/*/reject").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/me", "/users/me").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/me", "/users/me", "/api/users/me").permitAll()
                         .requestMatchers(HttpMethod.GET, "/users/nickname/availability").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         .successHandler(oauth2LoginSuccessHandler)
+                        .failureHandler(oauth2LoginFailureHandler)
                 )
                 .logout(logout -> logout.logoutSuccessUrl("/"));
 

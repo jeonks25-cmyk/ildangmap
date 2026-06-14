@@ -138,7 +138,7 @@ export async function loginWithKakaoMock() {
 
 export async function getMe() {
   return runApiRequest({
-    path: "/users/me",
+    path: "/api/users/me",
     useMock: isMockApiEnabled(),
     mock: () => buildMockMeResponse(),
   });

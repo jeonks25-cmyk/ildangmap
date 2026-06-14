@@ -16,7 +16,7 @@ public class UserMeController {
 
     private final UserService userService;
 
-    @GetMapping({"/api/me", "/users/me"})
+    @GetMapping({"/api/me", "/users/me", "/api/users/me"})
     @Operation(summary = "현재 로그인 사용자", description = "세션 기반 OAuth2 로그인 사용자 정보를 반환합니다. 비로그인 시 data는 null입니다.")
     public ApiResponse<MeResponse> me(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {

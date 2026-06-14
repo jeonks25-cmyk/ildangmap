@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 
-/** Spring OAuth2 단일 경로 — 레거시 callback URL은 지도로 리다이렉트 */
+/** Spring OAuth2 — 레거시 /oauth/kakao/callback → /auth/callback 호환 */
 export default function OAuthPage() {
   useEffect(() => {
-    window.location.replace(`${window.location.origin}/map`);
+    const qs = window.location.search || "";
+    window.location.replace(`${window.location.origin}/auth/callback${qs || "?login=success"}`);
   }, []);
 
   return (

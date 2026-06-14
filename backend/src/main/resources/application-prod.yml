@@ -3,3 +3,23 @@ server:
     session:
       cookie:
         secure: true
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: false
+        highlight_sql: false
+
+logging:
+  level:
+    org.hibernate.SQL: warn
+    org.hibernate.orm.jdbc.bind: warn
+    root: info
+
+management:
+  endpoint:
+    health:
+      show-details: when_authorized
