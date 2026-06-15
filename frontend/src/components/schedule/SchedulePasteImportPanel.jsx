@@ -1,30 +1,71 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { parseScheduleImport, SCHEDULE_IMPORT_SOURCE } from "../../utils/schedulePasteParser";
-import { extractTextFromScheduleImage, releaseScheduleOcrWorker } from "../../utils/scheduleOcr";
+import {
+  extractTextFromScheduleImage,
+  formatOcrError,
+  releaseScheduleOcrWorker,
+  SCHEDULE_OCR_MODE,
+  SCHEDULE_OCR_STAGE,
+} from "../../utils/scheduleOcr";
 
 const EXAMPLE_TEXT = `6월12일 둔산필름
 08:00~17:00
 기공 2명`;
 
-function buildStatusMessage(result) {
+function buildPasteStatusMessage(result) {
   if (result.ok) {
-    return { tone: "success", message: "날짜·시간·제목을 채웠습니다." };
+    return { tone: "success", message: "날짜·시간·제목을 채웠습니다.", stage: "parse_success" };
   }
   if (result.filledFields.length) {
     return {
       tone: "warn",
       message: result.warnings[0] || "일부만 채웠습니다. 나머지는 확인해 주세요.",
+      stage: "parse_partial",
     };
   }
   return {
     tone: "error",
     message: result.warnings[0] || "내용을 인식하지 못했습니다.",
+    stage: "parse_failed",
+  };
+}
+
+function buildOcrParseStatus(ocrResult, parseResult) {
+  const confLabel = ocrResult.confidence > 0 ? ` (인식 ${Math.round(ocrResult.confidence)}%)` : "";
+  const sizeLabel = `${ocrResult.charCount}자`;
+
+  if (parseResult.ok) {
+    return {
+      tone: "success",
+      message: `캡처에서 일정을 채웠습니다.${confLabel}`,
+      stage: "parse_success",
+      ocrMode: ocrResult.mode,
+    };
+  }
+
+  if (parseResult.filledFields.length) {
+    return {
+      tone: "warn",
+      message: `OCR ${sizeLabel} 읽음${confLabel} — 일부만 자동 입력했습니다. 나머지는 확인해 주세요.`,
+      stage: "parse_partial",
+      ocrMode: ocrResult.mode,
+      ocrTextPreview: ocrResult.text.slice(0, 400),
+    };
+  }
+
+  return {
+    tone: "warn",
+    message: `OCR ${sizeLabel} 읽음${confLabel} — 일정 형식은 찾지 못했습니다. 아래 텍스트를 확인·수정 후 자동 입력을 눌러 주세요.`,
+    stage: "parse_failed",
+    ocrMode: ocrResult.mode,
+    ocrTextPreview: ocrResult.text.slice(0, 400),
   };
 }
 
 /** 일정 추가 — 1차 붙여넣기 · 2차 캡처 OCR */
 export default function SchedulePasteImportPanel({ open = true, onApply, referenceDate }) {
   const fileInputId = useId();
+  const tableModeId = useId();
   const fileInputRef = useRef(null);
   const previewUrlRef = useRef(null);
 
@@ -34,6 +75,7 @@ export default function SchedulePasteImportPanel({ open = true, onApply, referen
   const [ocrProgress, setOcrProgress] = useState(0);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewName, setPreviewName] = useState("");
+  const [tableMode, setTableMode] = useState(false);
 
   const clearPreview = useCallback(() => {
     if (previewUrlRef.current) {
@@ -50,6 +92,7 @@ export default function SchedulePasteImportPanel({ open = true, onApply, referen
     setStatus(null);
     setOcrBusy(false);
     setOcrProgress(0);
+    setTableMode(false);
     clearPreview();
     if (fileInputRef.current) fileInputRef.current.value = "";
     return () => {
@@ -61,7 +104,6 @@ export default function SchedulePasteImportPanel({ open = true, onApply, referen
     (text, source) => {
       const result = parseScheduleImport({ source, text }, { referenceDate });
       onApply?.(result);
-      setStatus(buildStatusMessage(result));
       return result;
     },
     [onApply, referenceDate]
@@ -69,36 +111,44 @@ export default function SchedulePasteImportPanel({ open = true, onApply, referen
 
   const handleAutoFill = () => {
     setPasteText((current) => current.trim());
-    applyParsedText(pasteText.trim(), SCHEDULE_IMPORT_SOURCE.PASTE);
+    const result = applyParsedText(pasteText.trim(), SCHEDULE_IMPORT_SOURCE.PASTE);
+    setStatus(buildPasteStatusMessage(result));
   };
 
   const runOcr = async (file) => {
     if (!file || ocrBusy) return;
     setOcrBusy(true);
     setOcrProgress(0);
-    setStatus({ tone: "info", message: "캡처에서 글자를 읽는 중입니다…" });
+    setStatus({ tone: "info", message: "캡처에서 글자를 읽는 중입니다…", stage: "ocr_running" });
 
     try {
-      const { text, confidence } = await extractTextFromScheduleImage(file, {
+      const ocrResult = await extractTextFromScheduleImage(file, {
+        mode: tableMode ? SCHEDULE_OCR_MODE.TABLE : SCHEDULE_OCR_MODE.AUTO,
         onProgress: (progress) => setOcrProgress(Math.round((progress || 0) * 100)),
       });
 
-      if (!text.trim()) {
-        setStatus({ tone: "error", message: "이미지에서 일정 글자를 찾지 못했습니다." });
+      if (ocrResult.stage === SCHEDULE_OCR_STAGE.EMPTY_TEXT || !ocrResult.text.trim()) {
+        setStatus({
+          tone: "error",
+          message:
+            "OCR은 완료했지만 텍스트를 찾지 못했습니다. 공정표·캘린더처럼 글자가 작은 이미지는 「공정표/캘린더 이미지」를 켜고 다시 시도해 주세요.",
+          stage: SCHEDULE_OCR_STAGE.EMPTY_TEXT,
+          ocrMode: ocrResult.mode,
+          ocrAttempts: ocrResult.attempts,
+        });
         return;
       }
 
-      setPasteText(text);
-      const result = applyParsedText(text, SCHEDULE_IMPORT_SOURCE.OCR);
-
-      if (result.ok) {
-        setStatus({
-          tone: "success",
-          message: `캡처에서 일정을 채웠습니다.${confidence > 0 ? ` (인식 ${Math.round(confidence)}%)` : ""}`,
-        });
-      }
-    } catch (_) {
-      setStatus({ tone: "error", message: "이미지 읽기에 실패했습니다. 다시 시도하거나 텍스트를 붙여넣어 주세요." });
+      setPasteText(ocrResult.text);
+      const parseResult = applyParsedText(ocrResult.text, SCHEDULE_IMPORT_SOURCE.OCR);
+      setStatus(buildOcrParseStatus(ocrResult, parseResult));
+    } catch (error) {
+      setStatus({
+        tone: "error",
+        message: `이미지 OCR 실패: ${formatOcrError(error)}`,
+        stage: error?.stage || SCHEDULE_OCR_STAGE.ENGINE_FAILED,
+        ocrAttempts: error?.attempts,
+      });
     } finally {
       setOcrBusy(false);
       setOcrProgress(0);
@@ -157,7 +207,19 @@ export default function SchedulePasteImportPanel({ open = true, onApply, referen
 
       <div className="schedule-paste-import__section">
         <p className="schedule-paste-import__section-label">2. 캡처 이미지 업로드</p>
-        <p className="schedule-paste-import__section-hint">카톡·문자 화면을 캡처해 올리면 OCR로 읽어 자동 입력합니다.</p>
+        <p className="schedule-paste-import__section-hint">
+          카톡·문자 화면 또는 월간 공정표 캡처를 올리면 OCR로 읽어 자동 입력합니다.
+        </p>
+        <label className="schedule-paste-import__table-mode" htmlFor={tableModeId}>
+          <input
+            id={tableModeId}
+            type="checkbox"
+            checked={tableMode}
+            onChange={(e) => setTableMode(e.target.checked)}
+            disabled={ocrBusy}
+          />
+          <span>공정표/캘린더 이미지 (작은 글자·표 형식)</span>
+        </label>
         <input
           ref={fileInputRef}
           id={fileInputId}
@@ -187,12 +249,26 @@ export default function SchedulePasteImportPanel({ open = true, onApply, referen
       </div>
 
       {status ? (
-        <p
-          className={`schedule-paste-import__status schedule-paste-import__status--${status.tone}`}
-          role="status"
-        >
-          {status.message}
-        </p>
+        <div className="schedule-paste-import__status-wrap">
+          <p
+            className={`schedule-paste-import__status schedule-paste-import__status--${status.tone}`}
+            role="status"
+          >
+            {status.message}
+          </p>
+          {status.stage ? (
+            <p className="schedule-paste-import__status-meta">
+              단계: {status.stage}
+              {status.ocrMode ? ` · OCR 모드: ${status.ocrMode}` : ""}
+            </p>
+          ) : null}
+          {status.ocrTextPreview ? (
+            <details className="schedule-paste-import__ocr-preview">
+              <summary>OCR로 읽은 텍스트 미리보기</summary>
+              <pre>{status.ocrTextPreview}</pre>
+            </details>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

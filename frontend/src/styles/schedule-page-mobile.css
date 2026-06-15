@@ -3575,6 +3575,52 @@
   line-height: 1.4;
 }
 
+.schedule-paste-import__table-mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.schedule-paste-import__table-mode input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.schedule-paste-import__status-wrap {
+  margin-top: 10px;
+}
+
+.schedule-paste-import__status-meta {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.schedule-paste-import__ocr-preview {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.schedule-paste-import__ocr-preview pre {
+  margin: 6px 0 0;
+  padding: 8px;
+  max-height: 120px;
+  overflow: auto;
+  border-radius: 8px;
+  background: #f3f4f6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 .schedule-paste-import__divider {
   display: flex;
   align-items: center;
