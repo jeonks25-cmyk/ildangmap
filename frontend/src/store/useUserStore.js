@@ -28,6 +28,7 @@ import {
 } from "./storeUtils";
 import { useUiStore } from "./useUiStore";
 import { validateNicknameInput } from "../utils/displayNickname";
+import { authDiag, authDiagStoreSnapshot } from "../utils/authDiag";
 
 const STORE_KEY = "ildangmap_user_store_v1";
 
@@ -260,7 +261,16 @@ function normalizeProfile(raw) {
 function applyMeResponse(state, me, providerOverride) {
   const normalizedMe = extractMePayload(me);
   const userId = normalizedMe?.id ?? normalizedMe?.userId;
+  authDiag("applyMeResponse", {
+    meRaw: me,
+    meId: me?.id,
+    meDataId: me?.data?.id,
+    normalizedMe,
+    userId,
+    providerOverride,
+  });
   if (userId == null || userId === "") {
+    authDiag("applyMeResponse → guest (no userId)");
     return {
       authReady: true,
       meBootstrapLoading: false,
@@ -280,6 +290,7 @@ function applyMeResponse(state, me, providerOverride) {
   const applicantId = Number(normalizedMe.id ?? normalizedMe.userId);
   const provider = providerOverride || state.session.provider || state.profile.loginProvider || "kakao";
   const profileImage = normalizedMe.profileImageUrl || state.profile.profileImage || "";
+  authDiag("applyMeResponse → authenticated", { userId: userIdStr, provider });
   return {
     authReady: true,
     meBootstrapLoading: false,
@@ -417,18 +428,27 @@ export const useUserStore = create(
         if (options.waitForHydration) {
           await waitForUserStoreHydration(options.hydrationTimeoutMs);
         }
-        if (refreshCurrentUserInFlight) {
+        if (refreshCurrentUserInFlight && !options.force) {
+          authDiag("refreshCurrentUser reuse in-flight");
           return refreshCurrentUserInFlight;
         }
-        refreshCurrentUserInFlight = (async () => {
+        const run = (async () => {
           try {
-            return await runAsyncStoreAction({
+            authDiag("refreshCurrentUser start", { force: Boolean(options.force) });
+            const result = await runAsyncStoreAction({
               set,
               loadingKey: "meBootstrapLoading",
               action: () => getMe(),
               defaultErrorMessage: "사용자 정보를 불러오지 못했습니다.",
-              onSuccess: (state, me) => applyMeResponse(state, me),
+              onSuccess: (state, me) => {
+                authDiag("refreshCurrentUser getMe result", me);
+                return applyMeResponse(state, me);
+              },
               onError: (state, error) => {
+                authDiag("refreshCurrentUser error", {
+                  message: error?.message,
+                  isAuthError: isAuthError(error),
+                });
                 const next = { authReady: true, meBootstrapLoading: false, meVerified: true };
                 if (isAuthError(error)) {
                   return {
@@ -447,11 +467,15 @@ export const useUserStore = create(
                 return next;
               },
             });
+            authDiagStoreSnapshot(get(), "refreshCurrentUser done");
+            authDiag("refreshCurrentUser me payload", result);
+            return result;
           } finally {
             refreshCurrentUserInFlight = null;
           }
         })();
-        return refreshCurrentUserInFlight;
+        refreshCurrentUserInFlight = run;
+        return run;
       },
 
       startKakaoOAuthLogin: async () => {

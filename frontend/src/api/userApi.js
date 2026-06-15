@@ -7,6 +7,7 @@ import {
 import { myProfileMock } from "../utils/myProfileMock";
 import { favoriteWorkersMock, oyajiTrustProfileMock } from "../utils/oyajiMock";
 import { isMockApiEnabled, runApiRequest } from "./client";
+import { authDiag } from "../utils/authDiag";
 
 const USER_MODE_STORAGE_KEY = "user_mode_v1";
 const USER_PREFS_STORAGE_KEY = "user_map_prefs_v1";
@@ -177,7 +178,9 @@ export async function getMe() {
     useMock: isMockApiEnabled() && !hasConfiguredLiveApi(),
     mock: () => buildMockMeResponse(),
   });
-  return extractMePayload(raw);
+  const extracted = extractMePayload(raw);
+  authDiag("getMe", { raw, extracted, rawDataId: raw?.data?.id, extractedId: extracted?.id });
+  return extracted;
 }
 
 export async function getUsers() {

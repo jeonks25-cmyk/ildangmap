@@ -8,6 +8,7 @@ import MainTabBar from "../navigation/MainTabBar";
 import NicknameSetupGate from "../onboarding/NicknameSetupGate";
 import LoginPromptSheet from "../auth/LoginPromptSheet";
 import AppToast from "../ui/AppToast";
+import { authDiag, authDiagStoreSnapshot } from "../../utils/authDiag";
 
 export default function AppShell() {
   useAppBootstrap();
@@ -29,19 +30,26 @@ export default function AppShell() {
     if (sp.get("login") !== "success") return;
     let cancelled = false;
     (async () => {
+      authDiag("AppShell login=success handler start", { pathname: location.pathname });
       try {
-        await refreshCurrentUser({ waitForHydration: true });
-      } catch {
-        /* noop */
+        await refreshCurrentUser({ waitForHydration: true, force: true });
+      } catch (error) {
+        authDiag("AppShell login=success refresh error", { message: error?.message });
       }
       if (cancelled) return;
       const { session, profile } = useUserStore.getState();
+      authDiagStoreSnapshot(useUserStore.getState(), "AppShell after login=success refresh");
+      authDiag("AppShell toast decision", {
+        isAuthenticated: session?.isAuthenticated,
+        userId: session?.user?.id,
+        nicknameSetupRequired: profile?.nicknameSetupRequired,
+      });
       const nick = profile?.displayNickname || session?.user?.nickname || "";
       if (nick) {
         useUiStore.getState().showAppToast(`환영합니다, ${nick}님`);
       } else if (profile?.nicknameSetupRequired) {
         useUiStore.getState().showAppToast("활동명을 설정해 주세요");
-      } else {
+      } else if (session?.isAuthenticated) {
         useUiStore.getState().showAppToast("환영합니다");
       }
       navigate({ pathname: location.pathname, search: "" }, { replace: true });

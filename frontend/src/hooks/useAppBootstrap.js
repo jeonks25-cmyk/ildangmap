@@ -17,6 +17,11 @@ const AUTH_READY_FALLBACK_MS = 4000;
 
 function bootstrapCurrentUser() {
   if (userMeBootstrapRequested) return;
+  if (typeof window !== "undefined") {
+    const sp = new URLSearchParams(window.location.search);
+    // AppShell이 OAuth 직후 /me 동기화·환영 토스트를 처리한다.
+    if (sp.get("login") === "success") return;
+  }
   userMeBootstrapRequested = true;
   useUserStore
     .getState()
