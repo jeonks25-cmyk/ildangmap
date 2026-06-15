@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/users/nickname/:path*",
+      "destination": "https://backend-production-22ec.up.railway.app/users/nickname/:path*"
+    },
+    {
+      "source": "/api/users/me/nickname",
+      "destination": "https://backend-production-22ec.up.railway.app/users/me/nickname"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://backend-production-22ec.up.railway.app/api/:path*"
     },
