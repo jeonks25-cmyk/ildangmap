@@ -22,7 +22,7 @@ function writeProfilePatch(patch) {
 export async function checkNicknameAvailability(nickname) {
   const q = encodeURIComponent(String(nickname || "").trim());
   return runApiRequest({
-    path: `/users/nickname/availability?nickname=${q}`,
+    path: `/api/users/nickname/availability?nickname=${q}`,
     useMock: isMockApiEnabled(),
     mock: () => ({ nickname: String(nickname || "").trim(), available: true, reason: null }),
   });
@@ -31,7 +31,7 @@ export async function checkNicknameAvailability(nickname) {
 export async function setInitialNickname(nickname) {
   const value = String(nickname || "").trim();
   return runApiRequest({
-    path: "/users/me/nickname",
+    path: "/api/users/me/nickname",
     method: "POST",
     body: { nickname: value },
     useMock: isMockApiEnabled(),
@@ -61,7 +61,7 @@ export async function setInitialNickname(nickname) {
 export async function changeNickname(nickname) {
   const value = String(nickname || "").trim();
   return runApiRequest({
-    path: "/users/me/nickname",
+    path: "/api/users/me/nickname",
     method: "PATCH",
     body: { nickname: value },
     useMock: isMockApiEnabled(),

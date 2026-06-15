@@ -42,11 +42,16 @@ export default function NicknameSetupGate() {
     const timer = window.setTimeout(async () => {
       try {
         const res = await checkNicknameAvailability(v.value);
-        setAvailable(Boolean(res?.available));
-        if (!res?.available) setError("이미 사용 중인 닉네임입니다.");
-        else setError("");
+        if (res && typeof res.available === "boolean") {
+          setAvailable(res.available);
+          setError(res.available ? "" : "이미 사용 중인 닉네임입니다.");
+        } else {
+          setAvailable(null);
+          setError("닉네임 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+        }
       } catch {
         setAvailable(null);
+        setError("닉네임 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.");
       } finally {
         setChecking(false);
       }

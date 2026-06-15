@@ -73,7 +73,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/me", "/users/me", "/api/users/me").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/session/bootstrap").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/session/status").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/users/nickname/availability").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/users/nickname/availability", "/api/users/nickname/availability").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth -> oauth

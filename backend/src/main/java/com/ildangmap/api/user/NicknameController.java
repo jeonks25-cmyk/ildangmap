@@ -26,7 +26,7 @@ public class NicknameController {
     private final UserService userService;
     private final SessionUserService sessionUserService;
 
-    @GetMapping("/users/nickname/availability")
+    @GetMapping({"/users/nickname/availability", "/api/users/nickname/availability"})
     @Operation(summary = "닉네임 중복 확인")
     public ApiResponse<NicknameAvailabilityResponse> availability(
             @RequestParam("nickname") String nickname,
@@ -36,7 +36,7 @@ public class NicknameController {
         return ApiResponse.success(userService.checkNicknameAvailability(nickname, excludeUserId));
     }
 
-    @PostMapping("/users/me/nickname")
+    @PostMapping({"/users/me/nickname", "/api/users/me/nickname"})
     @Operation(summary = "닉네임 최초 설정")
     public ApiResponse<MeResponse> setNickname(
             @Valid @RequestBody NicknameSetRequest request,
@@ -46,7 +46,7 @@ public class NicknameController {
         return ApiResponse.success(userService.setInitialNickname(userId, request.getNickname()));
     }
 
-    @PatchMapping("/users/me/nickname")
+    @PatchMapping({"/users/me/nickname", "/api/users/me/nickname"})
     @Operation(summary = "닉네임 변경 (30일 1회)")
     public ApiResponse<MeResponse> changeNickname(
             @Valid @RequestBody NicknameSetRequest request,
