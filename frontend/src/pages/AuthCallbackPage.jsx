@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useUserStore } from "../store/useUserStore";
 import { useUiStore } from "../store/useUiStore";
+import { bootstrapSessionFromToken } from "../api/authApi";
 import { authDiag, authDiagStoreSnapshot } from "../utils/authDiag";
 
 const AUTH_CALLBACK_TIMEOUT_MS = 12000;
@@ -66,6 +67,7 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     const sp = new URLSearchParams(location.search);
     const login = sp.get("login");
+    const bootstrapToken = sp.get("bt");
     const oauthSucceeded = login !== "error";
 
     console.log("login query", login);
@@ -91,13 +93,24 @@ export default function AuthCallbackPage() {
     const timeoutId = window.setTimeout(() => {
       if (cancelled) return;
       authLog("callback timeout — force navigate map");
-      authDiag("AuthCallback timeout navigate", { target: "/map?login=success" });
-      navigate("/map?login=success", { replace: true });
+      authDiag("AuthCallback timeout navigate", { target: "/map?login=success", hasBt: Boolean(bootstrapToken) });
+      const btSuffix = bootstrapToken ? `&bt=${encodeURIComponent(bootstrapToken)}` : "";
+      navigate(`/map?login=success${btSuffix}`, { replace: true });
     }, AUTH_CALLBACK_TIMEOUT_MS);
 
     (async () => {
       let synced = false;
       try {
+        if (bootstrapToken) {
+          const bootstrapped = await bootstrapSessionFromToken(bootstrapToken);
+          authDiag("session bootstrap", {
+            ok: bootstrapped,
+            hasBt: true,
+            origin: window.location.origin,
+          });
+        } else {
+          authDiag("session bootstrap skipped", { reason: "no bt query param" });
+        }
         authLog("refreshCurrentUser begin", {
           hasHydrated: useUserStore.persist.hasHydrated(),
         });
@@ -142,8 +155,10 @@ export default function AuthCallbackPage() {
         authDiag("AuthCallback delegate to map", {
           reason: "oauth ok but me sync pending",
           session,
+          hasBt: Boolean(bootstrapToken),
         });
-        navigate("/map?login=success", { replace: true });
+        const btSuffix = bootstrapToken ? `&bt=${encodeURIComponent(bootstrapToken)}` : "";
+        navigate(`/map?login=success${btSuffix}`, { replace: true });
         return;
       }
 

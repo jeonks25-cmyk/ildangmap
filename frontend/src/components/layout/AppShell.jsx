@@ -8,6 +8,7 @@ import MainTabBar from "../navigation/MainTabBar";
 import NicknameSetupGate from "../onboarding/NicknameSetupGate";
 import LoginPromptSheet from "../auth/LoginPromptSheet";
 import AppToast from "../ui/AppToast";
+import { bootstrapSessionFromToken } from "../../api/authApi";
 import { authDiag, authDiagStoreSnapshot } from "../../utils/authDiag";
 
 export default function AppShell() {
@@ -28,10 +29,14 @@ export default function AppShell() {
   useEffect(() => {
     const sp = new URLSearchParams(location.search);
     if (sp.get("login") !== "success") return;
+    const bootstrapToken = sp.get("bt");
     let cancelled = false;
     (async () => {
-      authDiag("AppShell login=success handler start", { pathname: location.pathname });
+      authDiag("AppShell login=success handler start", { pathname: location.pathname, hasBt: Boolean(bootstrapToken) });
       try {
+        if (bootstrapToken) {
+          await bootstrapSessionFromToken(bootstrapToken);
+        }
         await refreshCurrentUser({ waitForHydration: true, force: true });
       } catch (error) {
         authDiag("AppShell login=success refresh error", { message: error?.message });

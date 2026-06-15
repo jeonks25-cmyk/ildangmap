@@ -46,7 +46,7 @@ export async function probeSpringOAuthBackend(timeoutMs = 2800) {
 
 export async function logoutSession() {
   const base = getSpringOAuthApiBase();
-  if (!base) return;
+  if (!base && typeof window === "undefined") return;
   try {
     await fetch(`${base}/logout`, {
       method: "POST",
@@ -55,6 +55,19 @@ export async function logoutSession() {
   } catch {
     /* noop */
   }
+}
+
+/** OAuth 직후 일회용 bt 토큰으로 same-origin 세션 쿠키 발급 */
+export async function bootstrapSessionFromToken(bootstrapToken) {
+  const token = String(bootstrapToken || "").trim();
+  if (!token) return false;
+  const base = getSpringOAuthApiBase();
+  const url = `${base}/api/auth/session/bootstrap?bt=${encodeURIComponent(token)}`;
+  const response = await fetch(url, {
+    method: "POST",
+    credentials: "include",
+  });
+  return response.ok;
 }
 
 /** @deprecated 프론트 callback OAuth — 사용하지 않음 */

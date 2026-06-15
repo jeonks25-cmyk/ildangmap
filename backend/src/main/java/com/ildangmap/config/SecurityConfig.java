@@ -71,6 +71,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/jobs", "/jobs/*/apply", "/jobs/*/close-recruitment", "/jobs/*/start-work", "/jobs/*/complete", "/jobs/*/cancel", "/jobs/*/briefing-posts").permitAll()
                         .requestMatchers(HttpMethod.POST, "/applications/*/approve", "/applications/*/reject").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/me", "/users/me", "/api/users/me").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/session/bootstrap").permitAll()
                         .requestMatchers(HttpMethod.GET, "/users/nickname/availability").permitAll()
                         .anyRequest().authenticated()
                 )
