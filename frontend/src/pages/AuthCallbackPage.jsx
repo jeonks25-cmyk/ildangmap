@@ -72,7 +72,13 @@ export default function AuthCallbackPage() {
     console.log("oauthSucceeded", oauthSucceeded);
 
     authLog("callback start", { login, search: location.search });
-    authDiag("AuthCallback start", { login, oauthSucceeded, search: location.search });
+    authDiag("AuthCallback start", {
+      login,
+      oauthSucceeded,
+      search: location.search,
+      origin: window.location.origin,
+      cookieDomainHint: `${window.location.hostname} 에 ILDANGMAPSESSION 있어야 함 (Railway 도메인 쿠키는 무효)`,
+    });
 
     if (login === "error") {
       authDiag("AuthCallback toast", { reason: "login=error query" });

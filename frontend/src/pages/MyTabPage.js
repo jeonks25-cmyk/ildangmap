@@ -30,6 +30,8 @@ export default function MyTabPage() {
 
   useEffect(() => {
     if (!authReady || meBootstrapLoading || isAuthenticated || isMockApiEnabled()) return;
+    // /me 1회만 — meVerified 갱신 시 재호출 루프 방지 (버튼 깜빡임)
+    if (meVerified) return;
     refreshCurrentUser({ waitForHydration: true }).catch(() => {
       /* bootstrap / callback에서 처리 */
     });

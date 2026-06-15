@@ -32,10 +32,12 @@ public class UserMeController {
                         : "null";
 
         log.info(
-                "[/api/users/me] host={} sessionId={} hasCookieHeader={} authenticated={} principalType={}",
+                "[/api/users/me] host={} forwardedHost={} sessionId={} hasCookieHeader={} hasSessionCookie={} authenticated={} principalType={}",
                 request.getServerName(),
+                request.getHeader("X-Forwarded-Host"),
                 session != null ? session.getId() : "none",
                 hasCookieHeader,
+                hasCookieHeader && request.getHeader("Cookie").contains("ILDANGMAPSESSION"),
                 authenticated,
                 principalType);
 

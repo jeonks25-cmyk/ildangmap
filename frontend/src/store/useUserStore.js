@@ -14,7 +14,7 @@ import {
   getProfileMeta,
   loginWithKakaoMock as loginWithKakaoMockApi,
 } from "../api/userApi";
-import { getKakaoOAuthStartUrl, logoutSession, probeSpringOAuthBackend } from "../api/authApi";
+import { getKakaoOAuthStartUrl, getSpringOAuthApiBase, logoutSession, probeSpringOAuthBackend } from "../api/authApi";
 import { changeNickname, setInitialNickname } from "../api/nicknameApi";
 import { isNetworkError } from "../api/client";
 import {
@@ -496,6 +496,13 @@ export const useUserStore = create(
       startKakaoOAuthLogin: async () => {
         if (typeof window === "undefined") return false;
         const url = getKakaoOAuthStartUrl();
+        authDiag("startKakaoOAuthLogin", {
+          url,
+          origin: window.location.origin,
+          apiBase: getSpringOAuthApiBase() || "(same-origin)",
+          kakaoRedirectMustMatch:
+            `${window.location.origin}/login/oauth2/code/kakao (카카오 개발자 콘솔 Redirect URI)`,
+        });
         if (!url) {
           useUiStore.getState().showAppToast(
             "로그인 서버 주소가 없어요. REACT_APP_API_BASE_URL을 설정해 주세요."

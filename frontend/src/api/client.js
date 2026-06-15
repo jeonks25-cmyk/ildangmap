@@ -24,6 +24,7 @@ import {
   markBackendUnreachable,
   shouldSkipLiveApiRequest,
 } from "./apiReachability";
+import { authDiag } from "../utils/authDiag";
 
 export {
   API_ERROR_TYPE,
@@ -173,11 +174,29 @@ export async function request(path, { method = "GET", body, headers, ...rest } =
     });
   }
 
+  const apiBase = getApiBaseUrl();
+  const credentials = rest.credentials ?? (USE_MOCK_API ? "same-origin" : "include");
+  const requestUrl =
+    typeof window !== "undefined"
+      ? new URL(`${apiBase}${path}`, window.location.origin).href
+      : `${apiBase}${path}`;
+
+  if (path.includes("/users/me")) {
+    authDiag("fetch /users/me request", {
+      requestUrl,
+      apiBase: apiBase || "(same-origin)",
+      origin: typeof window !== "undefined" ? window.location.origin : "",
+      credentials,
+      cookieHeaderCheck: "Network 탭 → Request Headers → Cookie 에 ILDANGMAPSESSION 확인",
+      applicationCookies: "Application → Cookies → " + (typeof window !== "undefined" ? window.location.hostname : ""),
+    });
+  }
+
   let response;
   try {
-    response = await fetch(`${getApiBaseUrl()}${path}`, {
+    response = await fetch(`${apiBase}${path}`, {
       method,
-      credentials: rest.credentials ?? (USE_MOCK_API ? "same-origin" : "include"),
+      credentials,
       headers: {
         "Content-Type": "application/json",
         ...(headers || {}),
