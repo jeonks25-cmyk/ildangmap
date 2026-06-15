@@ -171,7 +171,11 @@ async function runOcrAttempt(image, mode, onProgress) {
   const { data } = await worker.recognize(input);
   const text = normalizeOcrText(data.text);
   const words = Array.isArray(data.words)
-    ? data.words.slice(0, 40).map((w) => ({ text: w.text, confidence: w.confidence }))
+    ? data.words.map((w) => ({
+        text: w.text,
+        confidence: w.confidence,
+        bbox: w.bbox,
+      }))
     : [];
 
   return {

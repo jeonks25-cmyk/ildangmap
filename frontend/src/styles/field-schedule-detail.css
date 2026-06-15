@@ -92,6 +92,14 @@
   word-break: keep-all;
 }
 
+.field-detail-summary__actions {
+  margin-top: 12px;
+}
+
+.field-detail-summary__calendar-btn {
+  width: 100%;
+}
+
 /* 중단 탭 */
 .field-detail-tabs {
   position: sticky;

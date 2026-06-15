@@ -20,6 +20,7 @@ import {
 } from "../utils/scheduleFieldOpsStorage";
 import { buildUrgentHelpJobFromSchedule } from "../utils/urgentHelpFromSchedule";
 import ScheduleEditSheet from "../components/schedule/ScheduleEditSheet";
+import CalendarSaveButton from "../components/schedule/CalendarSaveButton";
 import FieldScheduleNoticeBoard from "../components/schedule/FieldScheduleNoticeBoard";
 import FieldScheduleDailyRoster from "../components/schedule/FieldScheduleDailyRoster";
 import FieldTeamRosterSheet from "../components/map/FieldTeamRosterSheet";
@@ -277,6 +278,17 @@ export default function FieldScheduleDetailPage() {
             <dd>{schedule.accessPassword || "—"}</dd>
           </div>
         </dl>
+        <div className="field-detail-summary__actions">
+          <CalendarSaveButton
+            fieldSchedule={schedule}
+            label="캘린더 저장"
+            className="field-detail-summary__calendar-btn"
+            onDone={(result) => {
+              if (result.ok) showAppToast?.("캘린더 파일을 열었습니다 · 앱에서 일정을 추가하세요");
+              else if (result.error !== "cancelled") showAppToast?.("캘린더 저장에 실패했습니다");
+            }}
+          />
+        </div>
       </section>
 
       {pendingRequest && !isOwner ? (

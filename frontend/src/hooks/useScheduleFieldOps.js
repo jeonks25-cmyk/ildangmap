@@ -370,12 +370,36 @@ export function useScheduleFieldOps(selectedDateKey) {
       if (id) {
         updatePersonalEvent(ownerId, id, { title, dateKey, startTime, endTime, color, memo });
         showAppToast?.("개인 일정을 수정했습니다");
-        return;
+        return { updated: true, events: [{ id, title, dateKey, startTime, endTime, color, memo }] };
       }
-      addPersonalEvent(ownerId, { title, dateKey, startTime, endTime, color, memo });
+      const created = addPersonalEvent(ownerId, { title, dateKey, startTime, endTime, color, memo });
       showAppToast?.("개인 일정을 추가했습니다");
+      return { updated: false, events: created ? [created] : [] };
     },
     [addPersonalEvent, ownerId, showAppToast, updatePersonalEvent]
+  );
+
+  const handleBulkPersonalEntries = useCallback(
+    async (drafts) => {
+      const list = Array.isArray(drafts) ? drafts : [];
+      const created = [];
+      list.forEach((draft) => {
+        const event = addPersonalEvent(ownerId, {
+          title: draft.title,
+          dateKey: draft.dateKey,
+          startTime: draft.startTime,
+          endTime: draft.endTime,
+          color: draft.color,
+          memo: draft.memo,
+        });
+        if (event) created.push(event);
+      });
+      if (created.length) {
+        showAppToast?.(`개인 일정 ${created.length}건을 저장했습니다`);
+      }
+      return created;
+    },
+    [addPersonalEvent, ownerId, showAppToast]
   );
 
   const handleSubmitSiteEntry = useCallback(
@@ -546,6 +570,7 @@ export function useScheduleFieldOps(selectedDateKey) {
     closeComposer,
     openPersonalComposer,
     handleSubmitPersonalEntry,
+    handleBulkPersonalEntries,
     handleSubmitSiteEntry,
     quickImportOpen,
     setQuickImportOpen,

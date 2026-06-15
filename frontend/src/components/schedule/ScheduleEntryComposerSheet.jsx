@@ -16,6 +16,7 @@ export default function ScheduleEntryComposerSheet({
   onClose,
   onSubmitSite,
   onSubmitPersonal,
+  onOcrReview,
 }) {
   const [entryType, setEntryType] = useState("site");
   const [title, setTitle] = useState("");
@@ -111,6 +112,7 @@ export default function ScheduleEntryComposerSheet({
           <SchedulePasteImportPanel
             open={open}
             onApply={handlePasteApply}
+            onOcrReview={onOcrReview}
             referenceDate={workDateStart ? new Date(`${workDateStart}T12:00:00`) : new Date()}
           />
         ) : null}

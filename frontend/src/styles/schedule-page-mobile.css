@@ -4335,3 +4335,183 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.schedule-calendar-export-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: 120;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #111827;
+  color: #f9fafb;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.schedule-calendar-export-banner p {
+  flex: 1 1 180px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.schedule-calendar-export-banner__dismiss {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.calendar-save-btn {
+  min-height: 38px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--ildang-signature-green, #1fa35b);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.calendar-save-btn:disabled {
+  opacity: 0.6;
+}
+
+.schedule-ocr-review-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.schedule-ocr-review {
+  position: relative;
+  width: min(100%, 520px);
+  max-height: 88vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.schedule-ocr-review__head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.schedule-ocr-review__head p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.schedule-ocr-review__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+}
+
+.schedule-ocr-review__defaults {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.schedule-ocr-review__defaults label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.schedule-ocr-review__defaults input,
+.schedule-ocr-review__defaults select {
+  min-height: 36px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 8px;
+}
+
+.schedule-ocr-review__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-ocr-review__row {
+  display: grid;
+  grid-template-columns: auto 120px 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.schedule-ocr-review__title,
+.schedule-ocr-review__date {
+  min-height: 38px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 8px;
+}
+
+.schedule-ocr-review__delete {
+  border: none;
+  background: #fee2e2;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.schedule-ocr-review__add {
+  margin-top: 10px;
+  width: 100%;
+  min-height: 40px;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+  font-weight: 700;
+}
+
+.schedule-ocr-review__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.schedule-ocr-review__ghost,
+.schedule-ocr-review__primary {
+  flex: 1;
+  min-height: 44px;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+.schedule-ocr-review__ghost {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.schedule-ocr-review__primary {
+  border: none;
+  background: var(--ildang-signature-green, #1fa35b);
+  color: #fff;
+}
