@@ -259,7 +259,17 @@ function normalizeProfile(raw) {
 
 /** GET /users/me 응답 → Zustand (세션이 진실 소스) */
 function applyMeResponse(state, me, providerOverride) {
+  try {
+    console.log("[AUTH-DIAG] applyMeResponse me JSON", JSON.stringify(me, null, 2));
+  } catch {
+    console.log("[AUTH-DIAG] applyMeResponse me JSON (non-serializable)", me);
+  }
   const normalizedMe = extractMePayload(me);
+  try {
+    console.log("[AUTH-DIAG] applyMeResponse normalized JSON", JSON.stringify(normalizedMe, null, 2));
+  } catch {
+    console.log("[AUTH-DIAG] applyMeResponse normalized JSON (non-serializable)", normalizedMe);
+  }
   const userId = normalizedMe?.id ?? normalizedMe?.userId;
   authDiag("applyMeResponse", {
     meRaw: me,
@@ -441,6 +451,11 @@ export const useUserStore = create(
               action: () => getMe(),
               defaultErrorMessage: "사용자 정보를 불러오지 못했습니다.",
               onSuccess: (state, me) => {
+                try {
+                  console.log("[AUTH-DIAG] refreshCurrentUser getMe result JSON", JSON.stringify(me, null, 2));
+                } catch {
+                  console.log("[AUTH-DIAG] refreshCurrentUser getMe result JSON (non-serializable)", me);
+                }
                 authDiag("refreshCurrentUser getMe result", me);
                 return applyMeResponse(state, me);
               },

@@ -143,32 +143,36 @@ function hasConfiguredLiveApi() {
 
 /**
  * GET /api/users/me — ApiResponse envelope 또는 본문 → 사용자 객체.
- * runApiRequest가 unwrap한 뒤에도 { data: { id } } 형태가 남는 경우를 처리한다.
+ * { success, data } 래핑이 여러 겹이어도 id가 나올 때까지 벗긴다.
  */
 export function extractMePayload(payload) {
-  if (payload == null || typeof payload !== "object") return null;
-
-  const directId = payload.id ?? payload.userId;
-  if (directId != null && directId !== "") return payload;
-
-  if (Object.prototype.hasOwnProperty.call(payload, "data")) {
-    const inner = payload.data;
-    if (inner == null) return null;
-    if (typeof inner === "object") {
-      const innerId = inner.id ?? inner.userId;
-      if (innerId != null && innerId !== "") return inner;
-      if (
-        Object.prototype.hasOwnProperty.call(inner, "data") &&
-        inner.data != null &&
-        typeof inner.data === "object"
-      ) {
-        return inner.data;
-      }
-      if (payload.success === true) return inner;
+  let current = payload;
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (current == null || typeof current !== "object" || Array.isArray(current)) {
+      return null;
     }
+    const directId = current.id ?? current.userId;
+    if (directId != null && directId !== "") {
+      return current;
+    }
+    if (!Object.prototype.hasOwnProperty.call(current, "data")) {
+      return null;
+    }
+    const inner = current.data;
+    if (inner == null || typeof inner !== "object" || Array.isArray(inner)) {
+      return null;
+    }
+    current = inner;
   }
+  return null;
+}
 
-  return payload;
+function logMeJson(label, value) {
+  try {
+    console.log(label, JSON.stringify(value, null, 2));
+  } catch {
+    console.log(label, value);
+  }
 }
 
 export async function getMe() {
@@ -179,6 +183,8 @@ export async function getMe() {
     mock: () => buildMockMeResponse(),
   });
   const extracted = extractMePayload(raw);
+  logMeJson("[AUTH-DIAG] getMe raw JSON", raw);
+  logMeJson("[AUTH-DIAG] getMe extracted JSON", extracted);
   authDiag("getMe", { raw, extracted, rawDataId: raw?.data?.id, extractedId: extracted?.id });
   return extracted;
 }
