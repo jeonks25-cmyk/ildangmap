@@ -14,7 +14,7 @@ import {
   getProfileMeta,
   loginWithKakaoMock as loginWithKakaoMockApi,
 } from "../api/userApi";
-import { getKakaoOAuthStartUrl, getSpringOAuthApiBase, logoutSession, probeSpringOAuthBackend } from "../api/authApi";
+import { fetchOAuthConfigDiagnostics, getKakaoOAuthStartUrl, getKakaoRedirectMustMatch, getSpringOAuthApiBase, logoutSession, probeSpringOAuthBackend } from "../api/authApi";
 import { changeNickname, setInitialNickname } from "../api/nicknameApi";
 import { isNetworkError } from "../api/client";
 import {
@@ -495,31 +495,69 @@ export const useUserStore = create(
 
       startKakaoOAuthLogin: async () => {
         if (typeof window === "undefined") return false;
+
         const url = getKakaoOAuthStartUrl();
+        const kakaoRedirectMustMatch = getKakaoRedirectMustMatch();
+
+        console.log("[AUTH-DIAG] startKakaoOAuthLogin enter", {
+          url,
+          origin: window.location.origin,
+          apiBase: getSpringOAuthApiBase() || "(same-origin)",
+        });
+        console.log("[AUTH-DIAG] kakaoRedirectMustMatch", kakaoRedirectMustMatch);
+
         authDiag("startKakaoOAuthLogin", {
           url,
           origin: window.location.origin,
           apiBase: getSpringOAuthApiBase() || "(same-origin)",
-          kakaoRedirectMustMatch:
-            `${window.location.origin}/login/oauth2/code/kakao (카카오 개발자 콘솔 Redirect URI)`,
+          kakaoRedirectMustMatch: `${kakaoRedirectMustMatch} (카카오 개발자 콘솔 Redirect URI)`,
         });
+
         if (!url) {
+          console.log("[AUTH-DIAG] toast branch", {
+            branch: "NO_OAUTH_URL",
+            message: "로그인 서버 주소가 없어요",
+          });
           useUiStore.getState().showAppToast(
             "로그인 서버 주소가 없어요. REACT_APP_API_BASE_URL을 설정해 주세요."
           );
           return false;
         }
+
         if (url.includes("kauth.kakao.com")) {
+          console.log("[AUTH-DIAG] toast branch", { branch: "DIRECT_KAKAO_URL", navigate: url });
           window.location.href = url;
           return true;
         }
-        const reachable = await probeSpringOAuthBackend();
-        if (!reachable) {
+
+        const probe = await probeSpringOAuthBackend();
+        const oauthConfig = await fetchOAuthConfigDiagnostics();
+
+        if (!probe.ok) {
+          console.log("[AUTH-DIAG] toast branch", {
+            branch: "PROBE_FAILED",
+            message: "로그인 서버에 연결할 수 없어요",
+            probeReason: probe.reason,
+            healthUrl: probe.healthUrl,
+            oauthConfig,
+            kakaoRedirectMustMatch,
+            hint: "same-origin(Vercel)에서 apiBase가 빈 문자열이면 /api/health 상대경로를 사용해야 함",
+          });
           useUiStore.getState().showAppToast(
             "로그인 서버에 연결할 수 없어요. 백엔드(Spring Boot)가 실행 중인지 확인해 주세요."
           );
           return false;
         }
+
+        if (oauthConfig.redirectUri && oauthConfig.redirectUri !== kakaoRedirectMustMatch) {
+          console.log("[AUTH-DIAG] 카카오 설정값 불일치 또는 Redirect URI", {
+            expected: kakaoRedirectMustMatch,
+            actual: oauthConfig.redirectUri,
+            note: "OAuth는 계속 진행합니다 (경고만)",
+          });
+        }
+
+        console.log("[AUTH-DIAG] toast branch", { branch: "NAVIGATE_OAUTH", url });
         window.location.href = url;
         return true;
       },
