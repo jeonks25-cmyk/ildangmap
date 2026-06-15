@@ -46,13 +46,28 @@ export {
   normalizeApiError,
 };
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "";
+const DEFAULT_MOCK_DELAY_MS = Number(process.env.REACT_APP_MOCK_DELAY_MS || 300);
+
+/**
+ * API 베이스 URL.
+ * Vercel(vercel.json → Railway 프록시)에서는 same-origin("")으로 세션 쿠키를 보낸다.
+ */
+export function getApiBaseUrl() {
+  const fromEnv = String(process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
+  if (typeof window !== "undefined") {
+    const host = String(window.location.hostname || "");
+    if (host.endsWith(".vercel.app")) {
+      return "";
+    }
+  }
+  return fromEnv;
+}
+
 /** 프로덕션 빌드에서는 목 API 기본 OFF (REACT_APP_USE_MOCK_API=true 로만 켬). 개발은 기본 ON. */
 const USE_MOCK_API =
   process.env.NODE_ENV === "production"
     ? process.env.REACT_APP_USE_MOCK_API === "true"
     : process.env.REACT_APP_USE_MOCK_API !== "false";
-const DEFAULT_MOCK_DELAY_MS = Number(process.env.REACT_APP_MOCK_DELAY_MS || 300);
 
 function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
@@ -160,7 +175,7 @@ export async function request(path, { method = "GET", body, headers, ...rest } =
 
   let response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, {
+    response = await fetch(`${getApiBaseUrl()}${path}`, {
       method,
       credentials: rest.credentials ?? (USE_MOCK_API ? "same-origin" : "include"),
       headers: {

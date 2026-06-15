@@ -1,6 +1,29 @@
 {
   "rewrites": [
-    { "source": "/((?!static/).*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://backend-production-22ec.up.railway.app/api/:path*"
+    },
+    {
+      "source": "/oauth2/:path*",
+      "destination": "https://backend-production-22ec.up.railway.app/oauth2/:path*"
+    },
+    {
+      "source": "/login/:path*",
+      "destination": "https://backend-production-22ec.up.railway.app/login/:path*"
+    },
+    {
+      "source": "/logout",
+      "destination": "https://backend-production-22ec.up.railway.app/logout"
+    },
+    {
+      "source": "/actuator/:path*",
+      "destination": "https://backend-production-22ec.up.railway.app/actuator/:path*"
+    },
+    {
+      "source": "/((?!static/).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {

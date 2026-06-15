@@ -1,4 +1,4 @@
-import { createApiError } from "./client";
+import { createApiError, getApiBaseUrl } from "./client";
 
 function getBrowserOrigin() {
   if (typeof window === "undefined") return "";
@@ -7,18 +7,18 @@ function getBrowserOrigin() {
 
 /**
  * 카카오 로그인 시작 URL — Spring OAuth2 단일 경로.
- * REACT_APP_API_BASE_URL/oauth2/authorization/kakao
+ * Vercel same-origin 프록시 또는 REACT_APP_API_BASE_URL/oauth2/authorization/kakao
  */
 export function getKakaoOAuthStartUrl() {
-  const base = String(process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
-  if (!base) {
+  const base = getApiBaseUrl();
+  if (!base && typeof window === "undefined") {
     return null;
   }
   return `${base}/oauth2/authorization/kakao`;
 }
 
 export function getSpringOAuthApiBase() {
-  return String(process.env.REACT_APP_API_BASE_URL || "").replace(/\/$/, "");
+  return getApiBaseUrl();
 }
 
 export async function probeSpringOAuthBackend(timeoutMs = 2800) {

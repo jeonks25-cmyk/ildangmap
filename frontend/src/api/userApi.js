@@ -6,7 +6,7 @@ import {
 } from "../constants/authStorage";
 import { myProfileMock } from "../utils/myProfileMock";
 import { favoriteWorkersMock, oyajiTrustProfileMock } from "../utils/oyajiMock";
-import { isMockApiEnabled, runApiRequest } from "./client";
+import { isMockApiEnabled, runApiRequest, getApiBaseUrl } from "./client";
 import { authDiag } from "../utils/authDiag";
 
 const USER_MODE_STORAGE_KEY = "user_mode_v1";
@@ -138,7 +138,13 @@ export async function loginWithKakaoMock() {
 }
 
 function hasConfiguredLiveApi() {
-  return Boolean(String(process.env.REACT_APP_API_BASE_URL || "").trim());
+  if (String(getApiBaseUrl() || "").trim() || String(process.env.REACT_APP_API_BASE_URL || "").trim()) {
+    return true;
+  }
+  if (typeof window !== "undefined" && window.location.hostname.endsWith(".vercel.app")) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -185,6 +191,13 @@ export async function getMe() {
   const extracted = extractMePayload(raw);
   logMeJson("[AUTH-DIAG] getMe raw JSON", raw);
   logMeJson("[AUTH-DIAG] getMe extracted JSON", extracted);
+  if (raw && raw.success === true && extracted == null) {
+    authDiag("getMe missing user data", {
+      hint: "세션 쿠키(ILDANGMAPSESSION) 미전송 — Network 탭 Request Headers에 Cookie 확인",
+      apiBase: getApiBaseUrl() || "(same-origin)",
+      hasDataKey: Object.prototype.hasOwnProperty.call(raw, "data"),
+    });
+  }
   authDiag("getMe", { raw, extracted, rawDataId: raw?.data?.id, extractedId: extracted?.id });
   return extracted;
 }
