@@ -25,6 +25,7 @@ public class HealthCheckService {
         result.put("application", "ildangmap-backend");
         result.put("serverTime", LocalDateTime.now());
         result.put("authMode", "SESSION");
+        result.put("sessionBootstrap", true);
         result.put("oauthProvider", resolveOAuthProviderStatus());
         result.put("websocketReady", true);
         return result;

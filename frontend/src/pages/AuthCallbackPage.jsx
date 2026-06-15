@@ -72,6 +72,7 @@ export default function AuthCallbackPage() {
 
     console.log("login query", login);
     console.log("oauthSucceeded", oauthSucceeded);
+    console.log("bootstrap query bt", bootstrapToken ? "(present)" : "(missing)");
 
     authLog("callback start", { login, search: location.search });
     authDiag("AuthCallback start", {

@@ -67,7 +67,29 @@ export async function bootstrapSessionFromToken(bootstrapToken) {
     method: "POST",
     credentials: "include",
   });
-  return response.ok;
+  const contentType = String(response.headers.get("Content-Type") || "");
+  const ok = response.ok && contentType.includes("application/json");
+  if (!ok) {
+    console.warn("[AUTH-DIAG] bootstrap failed", {
+      status: response.status,
+      contentType,
+      url,
+    });
+  }
+  return ok;
+}
+
+/** Railway bootstrap API 배포 여부 확인 */
+export async function probeSessionBootstrapApi() {
+  const base = getSpringOAuthApiBase();
+  try {
+    const response = await fetch(`${base}/api/auth/session/status`, { credentials: "omit" });
+    if (!response.ok) return false;
+    const payload = await response.json();
+    return payload?.data?.bootstrapAvailable === true;
+  } catch {
+    return false;
+  }
 }
 
 /** @deprecated 프론트 callback OAuth — 사용하지 않음 */
