@@ -30,7 +30,7 @@ export default function AppShell() {
     let cancelled = false;
     (async () => {
       try {
-        await refreshCurrentUser();
+        await refreshCurrentUser({ waitForHydration: true });
       } catch {
         /* noop */
       }

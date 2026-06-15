@@ -22,7 +22,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     private String frontendOrigin;
 
     /** 로그인 후 SPA 진입 경로 (쿼리로 프론트가 /users/me 재동기화·환영 토스트) */
-    @Value("${app.post-login-redirect-path:/map}")
+    @Value("${app.post-login-redirect-path:/auth/callback}")
     private String postLoginRedirectPath;
 
     @Override

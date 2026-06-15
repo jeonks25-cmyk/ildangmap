@@ -1,5 +1,6 @@
 package com.ildangmap.service;
 
+import com.ildangmap.config.OAuth2AttributeUtils;
 import com.ildangmap.api.user.dto.MeResponse;
 import com.ildangmap.api.user.dto.NicknameAvailabilityResponse;
 import com.ildangmap.domain.user.NicknameChangeHistory;
@@ -41,9 +42,13 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public Optional<User> findByOAuth2User(OAuth2User oauth2User) {
-        String provider = String.valueOf(oauth2User.getAttribute("provider"));
-        String providerId = String.valueOf(oauth2User.getAttribute("providerId"));
-        if (!StringUtils.hasText(providerId) || "null".equals(providerId)) {
+        String provider = OAuth2AttributeUtils.nonBlankOrDefault(
+                OAuth2AttributeUtils.read(oauth2User, "provider"), "kakao");
+        String providerId = OAuth2AttributeUtils.read(oauth2User, "providerId");
+        if (!StringUtils.hasText(providerId)) {
+            providerId = OAuth2AttributeUtils.read(oauth2User, "id");
+        }
+        if (!StringUtils.hasText(providerId)) {
             return Optional.empty();
         }
         return userRepository.findByProviderAndProviderId(provider, providerId);
@@ -63,31 +68,30 @@ public class UserService {
 
     @Transactional
     public User upsertFromOAuth2(OAuth2User oauth2User) {
-        String provider = String.valueOf(oauth2User.getAttribute("provider"));
-        String providerId = String.valueOf(oauth2User.getAttribute("providerId"));
-        if (!StringUtils.hasText(providerId) || "null".equals(providerId)) {
+        String provider = OAuth2AttributeUtils.nonBlankOrDefault(
+                OAuth2AttributeUtils.read(oauth2User, "provider"), "kakao");
+        String providerId = OAuth2AttributeUtils.read(oauth2User, "providerId");
+        if (!StringUtils.hasText(providerId)) {
+            providerId = OAuth2AttributeUtils.read(oauth2User, "id");
+        }
+        if (!StringUtils.hasText(providerId)) {
             throw new IllegalStateException("OAuth2 providerId is missing");
         }
 
-        String email = normalizeEmail(oauth2User.getAttribute("email"));
-        String kakaoName = String.valueOf(oauth2User.getAttribute("kakaoName"));
-        if (!StringUtils.hasText(kakaoName) || "null".equals(kakaoName)) {
-            kakaoName = "kakao-user";
-        }
-        String profileImageUrl = String.valueOf(oauth2User.getAttribute("profileImageUrl"));
-        if (!StringUtils.hasText(profileImageUrl) || "null".equals(profileImageUrl)) {
-            profileImageUrl = "";
-        }
+        String kakaoName = OAuth2AttributeUtils.nonBlankOrDefault(
+                OAuth2AttributeUtils.read(oauth2User, "kakaoName"), "kakao-user");
+        String profileImageUrl = OAuth2AttributeUtils.nonBlankOrDefault(
+                OAuth2AttributeUtils.read(oauth2User, "profileImageUrl"), "");
 
         Optional<User> existing = userRepository.findByProviderAndProviderId(provider, providerId);
         if (existing.isPresent()) {
             User user = existing.get();
-            user.updateOAuthProfile(email, kakaoName, profileImageUrl);
+            user.updateOAuthProfile(null, kakaoName, profileImageUrl);
             return userRepository.save(user);
         }
 
         User created = User.builder()
-                .email(email)
+                .email(null)
                 .kakaoName(kakaoName)
                 .displayNickname(null)
                 .displayNicknameChangedAt(null)
@@ -231,14 +235,6 @@ public class UserService {
                 .nicknameChangeAvailableAt(availableAtIso)
                 .canChangeNickname(canChange)
                 .build();
-    }
-
-    private String normalizeEmail(Object emailAttr) {
-        if (emailAttr == null) {
-            return null;
-        }
-        String email = String.valueOf(emailAttr).trim();
-        return StringUtils.hasText(email) && !"null".equalsIgnoreCase(email) ? email : null;
     }
 
     public User requireUser(Long userId) {

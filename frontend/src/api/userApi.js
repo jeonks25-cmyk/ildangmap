@@ -136,12 +136,48 @@ export async function loginWithKakaoMock() {
   });
 }
 
+function hasConfiguredLiveApi() {
+  return Boolean(String(process.env.REACT_APP_API_BASE_URL || "").trim());
+}
+
+/**
+ * GET /api/users/me — ApiResponse envelope 또는 본문 → 사용자 객체.
+ * runApiRequest가 unwrap한 뒤에도 { data: { id } } 형태가 남는 경우를 처리한다.
+ */
+export function extractMePayload(payload) {
+  if (payload == null || typeof payload !== "object") return null;
+
+  const directId = payload.id ?? payload.userId;
+  if (directId != null && directId !== "") return payload;
+
+  if (Object.prototype.hasOwnProperty.call(payload, "data")) {
+    const inner = payload.data;
+    if (inner == null) return null;
+    if (typeof inner === "object") {
+      const innerId = inner.id ?? inner.userId;
+      if (innerId != null && innerId !== "") return inner;
+      if (
+        Object.prototype.hasOwnProperty.call(inner, "data") &&
+        inner.data != null &&
+        typeof inner.data === "object"
+      ) {
+        return inner.data;
+      }
+      if (payload.success === true) return inner;
+    }
+  }
+
+  return payload;
+}
+
 export async function getMe() {
-  return runApiRequest({
+  const raw = await runApiRequest({
     path: "/api/users/me",
-    useMock: isMockApiEnabled(),
+    /** 백엔드 URL이 있으면 OAuth 세션 동기화는 항상 live API */
+    useMock: isMockApiEnabled() && !hasConfiguredLiveApi(),
     mock: () => buildMockMeResponse(),
   });
+  return extractMePayload(raw);
 }
 
 export async function getUsers() {

@@ -58,13 +58,13 @@ public class User extends BaseTimeEntity {
     @Column(name = "user_type", nullable = false, length = 20)
     private UserType userType;
 
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false, length = 30, columnDefinition = "VARCHAR(30)")
     private String provider;
 
-    @Column(name = "provider_id", nullable = false, length = 80)
+    @Column(name = "provider_id", nullable = false, length = 80, columnDefinition = "VARCHAR(80)")
     private String providerId;
 
-    @Column(name = "profile_image_url", length = 255)
+    @Column(name = "profile_image_url", length = 255, columnDefinition = "VARCHAR(255)")
     private String profileImageUrl;
 
     @Column(nullable = false)

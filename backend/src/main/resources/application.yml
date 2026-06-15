@@ -44,7 +44,6 @@ spring:
             scope:
               - profile_nickname
               - profile_image
-              - account_email
         provider:
           kakao:
             authorization-uri: https://kauth.kakao.com/oauth/authorize
@@ -77,7 +76,7 @@ app:
 
 # --- 카카오 개발자 콘솔 (앱 > 플랫폼 Web 도메인 localhost 등록) ---
 # Redirect URI (Spring OAuth2): http://localhost:8080/login/oauth2/code/kakao
-# 동의항목: 닉네임·프로필 사진·카카오계정(이메일) — application.yml scope 와 일치
+# 동의항목: 닉네임(필수)·프로필 사진(선택) — account_email 미사용
 
 logging:
   level:

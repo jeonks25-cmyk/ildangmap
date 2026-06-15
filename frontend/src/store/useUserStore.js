@@ -7,6 +7,7 @@ import {
   USER_PROFILE_STORAGE_KEY,
 } from "../constants/authStorage";
 import {
+  extractMePayload,
   getFavoriteWorkers,
   getMe,
   getOyajiTrustProfile,
@@ -31,6 +32,40 @@ import { validateNicknameInput } from "../utils/displayNickname";
 const STORE_KEY = "ildangmap_user_store_v1";
 
 let refreshCurrentUserInFlight = null;
+
+const HYDRATION_WAIT_MS = 3000;
+
+function waitForUserStoreHydration(timeoutMs = HYDRATION_WAIT_MS) {
+  const persistApi = useUserStore.persist;
+  if (persistApi.hasHydrated()) {
+    return Promise.resolve(true);
+  }
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (hydrated) => {
+      if (settled) return;
+      settled = true;
+      resolve(Boolean(hydrated));
+    };
+
+    const unsub = persistApi.onFinishHydration(() => {
+      if (typeof unsub === "function") unsub();
+      finish(true);
+    });
+
+    // hasHydrated 체크와 리스너 등록 사이 레이스
+    if (persistApi.hasHydrated()) {
+      if (typeof unsub === "function") unsub();
+      finish(true);
+      return;
+    }
+
+    window.setTimeout(() => {
+      if (typeof unsub === "function") unsub();
+      finish(persistApi.hasHydrated());
+    }, timeoutMs);
+  });
+}
 const USER_MODE_STORAGE_KEY = "user_mode_v1";
 const USER_PREFS_STORAGE_KEY = "user_map_prefs_v1";
 const VALID_CRAFTS = ["film", "wallpaper", "tile", "electric", "facility", "paint"];
@@ -223,7 +258,9 @@ function normalizeProfile(raw) {
 
 /** GET /users/me 응답 → Zustand (세션이 진실 소스) */
 function applyMeResponse(state, me, providerOverride) {
-  if (!me || me.id == null) {
+  const normalizedMe = extractMePayload(me);
+  const userId = normalizedMe?.id ?? normalizedMe?.userId;
+  if (userId == null || userId === "") {
     return {
       authReady: true,
       meBootstrapLoading: false,
@@ -237,12 +274,12 @@ function applyMeResponse(state, me, providerOverride) {
       profile: normalizeProfile(createDefaultProfile()),
     };
   }
-  const userId = String(me.id);
-  const displayNickname = String(me.displayNickname || "").trim();
-  const nicknameSetupRequired = Boolean(me.nicknameSetupRequired);
-  const applicantId = Number(me.id);
+  const userIdStr = String(userId);
+  const displayNickname = String(normalizedMe.displayNickname || "").trim();
+  const nicknameSetupRequired = Boolean(normalizedMe.nicknameSetupRequired);
+  const applicantId = Number(normalizedMe.id ?? normalizedMe.userId);
   const provider = providerOverride || state.session.provider || state.profile.loginProvider || "kakao";
-  const profileImage = me.profileImageUrl || state.profile.profileImage || "";
+  const profileImage = normalizedMe.profileImageUrl || state.profile.profileImage || "";
   return {
     authReady: true,
     meBootstrapLoading: false,
@@ -252,23 +289,23 @@ function applyMeResponse(state, me, providerOverride) {
       provider,
       accessToken: state.session.accessToken || "",
       user: {
-        id: userId,
+        id: userIdStr,
         nickname: displayNickname,
         profileImage,
       },
     }),
     profile: normalizeProfile({
       ...state.profile,
-      id: userId,
+      id: userIdStr,
       applicantUserId: Number.isFinite(applicantId) && applicantId > 0 ? applicantId : state.profile.applicantUserId,
       nickname: displayNickname,
       displayNickname,
       profileImage,
       nicknameSetupRequired,
       setupCompleted: !nicknameSetupRequired && Boolean(displayNickname),
-      canChangeNickname: me.canChangeNickname !== false,
-      nicknameChangeAvailableAt: me.nicknameChangeAvailableAt || "",
-      userType: me.userType ? String(me.userType).toLowerCase() : state.profile.userType,
+      canChangeNickname: normalizedMe.canChangeNickname !== false,
+      nicknameChangeAvailableAt: normalizedMe.nicknameChangeAvailableAt || "",
+      userType: normalizedMe.userType ? String(normalizedMe.userType).toLowerCase() : state.profile.userType,
       loginProvider: provider,
     }),
   };
@@ -376,7 +413,10 @@ export const useUserStore = create(
           }),
         })),
 
-      refreshCurrentUser: async () => {
+      refreshCurrentUser: async (options = {}) => {
+        if (options.waitForHydration) {
+          await waitForUserStoreHydration(options.hydrationTimeoutMs);
+        }
         if (refreshCurrentUserInFlight) {
           return refreshCurrentUserInFlight;
         }
@@ -750,6 +790,7 @@ export const useUserStore = create(
           "favoriteWorkers",
           "oyajiTrustProfile",
           "extrasLoaded",
+          "meVerified",
         ]),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -758,11 +799,12 @@ export const useUserStore = create(
             state.profile = { ...state.profile, needsPersonaChoice: false };
           }
         }
-        // authReady는 persist 대상이 아님 — rehydrate 직후 UI 잠금 해제 (이후 /me는 백그라운드)
+        const sessionAuthed = state?.session?.isAuthenticated === true;
         const patch = {
           authReady: true,
           meBootstrapLoading: false,
-          meVerified: false,
+          // persist된 /me 동기화 결과 유지 — stale session만으로는 meVerified true 금지
+          meVerified: sessionAuthed ? Boolean(state?.meVerified) : false,
           extrasLoading: false,
         };
         if (state?.profile?.needsPersonaChoice) {

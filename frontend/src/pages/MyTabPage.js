@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { isDevLoginShortcutEnabled, isMockApiEnabled } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import { useJobs } from "../context/JobsContext";
 import { useUiStore } from "../store/useUiStore";
+import { useUserStore } from "../store/useUserStore";
 import { runNextFieldFlowSim } from "../utils/fieldFlowSimulator";
 import { useUserProfile } from "../context/UserProfileContext";
 import SettingsMenuSection from "../components/settings/SettingsMenuSection";
@@ -16,8 +17,9 @@ import "../styles/settings-tab-mobile.css";
 
 export default function MyTabPage() {
   const overlay = useTabNotificationOverlay();
-  const { authUser, isAuthenticated, authReady, loginWithKakaoMock, startKakaoOAuthLogin, logout, meBootstrapLoading } =
+  const { authUser, isAuthenticated, authReady, meVerified, loginWithKakaoMock, startKakaoOAuthLogin, logout, meBootstrapLoading } =
     useAuth();
+  const refreshCurrentUser = useUserStore((s) => s.refreshCurrentUser);
   const { profile } = useUserProfile();
   const { jobs, setJobs } = useJobs();
   const showAppToast = useUiStore((state) => state.showAppToast);
@@ -25,6 +27,13 @@ export default function MyTabPage() {
 
   const displayName = getDisplayNickname(profile, authUser);
   const displayImage = profile?.profileImage || authUser?.profileImage;
+
+  useEffect(() => {
+    if (!authReady || meBootstrapLoading || isAuthenticated || isMockApiEnabled()) return;
+    refreshCurrentUser({ waitForHydration: true }).catch(() => {
+      /* bootstrap / callback에서 처리 */
+    });
+  }, [authReady, meBootstrapLoading, isAuthenticated, meVerified, refreshCurrentUser]);
 
   const onKakaoFromMy = useCallback(async () => {
     if (kakaoBusy || meBootstrapLoading) return;
@@ -92,7 +101,7 @@ export default function MyTabPage() {
           <SettingsProfileBanner displayName={displayName} displayImage={displayImage} />
         ) : null}
 
-        {!isAuthenticated && authReady ? (
+        {!isAuthenticated && authReady && !meBootstrapLoading ? (
           <section className="my-tab-page__login-area" aria-label="로그인">
             <button
               type="button"

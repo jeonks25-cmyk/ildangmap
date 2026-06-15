@@ -1,5 +1,6 @@
 package com.ildangmap.service;
 
+import com.ildangmap.config.OAuth2AttributeUtils;
 import com.ildangmap.domain.user.User;
 import com.ildangmap.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -7,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.Optional;
 
@@ -25,9 +27,13 @@ public class SessionUserService {
         if (!(principal instanceof OAuth2User oauth2User)) {
             return Optional.empty();
         }
-        String provider = String.valueOf(oauth2User.getAttribute("provider"));
-        String providerId = String.valueOf(oauth2User.getAttribute("providerId"));
-        if (providerId == null || providerId.isBlank() || "null".equals(providerId)) {
+        String provider = OAuth2AttributeUtils.nonBlankOrDefault(
+                OAuth2AttributeUtils.read(oauth2User, "provider"), "kakao");
+        String providerId = OAuth2AttributeUtils.read(oauth2User, "providerId");
+        if (!StringUtils.hasText(providerId)) {
+            providerId = OAuth2AttributeUtils.read(oauth2User, "id");
+        }
+        if (!StringUtils.hasText(providerId)) {
             return Optional.empty();
         }
         return userRepository.findByProviderAndProviderId(provider, providerId).map(User::getId);

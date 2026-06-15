@@ -1,10 +1,19 @@
 server:
+  forward-headers-strategy: framework
   servlet:
     session:
       cookie:
         secure: true
 
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            # prod: 샘플 폴백 없음 — 미설정 시 기동 실패로 조기 발견
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
   jpa:
     hibernate:
       ddl-auto: update
