@@ -16,6 +16,27 @@ export const useMapItemStore = create(
         }));
         return item;
       },
+      updateMapItem: (id, patch = {}) => {
+        let updated = null;
+        set((state) => ({
+          items: (Array.isArray(state.items) ? state.items : []).map((item) => {
+            if (String(item.id) !== String(id)) return item;
+            const next = normalizeMapItemDraft({
+              ...item,
+              ...patch,
+              id: item.id,
+              sourceMeta: {
+                ...(item.sourceMeta || {}),
+                ...(patch.sourceMeta || {}),
+                updatedAt: new Date().toISOString(),
+              },
+            });
+            updated = next;
+            return next;
+          }),
+        }));
+        return updated;
+      },
       setItems: (nextItems) =>
         set((state) => {
           const resolved = resolveUpdater(state.items, nextItems);

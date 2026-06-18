@@ -1795,6 +1795,94 @@
   color: #ffffff;
 }
 
+.place-register-sheet__panel,
+.place-register-sheet .map-life-info-sheet__panel {
+  pointer-events: auto;
+}
+
+.place-register-sheet__status {
+  margin: 4px 0 8px;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.place-register-sheet__auto {
+  display: grid;
+  gap: 6px;
+}
+
+.place-register-sheet__auto-label {
+  margin: 0;
+  color: var(--ildang-brand-dark);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.place-register-sheet__auto-title {
+  margin: 0;
+  color: #111827;
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.place-register-sheet__distance {
+  margin: 0;
+  color: #78716c;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.place-register-sheet__map-links {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.place-register-sheet__primary {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--ildang-brand);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.place-register-sheet__primary:disabled {
+  opacity: 0.45;
+}
+
+.place-register-sheet__manual {
+  display: grid;
+  gap: 8px;
+}
+
+.place-register-sheet__manual-lead {
+  margin: 0;
+  color: #4b5563;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.place-register-sheet__desc {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 10px;
+  outline: none;
+  resize: vertical;
+}
+
 .map-search-panel__recent-text {
   display: grid;
   gap: 2px;

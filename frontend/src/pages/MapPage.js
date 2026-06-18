@@ -47,7 +47,7 @@ import MapOperationContextCard from "../components/map/MapOperationContextCard";
 import MapFloatingActionLayer from "../components/map/MapFloatingActionLayer";
 import MapSearchPanel from "../components/map/MapSearchPanel";
 import "../components/map/map-search-panel-card.css";
-import MapSearchDraftSheet from "../components/map/MapSearchDraftSheet";
+import PlaceRegisterSheet from "../components/map/PlaceRegisterSheet";
 import MapSearchMarkerInfo from "../components/map/MapSearchMarkerInfo";
 import FieldFlowStrip from "../components/field/FieldFlowStrip";
 import MapWriteMenuSheet from "../components/map/MapWriteMenuSheet";
@@ -102,6 +102,8 @@ import { useSettlementStore } from "../store/useSettlementStore";
 import { getScheduleDurationDays } from "../utils/scheduleModel";
 import { searchKakaoPlaces } from "../utils/mapPlaceSearch";
 import { reverseGeocodeLatLngDetailed } from "../utils/mapReverseGeocode";
+import { autoFillPlaceFromLatLng } from "../utils/placeRegisterAutoFill";
+import { logPlaceRegister, resolvePlaceName } from "../utils/placeRegisterDebug";
 import {
   installMapPinchTouchDebug,
   isMapMinimalUiEnabled,
@@ -408,6 +410,7 @@ export default function MapPage() {
   const setLayersVisible = useMapLayerStore((state) => state.setLayersVisible);
   const customLifeItems = useMapItemStore((state) => state.items);
   const addMapItemDraft = useMapItemStore((state) => state.addMapItemDraft);
+  const updateMapItem = useMapItemStore((state) => state.updateMapItem);
   const experienceRecords = useFieldExperienceStore((state) => state.records);
   const quickSaveExperience = useFieldExperienceStore((state) => state.quickSaveExperience);
   const checkInRecords = useFieldCheckInStore((state) => state.records);
@@ -741,15 +744,49 @@ export default function MapPage() {
     (place) => {
       if (!place) return;
       if (!guardMemberAction("post")) return;
+      const editingId = place.source?.id || place.sourceId || place.id;
       appendChangeHistory(getPlaceInfoKey(place), {
         at: new Date().toISOString(),
         by: getDisplayNickname(profile, sessionUser),
         action: "edit_opened",
         detail: "정보 수정 화면을 열었습니다.",
       });
-      showAppToast("장소 정보 수정 (목업)");
+      const sourceMeta = place.source?.meta && typeof place.source.meta === "object" ? place.source.meta : {};
+      const draft = {
+        id: `edit_place:${editingId}`,
+        editingId,
+        mode: "edit_place",
+        type: "search_draft",
+        layer: "search_draft",
+        label: "장소 수정",
+        title: place.title || "",
+        description: sourceMeta.description || place.source?.description || "",
+        lat: place.lat,
+        lng: place.lng,
+        address: place.address,
+        roadAddress: place.roadAddress,
+        jibunAddress: place.jibunAddress,
+        preferredType: place.type || place.layer,
+        placeUrl: sourceMeta.placeUrl || "",
+        kakaoMapLink: sourceMeta.kakaoMapLink || "",
+        naverMapLink: sourceMeta.naverMapLink || "",
+        manualRequired: false,
+        autoFillLoading: false,
+        comments: place.comments || [],
+        source: { savedFrom: "map_edit" },
+      };
+      markerClickAtRef.current = Date.now();
+      setPlaceOverlayDetail(null);
+      setPlaceListFocusItem(null);
+      setLifeInfoItem(null);
+      openMapDraftPinPanel(draft);
+      setSelectedEstimateId(null);
+      setDetailJobId(null);
+      if (isReady && kakao && map && Number.isFinite(Number(place.lat)) && Number.isFinite(Number(place.lng))) {
+        map.setCenter(new kakao.maps.LatLng(place.lat, place.lng));
+      }
     },
-    [profile, sessionUser, showAppToast],
+    [isReady, kakao, map, openMapDraftPinPanel, profile, sessionUser, setDetailJobId],
   );
 
   const onJobMarkerClick = useCallback(
@@ -920,7 +957,8 @@ export default function MapPage() {
         nextLng = Number(center?.getLng?.());
       }
       if (!Number.isFinite(nextLat) || !Number.isFinite(nextLng)) return;
-      const addressInfo = await reverseGeocodeLatLngDetailed(kakao, nextLat, nextLng);
+      const placeType = preferredType || MAP_ITEM_TYPE.RESTAURANT;
+      const isFieldPick = mode === "field_location_pick";
       const draft = {
         id: `search_draft:direct:${Date.now()}`,
         sourceId: `direct:${Date.now()}`,
@@ -930,12 +968,14 @@ export default function MapPage() {
         title: "",
         lat: nextLat,
         lng: nextLng,
-        address: addressInfo.address,
-        roadAddress: addressInfo.roadAddress,
-        jibunAddress: addressInfo.jibunAddress,
+        address: "",
+        roadAddress: "",
+        jibunAddress: "",
         tone: "search-draft",
-        preferredType,
+        preferredType: isFieldPick ? null : placeType,
         mode,
+        autoFillLoading: !isFieldPick,
+        manualRequired: false,
         comments: [],
         source: { savedFrom: "map_direct" },
       };
@@ -945,6 +985,26 @@ export default function MapPage() {
       setDetailJobId(null);
       map.setCenter(new kakao.maps.LatLng(nextLat, nextLng));
       setQuickAddOpen(false);
+
+      if (isFieldPick) {
+        const addressInfo = await reverseGeocodeLatLngDetailed(kakao, nextLat, nextLng);
+        setTempSearchItem((prev) =>
+          prev
+            ? {
+                ...prev,
+                ...addressInfo,
+                autoFillLoading: false,
+              }
+            : prev
+        );
+        return;
+      }
+
+      const seq = ++centerGeocodeSeqRef.current;
+      autoFillPlaceFromLatLng(kakao, nextLat, nextLng, placeType).then((result) => {
+        if (seq !== centerGeocodeSeqRef.current) return;
+        setTempSearchItem((prev) => (prev ? { ...prev, ...result, autoFillLoading: false } : prev));
+      });
     },
     [kakao, map, openMapDraftPinPanel, setDetailJobId]
   );
@@ -1071,30 +1131,77 @@ export default function MapPage() {
     setFieldImportOpen(true);
   }, [closeMapActivePanel]);
 
-  const handleRegisterSearchDraft = useCallback(
-    (type, nextTitle) => {
-      if (!tempSearchItem || !type) return;
+  const handlePlaceRegister = useCallback(
+    (payload) => {
+      if (!tempSearchItem || !payload?.type) return;
+      const type = payload.type;
       const now = new Date().toISOString();
-      const title = String(nextTitle || tempSearchItem.title || MAP_ITEM_TYPE_LABEL[type] || "등록 위치").trim();
+      const resolvedTitle = String(
+        payload.title ||
+          tempSearchItem.title ||
+          tempSearchItem.placeName ||
+          resolvePlaceName(tempSearchItem.nearestPlace) ||
+          ""
+      ).trim();
+      const title = resolvedTitle || MAP_ITEM_TYPE_LABEL[type] || "등록 위치";
+      const description = String(payload.description || tempSearchItem.description || "").trim();
       const raw = {
-        id: `${type}:custom:${Date.now()}`,
+        id: tempSearchItem.editingId || `${type}:custom:${Date.now()}`,
         type,
         title,
+        description,
         lat: tempSearchItem.lat,
         lng: tempSearchItem.lng,
         address: tempSearchItem.address,
         roadAddress: tempSearchItem.roadAddress,
         jibunAddress: tempSearchItem.jibunAddress,
-        comments: [],
+        placeUrl: payload.placeUrl || tempSearchItem.placeUrl || "",
+        kakaoMapLink: payload.kakaoMapLink || tempSearchItem.kakaoMapLink || "",
+        naverMapLink: payload.naverMapLink || tempSearchItem.naverMapLink || "",
+        nearestPlaceId: payload.nearestPlaceId || tempSearchItem.nearestPlace?.id || "",
+        comments: tempSearchItem.comments || [],
+        meta: {
+          description,
+          placeUrl: payload.placeUrl || tempSearchItem.placeUrl || "",
+          kakaoMapLink: payload.kakaoMapLink || tempSearchItem.kakaoMapLink || "",
+          naverMapLink: payload.naverMapLink || tempSearchItem.naverMapLink || "",
+          nearestPlaceId: payload.nearestPlaceId || tempSearchItem.nearestPlace?.id || "",
+        },
         sourceMeta: {
           createdBy: "일당맵 사용자",
           updatedAt: now,
           trustScore: 0,
           reportCount: 0,
           verificationStatus: "editable",
-          editHistory: [{ at: now, action: "created_from_search" }],
+          editHistory: [{ at: now, action: tempSearchItem.mode === "edit_place" ? "updated_from_map" : "created_from_search" }],
         },
       };
+
+      logPlaceRegister("PLACE-SAVE", {
+        resolvedTitle,
+        title,
+        usedTypeLabelFallback: !resolvedTitle,
+        fallbackSource: !resolvedTitle ? `MAP_ITEM_TYPE_LABEL.${type}=${MAP_ITEM_TYPE_LABEL[type]}` : null,
+        nearestPlace: tempSearchItem.nearestPlace
+          ? {
+              place_name: tempSearchItem.nearestPlace.place_name,
+              placeName: tempSearchItem.nearestPlace.placeName,
+              title: tempSearchItem.nearestPlace.title,
+            }
+          : null,
+        payload,
+        raw,
+      });
+
+      if (tempSearchItem.mode === "edit_place" && tempSearchItem.editingId) {
+        const updated = updateMapItem(tempSearchItem.editingId, raw);
+        const item = createMapItemFromLifeInfo(updated || raw);
+        closeMapActivePanel();
+        if (item) openPlaceOverlayDetail(item);
+        showAppToast("장소 정보를 저장했습니다");
+        return;
+      }
+
       const item = createMapItemFromLifeInfo(raw);
       addMapItemDraft(raw);
       const fieldKey = getMapFieldMemoryKey(selectedFieldMapItem);
@@ -1110,10 +1217,40 @@ export default function MapPage() {
       }
       setLayerVisible(type, true);
       setSearchQuery("");
+      closeMapActivePanel();
       openPlaceOverlayDetail(item);
       showAppToast(`${MAP_ITEM_TYPE_LABEL[type] || "일당맵"}으로 등록했습니다`);
     },
-    [addMapItemDraft, openPlaceOverlayDetail, selectedFieldMapItem, setLayerVisible, setSearchQuery, showAppToast, tempSearchItem]
+    [
+      addMapItemDraft,
+      closeMapActivePanel,
+      openPlaceOverlayDetail,
+      selectedFieldMapItem,
+      setLayerVisible,
+      setSearchQuery,
+      showAppToast,
+      tempSearchItem,
+      updateMapItem,
+    ]
+  );
+
+  const handlePreferredTypeChange = useCallback(
+    (nextType) => {
+      if (!nextType || !kakao) return;
+      setTempSearchItem((prev) => (prev ? { ...prev, preferredType: nextType, autoFillLoading: true } : prev));
+      const item = tempSearchItemRef.current;
+      const lat = Number(item?.lat);
+      const lng = Number(item?.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      const seq = ++centerGeocodeSeqRef.current;
+      autoFillPlaceFromLatLng(kakao, lat, lng, nextType).then((result) => {
+        if (seq !== centerGeocodeSeqRef.current) return;
+        setTempSearchItem((prev) =>
+          prev ? { ...prev, preferredType: nextType, ...result, autoFillLoading: false } : prev
+        );
+      });
+    },
+    [kakao]
   );
 
   const handleQuickSaveExperience = useCallback(
@@ -1242,16 +1379,39 @@ export default function MapPage() {
       return { lat, lng };
     };
 
-    const updateDraftCenter = ({ withAddress = false } = {}) => {
+    const updateDraftCenter = ({ withAutoFill = false } = {}) => {
       markerClickAtRef.current = Date.now();
       const next = readCenter();
       if (!next || !tempSearchItemRef.current) return;
-      if (!withAddress) {
-        setTempSearchItem((prev) => (prev ? { ...prev, lat: next.lat, lng: next.lng } : prev));
+      const isFieldPick = tempSearchItemRef.current.mode === "field_location_pick";
+      if (!withAutoFill) {
+        setTempSearchItem((prev) =>
+          prev ? { ...prev, lat: next.lat, lng: next.lng, autoFillLoading: !isFieldPick } : prev
+        );
         return;
       }
       const seq = ++centerGeocodeSeqRef.current;
-      reverseGeocodeLatLngDetailed(kakao, next.lat, next.lng).then((addressInfo) => {
+      if (isFieldPick) {
+        reverseGeocodeLatLngDetailed(kakao, next.lat, next.lng).then((addressInfo) => {
+          if (seq !== centerGeocodeSeqRef.current) return;
+          setCenterPinMoving(false);
+          if (!tempSearchItemRef.current) return;
+          setTempSearchItem((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  lat: next.lat,
+                  lng: next.lng,
+                  ...addressInfo,
+                  autoFillLoading: false,
+                }
+              : prev
+          );
+        });
+        return;
+      }
+      const placeType = tempSearchItemRef.current.preferredType || MAP_ITEM_TYPE.RESTAURANT;
+      autoFillPlaceFromLatLng(kakao, next.lat, next.lng, placeType).then((result) => {
         if (seq !== centerGeocodeSeqRef.current) return;
         setCenterPinMoving(false);
         if (!tempSearchItemRef.current) return;
@@ -1261,9 +1421,8 @@ export default function MapPage() {
                 ...prev,
                 lat: next.lat,
                 lng: next.lng,
-                address: addressInfo.address,
-                roadAddress: addressInfo.roadAddress,
-                jibunAddress: addressInfo.jibunAddress,
+                ...result,
+                autoFillLoading: false,
               }
             : prev
         );
@@ -1274,13 +1433,13 @@ export default function MapPage() {
       if (centerGeocodeTimerRef.current) window.clearTimeout(centerGeocodeTimerRef.current);
       centerGeocodeTimerRef.current = window.setTimeout(() => {
         centerGeocodeTimerRef.current = null;
-        updateDraftCenter({ withAddress: true });
+        updateDraftCenter({ withAutoFill: true });
       }, delay);
     };
 
     const handleCenterChanged = () => {
       setCenterPinMoving(true);
-      updateDraftCenter({ withAddress: false });
+      updateDraftCenter({ withAutoFill: false });
       scheduleAddressSync(360);
     };
 
@@ -1290,7 +1449,7 @@ export default function MapPage() {
 
     kakao.maps.event.addListener(map, "center_changed", handleCenterChanged);
     kakao.maps.event.addListener(map, "idle", handleIdle);
-    updateDraftCenter({ withAddress: false });
+    updateDraftCenter({ withAutoFill: false });
     scheduleAddressSync(80);
 
     return () => {
@@ -1924,14 +2083,15 @@ export default function MapPage() {
         </Suspense>
       ) : null}
 
-      <MapSearchDraftSheet
+      <PlaceRegisterSheet
         item={tempSearchItem}
         open={placeRegisterOpen}
         onClose={() => {
           closeMapActivePanel();
           setQuickAddOpen(false);
         }}
-        onRegister={handleRegisterSearchDraft}
+        onRegister={handlePlaceRegister}
+        onPreferredTypeChange={handlePreferredTypeChange}
       />
 
       {experienceSaveContext ? (

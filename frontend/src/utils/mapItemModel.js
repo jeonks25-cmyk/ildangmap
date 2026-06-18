@@ -116,7 +116,7 @@ export function createMapItemFromLifeInfo(raw) {
   const metaText =
     typeof raw.meta === "string"
       ? raw.meta
-      : raw.meta?.text || raw.meta?.sourceText || raw.description || "";
+      : raw.meta?.description || raw.meta?.text || raw.meta?.sourceText || raw.description || "";
   return {
     id: raw.id || `${type}:${lat}:${lng}:${raw.title || ""}`,
     sourceId: raw.sourceId || raw.id || "",

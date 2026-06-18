@@ -3,9 +3,13 @@ export function normalizeKakaoPlace(place) {
   const lat = Number(place.y);
   const lng = Number(place.x);
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  const placeName = String(place.place_name || "").trim();
+  const apiDistance = Number(place.distance);
   return {
-    id: place.id || `${lat}:${lng}:${place.place_name || ""}`,
-    title: place.place_name || "검색 위치",
+    id: place.id || `${lat}:${lng}:${placeName}`,
+    placeName,
+    place_name: placeName,
+    title: placeName || "검색 위치",
     lat,
     lng,
     roadAddress: place.road_address_name || "",
@@ -14,6 +18,7 @@ export function normalizeKakaoPlace(place) {
     categoryName: place.category_name || "",
     phone: place.phone || "",
     placeUrl: place.place_url || "",
+    distanceM: Number.isFinite(apiDistance) ? apiDistance : null,
   };
 }
 

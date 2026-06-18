@@ -77,12 +77,17 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
   const title = getPlaceRowTitle(place);
   const reviewNeeded = showInfoMenu && needsPlaceReview(getPlaceInfoKey(place));
 
-  const links = buildExternalMapLinks({
+  const savedMeta = place.source?.meta && typeof place.source.meta === "object" ? place.source.meta : {};
+  const fallbackLinks = buildExternalMapLinks({
     lat: place.lat,
     lng: place.lng,
     title,
     address: boardSeed.address,
   });
+  const links = {
+    naver: savedMeta.naverMapLink || fallbackLinks.naver,
+    kakao: savedMeta.kakaoMapLink || fallbackLinks.kakao,
+  };
 
   const toast = (message) => {
     if (onToast) onToast(message);
