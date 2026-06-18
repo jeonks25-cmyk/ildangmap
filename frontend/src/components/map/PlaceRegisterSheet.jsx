@@ -1,7 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { MAP_ITEM_TYPE } from "../../constants/mapItemTypes";
-import { getPlaceRegisterConfig, PLACE_REGISTER_CONFIG } from "../../constants/placeRegisterConfig";
+import {
+  getPlaceRegisterConfig,
+  PLACE_AUTO_SEARCH_FAIL_MESSAGE,
+  PLACE_REGISTER_CONFIG,
+  PLACE_REGISTER_MODE,
+} from "../../constants/placeRegisterConfig";
 import { getPlaceTypeIcon } from "../../utils/placeDistance";
+import { canQuickRegisterPlace, shouldShowManualForm } from "../../utils/placeRegisterUx";
 
 const REGISTER_CATEGORIES = [
   { type: MAP_ITEM_TYPE.FIELD, label: "아파트" },
@@ -10,11 +16,15 @@ const REGISTER_CATEGORIES = [
   { type: MAP_ITEM_TYPE.RESTAURANT, label: "식당" },
 ];
 
-function buildRegisterPayload(item, type, title, description) {
+function buildRegisterPayload(item, type, title, description, locationHint) {
+  const resolvedDescription = String(
+    locationHint || description || item?.description || ""
+  ).trim();
   return {
     type,
     title: String(title || item?.title || item?.placeName || "").trim(),
-    description: String(description || item?.description || "").trim(),
+    description: resolvedDescription,
+    locationHint: String(locationHint || "").trim(),
     lat: item?.lat,
     lng: item?.lng,
     address: item?.address,
@@ -27,9 +37,36 @@ function buildRegisterPayload(item, type, title, description) {
   };
 }
 
+function MapLinkButtons({ kakaoMapLink, naverMapLink }) {
+  if (!kakaoMapLink && !naverMapLink) return null;
+  return (
+    <div className="place-register-sheet__map-links">
+      {kakaoMapLink ? (
+        <a
+          className="place-detail-card__map-btn place-detail-card__map-btn--kakao"
+          href={kakaoMapLink}
+          target="_blank"
+          rel="noreferrer"
+        >
+          카카오맵
+        </a>
+      ) : null}
+      {naverMapLink ? (
+        <a
+          className="place-detail-card__map-btn place-detail-card__map-btn--naver"
+          href={naverMapLink}
+          target="_blank"
+          rel="noreferrer"
+        >
+          네이버지도
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
 /**
- * 장소 등록 시트 — 식당·화장실·주차 등 공통.
- * 자동 채우기 성공 시 2탭 이내 등록, 실패 시에만 직접 입력.
+ * 장소 등록 시트 — 카테고리별 UX (식당 자동 / 주차 선택 / 화장실 수동).
  */
 export default function PlaceRegisterSheet({
   item,
@@ -40,19 +77,24 @@ export default function PlaceRegisterSheet({
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [locationHint, setLocationHint] = useState("");
   const [activeType, setActiveType] = useState(MAP_ITEM_TYPE.RESTAURANT);
+  const [forceManualEntry, setForceManualEntry] = useState(false);
 
   const isEdit = item?.mode === "edit_place";
   const loading = Boolean(item?.autoFillLoading);
-  const manualRequired = Boolean(item?.manualRequired);
   const preferredType = item?.preferredType || activeType;
   const config = getPlaceRegisterConfig(preferredType);
+  const isManualFirst = config?.mode === PLACE_REGISTER_MODE.MANUAL_FIRST;
+  const isRestroom = preferredType === MAP_ITEM_TYPE.RESTROOM;
 
   useEffect(() => {
     if (!open || !item) return;
     setTitle(item.title || item.placeName || "");
     setDescription(item.description || "");
+    setLocationHint(item.locationHint || item.meta?.locationHint || "");
     setActiveType(item.preferredType || MAP_ITEM_TYPE.RESTAURANT);
+    setForceManualEntry(false);
   }, [item, open]);
 
   const quickRegisterType = useMemo(() => {
@@ -66,9 +108,15 @@ export default function PlaceRegisterSheet({
 
   const roadAddress = item.roadAddress || item.address || "";
   const jibunAddress = item.jibunAddress || "";
-  const showManualFields = manualRequired || isEdit;
   const canQuickRegister =
-    !isEdit && !loading && !manualRequired && Boolean(roadAddress || item.title) && quickConfig;
+    !forceManualEntry && canQuickRegisterPlace(item, quickConfig, { isEdit, loading });
+  const showManualFields = shouldShowManualForm(item, config, { isEdit, loading, canQuickRegister });
+  const showFailHint =
+    Boolean(item.showAutoSearchFailHint) &&
+    !loading &&
+    !isManualFirst &&
+    showManualFields &&
+    !isEdit;
 
   const handleTypeSelect = (type) => {
     setActiveType(type);
@@ -77,8 +125,19 @@ export default function PlaceRegisterSheet({
 
   const handleRegister = (type) => {
     const resolvedType = type || preferredType || activeType;
-    onRegister?.(buildRegisterPayload(item, resolvedType, title, description));
+    onRegister?.(buildRegisterPayload(item, resolvedType, title, description, locationHint));
   };
+
+  const titlePlaceholder =
+    config?.titlePlaceholder || (config?.label ? `${config.label} 이름` : "장소 이름");
+  const descPlaceholder =
+    config?.locationHintPlaceholder ||
+    config?.descriptionPlaceholder ||
+    (isRestroom ? "위치 설명" : "설명 (선택)");
+
+  const canSubmitManual = isRestroom
+    ? Boolean(title.trim() || locationHint.trim())
+    : Boolean(title.trim());
 
   return (
     <div className="map-life-info-sheet map-search-draft-sheet place-register-sheet" role="presentation">
@@ -95,7 +154,7 @@ export default function PlaceRegisterSheet({
 
         {loading ? (
           <p className="place-register-sheet__status" role="status">
-            주소와 장소를 찾는 중…
+            {isManualFirst ? "주소를 확인하는 중…" : "주소와 장소를 찾는 중…"}
           </p>
         ) : null}
 
@@ -112,79 +171,101 @@ export default function PlaceRegisterSheet({
             {item.nearestDistanceM != null ? (
               <p className="place-register-sheet__distance">약 {Math.round(item.nearestDistanceM)}m 거리</p>
             ) : null}
-            <div className="place-register-sheet__map-links">
-              {item.kakaoMapLink ? (
-                <a
-                  className="place-detail-card__map-btn place-detail-card__map-btn--kakao"
-                  href={item.kakaoMapLink}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  카카오맵
-                </a>
-              ) : null}
-              {item.naverMapLink ? (
-                <a
-                  className="place-detail-card__map-btn place-detail-card__map-btn--naver"
-                  href={item.naverMapLink}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  네이버지도
-                </a>
-              ) : null}
-            </div>
+            <MapLinkButtons kakaoMapLink={item.kakaoMapLink} naverMapLink={item.naverMapLink} />
             <button
               type="button"
               className="place-register-sheet__primary"
               onClick={() => handleRegister(quickRegisterType)}
             >
-              {quickConfig.registerLabel || "등록하기"}
+              {quickConfig?.registerLabel || "등록하기"}
             </button>
+            {quickRegisterType === MAP_ITEM_TYPE.PARKING ? (
+              <button
+                type="button"
+                className="place-register-sheet__secondary"
+                onClick={() => setForceManualEntry(true)}
+              >
+                직접 입력하기
+              </button>
+            ) : null}
             <p className="map-search-draft-sheet__hint">지도를 움직이면 핀 위치가 바뀌고 정보가 다시 찾아집니다.</p>
           </div>
         ) : null}
 
         {!loading && showManualFields ? (
           <div className="place-register-sheet__manual">
-            <p className="place-register-sheet__manual-lead">
-              {manualRequired ? "근처 장소를 찾지 못했어요. 직접 입력해 주세요." : "장소 정보를 수정할 수 있어요."}
-            </p>
+            {showFailHint ? (
+              <p className="place-register-sheet__fail-hint" role="status">
+                {PLACE_AUTO_SEARCH_FAIL_MESSAGE}
+              </p>
+            ) : null}
+            {isManualFirst && !isEdit ? (
+              <p className="place-register-sheet__manual-lead">
+                화장실은 위치 설명을 직접 입력해 주세요. 주소는 핀 위치 기준으로 자동 채워집니다.
+              </p>
+            ) : null}
+            {isEdit ? (
+              <p className="place-register-sheet__manual-lead">장소 정보를 수정할 수 있어요.</p>
+            ) : null}
+
             <input
               className="map-search-draft-sheet__name"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder={config?.label ? `${config.label} 이름` : "장소 이름"}
+              placeholder={titlePlaceholder}
               aria-label="장소 이름"
             />
-            <textarea
-              className="place-register-sheet__desc"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="설명 (선택)"
-              rows={2}
-              aria-label="설명"
-            />
+
+            {config?.showLocationHint ? (
+              <>
+                <label className="place-register-sheet__field-label" htmlFor="place-location-hint">
+                  위치 설명
+                </label>
+                <textarea
+                  id="place-location-hint"
+                  className="place-register-sheet__desc place-register-sheet__desc--hint"
+                  value={locationHint}
+                  onChange={(e) => setLocationHint(e.target.value)}
+                  placeholder={descPlaceholder}
+                  rows={3}
+                  aria-label="위치 설명"
+                />
+                {Array.isArray(config.locationHintExamples) && config.locationHintExamples.length ? (
+                  <ul className="place-register-sheet__examples" aria-label="입력 예시">
+                    {config.locationHintExamples.map((example) => (
+                      <li key={example}>
+                        <button
+                          type="button"
+                          className="place-register-sheet__example-btn"
+                          onClick={() => setLocationHint(example)}
+                        >
+                          {example}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </>
+            ) : (
+              <textarea
+                className="place-register-sheet__desc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={descPlaceholder}
+                rows={2}
+                aria-label="설명"
+              />
+            )}
+
             {roadAddress ? <p className="map-search-draft-sheet__address">{roadAddress}</p> : null}
             {jibunAddress && jibunAddress !== roadAddress ? (
               <p className="map-search-draft-sheet__address map-search-draft-sheet__address--sub">{jibunAddress}</p>
             ) : null}
-            <div className="place-register-sheet__map-links">
-              {item.kakaoMapLink ? (
-                <a className="place-detail-card__map-btn place-detail-card__map-btn--kakao" href={item.kakaoMapLink} target="_blank" rel="noreferrer">
-                  카카오맵
-                </a>
-              ) : null}
-              {item.naverMapLink ? (
-                <a className="place-detail-card__map-btn place-detail-card__map-btn--naver" href={item.naverMapLink} target="_blank" rel="noreferrer">
-                  네이버지도
-                </a>
-              ) : null}
-            </div>
+            <MapLinkButtons kakaoMapLink={item.kakaoMapLink} naverMapLink={item.naverMapLink} />
           </div>
         ) : null}
 
-        {!loading && (showManualFields || !item.preferredType) ? (
+        {!loading && showManualFields ? (
           <>
             <p className="map-search-draft-sheet__hint">카테고리를 선택해 등록하세요.</p>
             <div className="map-search-draft-sheet__actions" aria-label="일당맵에 등록">
@@ -193,11 +274,9 @@ export default function PlaceRegisterSheet({
                   key={type}
                   type="button"
                   className={`map-search-draft-sheet__register${preferredType === type ? " is-active" : ""}`}
-                  onClick={() => {
-                    handleTypeSelect(type);
-                    if (showManualFields) handleRegister(type);
-                  }}
+                  onClick={() => handleTypeSelect(type)}
                   aria-label={`${label}로 등록`}
+                  aria-pressed={preferredType === type}
                 >
                   <span className="map-search-draft-sheet__register-icon" aria-hidden="true">
                     {getPlaceTypeIcon(type)}
@@ -206,18 +285,15 @@ export default function PlaceRegisterSheet({
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              className="place-register-sheet__primary"
+              disabled={!canSubmitManual}
+              onClick={() => handleRegister(preferredType)}
+            >
+              {PLACE_REGISTER_CONFIG[preferredType]?.registerLabel || "저장"}
+            </button>
           </>
-        ) : null}
-
-        {!loading && showManualFields ? (
-          <button
-            type="button"
-            className="place-register-sheet__primary"
-            disabled={!title.trim()}
-            onClick={() => handleRegister(preferredType)}
-          >
-            {PLACE_REGISTER_CONFIG[preferredType]?.registerLabel || "저장"}
-          </button>
         ) : null}
       </section>
     </div>

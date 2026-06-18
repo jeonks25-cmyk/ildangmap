@@ -1,8 +1,12 @@
-import { getPlaceRegisterConfig } from "../constants/placeRegisterConfig";
+import {
+  getPlaceRegisterConfig,
+  PLACE_REGISTER_MODE,
+} from "../constants/placeRegisterConfig";
 import { buildExternalMapLinks } from "./externalMapLinks";
 import { reverseGeocodeLatLngDetailed } from "./mapReverseGeocode";
 import { pickNearestPlace, searchNearbyPlacesWithFallback } from "./mapNearbyPlace";
 import { logPlaceRegister, resolvePlaceName } from "./placeRegisterDebug";
+import { resolvePlaceRegisterOutcome } from "./placeRegisterUx";
 
 /**
  * 핀 좌표 기준 주소·근처 장소명 자동 채우기.
@@ -12,14 +16,22 @@ export async function autoFillPlaceFromLatLng(kakao, lat, lng, placeType) {
   const y = Number(lat);
   const x = Number(lng);
   const config = getPlaceRegisterConfig(placeType);
+  const mode = config?.mode || PLACE_REGISTER_MODE.AUTO_OPTIONAL;
 
   const addressInfo = await reverseGeocodeLatLngDetailed(kakao, y, x);
 
   let nearestPlace = null;
   let usedRadiusM = config?.radiusM || 50;
   let placeCount = 0;
+  let autoSearchAttempted = false;
 
-  if (config && !config.addressOnly) {
+  const shouldSearch =
+    config?.autoSearch !== false &&
+    mode !== PLACE_REGISTER_MODE.MANUAL_FIRST &&
+    !config?.addressOnly;
+
+  if (shouldSearch) {
+    autoSearchAttempted = true;
     const { results, usedRadiusM: resolvedRadius } = await searchNearbyPlacesWithFallback(kakao, y, x, {
       categoryCode: config.categoryCode,
       keyword: config.keyword,
@@ -32,12 +44,12 @@ export async function autoFillPlaceFromLatLng(kakao, lat, lng, placeType) {
 
   const selectedPlace = nearestPlace;
   const placeName = resolvePlaceName(selectedPlace);
-  const title = placeName;
+  const title = mode === PLACE_REGISTER_MODE.MANUAL_FIRST ? "" : placeName;
   const address = addressInfo.address || nearestPlace?.address || "";
   const mapLinks = buildExternalMapLinks({
     lat: y,
     lng: x,
-    title: title || config?.label || "일당맵",
+    title: title || placeName || config?.label || "일당맵",
     address,
   });
 
@@ -45,15 +57,20 @@ export async function autoFillPlaceFromLatLng(kakao, lat, lng, placeType) {
   const naverMapLink = mapLinks.naver;
   const hasAddress = Boolean(address);
   const hasPlaceName = Boolean(placeName);
-  const autoFillFailed = !hasAddress && !hasPlaceName;
-  const manualRequired = autoFillFailed || (Boolean(config?.categoryCode) && hasAddress && !hasPlaceName);
-  const autoFillReady = !manualRequired;
+
+  const outcome = resolvePlaceRegisterOutcome(placeType, config, {
+    hasAddress,
+    hasPlaceName,
+    autoSearchAttempted,
+  });
 
   logPlaceRegister("AUTO-FILL", {
     placeType,
+    mode,
     address,
     placeCount,
     usedRadiusM,
+    autoSearchAttempted,
     selectedPlace: selectedPlace
       ? {
           id: selectedPlace.id,
@@ -66,9 +83,7 @@ export async function autoFillPlaceFromLatLng(kakao, lat, lng, placeType) {
     placeName,
     hasAddress,
     hasPlaceName,
-    autoFillFailed,
-    manualRequired,
-    autoFillReady,
+    ...outcome,
   });
 
   return {
@@ -86,8 +101,8 @@ export async function autoFillPlaceFromLatLng(kakao, lat, lng, placeType) {
     nearestPlace,
     nearestDistanceM: nearestPlace?.distanceM ?? null,
     usedRadiusM,
-    autoFillFailed,
-    manualRequired,
-    autoFillReady,
+    autoSearchAttempted,
+    registerMode: mode,
+    ...outcome,
   };
 }

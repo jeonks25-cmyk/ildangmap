@@ -144,6 +144,7 @@ export function normalizeMapItemDraft(input = {}) {
     meta: {
       ...(typeof input.meta === "object" && input.meta ? input.meta : {}),
       description: String(input.description || input.meta?.description || "").trim(),
+      locationHint: String(input.locationHint || input.meta?.locationHint || "").trim(),
       placeUrl: String(input.placeUrl || input.meta?.placeUrl || "").trim(),
       kakaoMapLink: String(input.kakaoMapLink || input.meta?.kakaoMapLink || "").trim(),
       naverMapLink: String(input.naverMapLink || input.meta?.naverMapLink || "").trim(),

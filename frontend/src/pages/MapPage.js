@@ -1136,20 +1136,25 @@ export default function MapPage() {
       if (!tempSearchItem || !payload?.type) return;
       const type = payload.type;
       const now = new Date().toISOString();
+      const locationHint = String(payload.locationHint || tempSearchItem.locationHint || "").trim();
       const resolvedTitle = String(
         payload.title ||
           tempSearchItem.title ||
           tempSearchItem.placeName ||
           resolvePlaceName(tempSearchItem.nearestPlace) ||
+          locationHint ||
           ""
       ).trim();
       const title = resolvedTitle || MAP_ITEM_TYPE_LABEL[type] || "등록 위치";
-      const description = String(payload.description || tempSearchItem.description || "").trim();
+      const description = String(
+        locationHint || payload.description || tempSearchItem.description || ""
+      ).trim();
       const raw = {
         id: tempSearchItem.editingId || `${type}:custom:${Date.now()}`,
         type,
         title,
         description,
+        locationHint,
         lat: tempSearchItem.lat,
         lng: tempSearchItem.lng,
         address: tempSearchItem.address,
@@ -1162,6 +1167,7 @@ export default function MapPage() {
         comments: tempSearchItem.comments || [],
         meta: {
           description,
+          locationHint,
           placeUrl: payload.placeUrl || tempSearchItem.placeUrl || "",
           kakaoMapLink: payload.kakaoMapLink || tempSearchItem.kakaoMapLink || "",
           naverMapLink: payload.naverMapLink || tempSearchItem.naverMapLink || "",
