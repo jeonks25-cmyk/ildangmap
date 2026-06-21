@@ -45,8 +45,8 @@ function buildMockMeResponse() {
     profileImageUrl: savedProfile?.profileImage || savedSession?.user?.profileImage || "",
     nicknameSetupRequired,
     userType: (savedProfile?.userType || "worker").toUpperCase(),
-    canChangeNickname: Boolean(savedProfile?.canChangeNickname ?? !nicknameSetupRequired),
-    nicknameChangeAvailableAt: savedProfile?.nicknameChangeAvailableAt || null,
+    canChangeNickname: true,
+    nicknameChangeAvailableAt: null,
   };
 }
 

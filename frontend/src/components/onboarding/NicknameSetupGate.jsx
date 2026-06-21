@@ -100,7 +100,7 @@ export default function NicknameSetupGate() {
           현장 활동명 설정
         </h2>
         <p className="onboarding-gate__section-sub">
-          게시판·현장 정보에 표시되는 이름입니다. 실명은 노출되지 않으며, 설정 후 30일에 1회 변경할 수 있습니다.
+          게시판·현장 정보에 표시되는 이름입니다. 실명은 노출되지 않으며, 베타 기간에는 언제든 변경할 수 있습니다.
         </p>
 
         <section className="onboarding-pref-group">

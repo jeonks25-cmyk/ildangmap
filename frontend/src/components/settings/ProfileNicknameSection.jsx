@@ -2,21 +2,11 @@ import React, { useEffect, useState } from "react";
 import { checkNicknameAvailability } from "../../api/nicknameApi";
 import { validateNicknameInput } from "../../utils/displayNickname";
 
-function formatChangeAvailableAt(value) {
-  if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
-  return date.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
-}
-
 /**
- * 닉네임 변경 — 중복 확인 API + 30일 제한
- * @param {{ currentNickname: string, canChangeNickname: boolean, nicknameChangeAvailableAt: string, draft: string, onDraftChange: (v: string) => void, disabled?: boolean }} props
+ * 닉네임 변경 — 중복 확인 API (베타: 변경 횟수 제한 없음)
  */
 export default function ProfileNicknameSection({
   currentNickname,
-  canChangeNickname = true,
-  nicknameChangeAvailableAt = "",
   draft,
   onDraftChange,
   onAvailabilityChange,
@@ -67,9 +57,6 @@ export default function ProfileNicknameSection({
     return () => window.clearTimeout(timer);
   }, [trimmedDraft, unchanged, onAvailabilityChange]);
 
-  const locked = !canChangeNickname;
-  const availableAtLabel = formatChangeAvailableAt(nicknameChangeAvailableAt);
-
   return (
     <section className="settings-nickname" aria-labelledby="profile-nickname-title">
       <h2 id="profile-nickname-title" className="settings-prefs__label">
@@ -77,14 +64,8 @@ export default function ProfileNicknameSection({
       </h2>
       <p className="settings-nickname__lead">
         현재 활동명: <strong>{currentNickname || "미설정"}</strong>
-        {locked && availableAtLabel ? (
-          <>
-            <br />
-            {availableAtLabel} 이후 변경 가능 (30일에 1회)
-          </>
-        ) : (
-          <> · 30일에 1회 변경 가능</>
-        )}
+        {" · "}
+        언제든 변경할 수 있습니다
       </p>
 
       <div className="settings-nickname__field">
@@ -103,7 +84,7 @@ export default function ProfileNicknameSection({
           placeholder="예: 필름기공87"
           maxLength={16}
           autoComplete="off"
-          disabled={disabled || locked}
+          disabled={disabled}
         />
         {error ? <p className="settings-nickname__error">{error}</p> : null}
         {checking ? <p className="settings-nickname__preview">중복 확인 중…</p> : null}
@@ -115,22 +96,17 @@ export default function ProfileNicknameSection({
   );
 }
 
-export function canSubmitNicknameChange({ draft, currentNickname, canChangeNickname, available }) {
+export function canSubmitNicknameChange({ draft, currentNickname, available }) {
   const trimmed = String(draft || "").trim();
   if (!trimmed || trimmed === String(currentNickname || "").trim()) return true;
-  if (!canChangeNickname) return false;
   const v = validateNicknameInput(trimmed);
   if (!v.ok) return false;
   return available === true;
 }
 
-export function resolveNicknameChangeError({ draft, currentNickname, canChangeNickname, available, nicknameChangeAvailableAt }) {
+export function resolveNicknameChangeError({ draft, currentNickname, available }) {
   const trimmed = String(draft || "").trim();
   if (!trimmed || trimmed === String(currentNickname || "").trim()) return "";
-  if (!canChangeNickname) {
-    const at = formatChangeAvailableAt(nicknameChangeAvailableAt);
-    return at ? `${at} 이후 변경 가능합니다.` : "닉네임 변경 대기 중입니다.";
-  }
   const v = validateNicknameInput(trimmed);
   if (!v.ok) return v.message;
   if (available === false) return "이미 사용 중인 닉네임입니다.";

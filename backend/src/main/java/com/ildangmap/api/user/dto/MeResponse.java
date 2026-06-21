@@ -17,8 +17,9 @@ public class MeResponse {
     private String profileImageUrl;
     private boolean nicknameSetupRequired;
     private String userType;
-    /** 닉네임 변경 가능 시각 (ISO-8601). 최초 설정 전이거나 변경 가능하면 null */
+    /** @deprecated 베타 — 제한 없음, 항상 null */
     private String nicknameChangeAvailableAt;
+    /** @deprecated 베타 — 항상 true */
     private boolean canChangeNickname;
 
     private Integer birthYear;

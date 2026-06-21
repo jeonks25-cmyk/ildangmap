@@ -66,14 +66,13 @@ export async function changeNickname(nickname) {
     body: { nickname: value },
     useMock: isMockApiEnabled(),
     mock: () => {
-      const availableAt = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 19);
       writeProfilePatch({
         displayNickname: value,
         nickname: value,
         nicknameSetupRequired: false,
         setupCompleted: true,
-        canChangeNickname: false,
-        nicknameChangeAvailableAt: availableAt,
+        canChangeNickname: true,
+        nicknameChangeAvailableAt: "",
       });
       const saved = readProfileStorage();
       return {
@@ -82,8 +81,8 @@ export async function changeNickname(nickname) {
         profileImageUrl: saved?.profileImage || "",
         nicknameSetupRequired: false,
         userType: (saved?.userType || "worker").toUpperCase(),
-        canChangeNickname: false,
-        nicknameChangeAvailableAt: availableAt,
+        canChangeNickname: true,
+        nicknameChangeAvailableAt: null,
       };
     },
   });

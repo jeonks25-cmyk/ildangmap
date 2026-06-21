@@ -90,7 +90,6 @@ export default function ProfileEditPage() {
   const nicknameOk = canSubmitNicknameChange({
     draft: nicknameDraft,
     currentNickname,
-    canChangeNickname: profile?.canChangeNickname !== false,
     available: nicknameAvailable,
   });
 
@@ -105,9 +104,7 @@ export default function ProfileEditPage() {
     const nicknameErr = resolveNicknameChangeError({
       draft: nicknameDraft,
       currentNickname,
-      canChangeNickname: profile?.canChangeNickname !== false,
       available: nicknameAvailable,
-      nicknameChangeAvailableAt: profile?.nicknameChangeAvailableAt,
     });
     if (nicknameErr) {
       showAppToast(nicknameErr);
@@ -210,8 +207,6 @@ export default function ProfileEditPage() {
         <div className="profile-edit-page">
         <ProfileNicknameSection
           currentNickname={currentNickname}
-          canChangeNickname={profile?.canChangeNickname !== false}
-          nicknameChangeAvailableAt={profile?.nicknameChangeAvailableAt || ""}
           draft={nicknameDraft}
           onDraftChange={setNicknameDraft}
           onAvailabilityChange={setNicknameAvailable}

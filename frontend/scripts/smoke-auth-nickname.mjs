@@ -16,8 +16,8 @@ function buildMockMeResponse(savedSession, savedProfile) {
     id: Number(savedProfile?.id || savedSession?.user?.id) || 1,
     displayNickname: displayNickname || null,
     nicknameSetupRequired,
-    canChangeNickname: Boolean(savedProfile?.canChangeNickname ?? !nicknameSetupRequired),
-    nicknameChangeAvailableAt: savedProfile?.nicknameChangeAvailableAt || null,
+    canChangeNickname: true,
+    nicknameChangeAvailableAt: null,
   };
 }
 
@@ -117,14 +117,14 @@ assert("after POST can post", canPerformMemberAction({
   profile: afterSetup,
 }));
 
-// 7. 쿨다운 mock
+// 7. 베타 — 연속 변경 허용
 const afterPatch = {
   ...afterSetup,
   displayNickname: "도배기공92",
-  canChangeNickname: false,
-  nicknameChangeAvailableAt: "2026-07-01T00:00:00",
+  canChangeNickname: true,
+  nicknameChangeAvailableAt: null,
 };
-assert("cooldown canChangeNickname false", afterPatch.canChangeNickname === false);
+assert("beta allows repeated nickname change", afterPatch.canChangeNickname === true);
 
 const failed = results.filter((r) => !r.pass);
 console.log(`\n${results.length - failed.length}/${results.length} passed`);

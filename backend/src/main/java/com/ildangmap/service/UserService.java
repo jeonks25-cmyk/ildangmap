@@ -30,7 +30,6 @@ public class UserService {
 
     private static final int NICKNAME_MIN = 2;
     private static final int NICKNAME_MAX = 16;
-    private static final int NICKNAME_CHANGE_COOLDOWN_DAYS = 30;
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[가-힣a-zA-Z0-9]+$");
     private static final List<String> ALLOWED_CRAFTS = List.of(
             "film", "wallpaper", "tile", "electric", "facility", "paint", "other"
@@ -160,7 +159,6 @@ public class UserService {
         if (!user.hasDisplayNickname()) {
             throw new BadRequestException("닉네임을 먼저 설정해주세요.");
         }
-        assertNicknameChangeAllowed(user);
         String nickname = normalizeNickname(rawNickname);
         validateNicknameFormat(nickname);
         if (nickname.equals(user.getDisplayNickname())) {
@@ -215,21 +213,6 @@ public class UserService {
         return toMeResponse(userRepository.save(user));
     }
 
-    private void assertNicknameChangeAllowed(User user) {
-        LocalDateTime changedAt = user.getDisplayNicknameChangedAt();
-        if (changedAt == null) {
-            return;
-        }
-        LocalDateTime availableAt = changedAt.plusDays(NICKNAME_CHANGE_COOLDOWN_DAYS);
-        if (LocalDateTime.now().isBefore(availableAt)) {
-            throw new ConflictException(
-                    "NICKNAME_CHANGE_COOLDOWN",
-                    "닉네임은 30일에 1회만 변경할 수 있습니다. "
-                            + availableAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) + " 이후 가능합니다."
-            );
-        }
-    }
-
     private boolean isNicknameTaken(String nickname, Long excludeUserId) {
         return userRepository.findByDisplayNickname(nickname)
                 .map(u -> excludeUserId == null || !u.getId().equals(excludeUserId))
@@ -254,22 +237,14 @@ public class UserService {
 
     private MeResponse toMeResponse(User user) {
         boolean setupRequired = !user.hasDisplayNickname();
-        LocalDateTime changedAt = user.getDisplayNicknameChangedAt();
-        LocalDateTime availableAt = changedAt == null ? null : changedAt.plusDays(NICKNAME_CHANGE_COOLDOWN_DAYS);
-        boolean canChange = user.hasDisplayNickname()
-                && (availableAt == null || !LocalDateTime.now().isBefore(availableAt));
-        String availableAtIso = null;
-        if (user.hasDisplayNickname() && availableAt != null && LocalDateTime.now().isBefore(availableAt)) {
-            availableAtIso = availableAt.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-        }
         return MeResponse.builder()
                 .id(user.getId())
                 .displayNickname(user.getDisplayNickname())
                 .profileImageUrl(user.getProfileImageUrl())
                 .nicknameSetupRequired(setupRequired)
                 .userType(user.getUserType().name())
-                .nicknameChangeAvailableAt(availableAtIso)
-                .canChangeNickname(canChange)
+                .nicknameChangeAvailableAt(null)
+                .canChangeNickname(true)
                 .birthYear(user.getBirthYear())
                 .craft(user.getCraft())
                 .experienceYears(user.getExperienceYears())

@@ -270,9 +270,8 @@ function normalizeProfile(raw) {
     nickname,
     displayNickname: displayNicknameRaw || nickname,
     nicknameSetupRequired,
-    canChangeNickname: raw.canChangeNickname !== false,
-    nicknameChangeAvailableAt:
-      typeof raw.nicknameChangeAvailableAt === "string" ? raw.nicknameChangeAvailableAt : defaults.nicknameChangeAvailableAt,
+    canChangeNickname: true,
+    nicknameChangeAvailableAt: defaults.nicknameChangeAvailableAt,
     profileImage: typeof raw.profileImage === "string" ? raw.profileImage : defaults.profileImage,
     loginProvider: typeof raw.loginProvider === "string" ? raw.loginProvider : defaults.loginProvider,
     userType,
@@ -432,8 +431,8 @@ function applyMeResponse(state, me, providerOverride) {
       profileImage,
       nicknameSetupRequired,
       setupCompleted: !nicknameSetupRequired && Boolean(displayNickname),
-      canChangeNickname: normalizedMe.canChangeNickname !== false,
-      nicknameChangeAvailableAt: normalizedMe.nicknameChangeAvailableAt || "",
+      canChangeNickname: true,
+      nicknameChangeAvailableAt: "",
       userType: normalizedMe.userType ? String(normalizedMe.userType).toLowerCase() : state.profile.userType,
       loginProvider: provider,
       ...profileDetailPatch,
@@ -962,13 +961,6 @@ export const useUserStore = create(
         const { profile } = get();
         if (profile?.nicknameSetupRequired) {
           return { ok: false, message: "활동명 설정을 먼저 완료해주세요." };
-        }
-        if (profile?.canChangeNickname === false) {
-          const at = profile?.nicknameChangeAvailableAt;
-          return {
-            ok: false,
-            message: at ? `닉네임은 30일에 1회 변경 가능합니다. (${at.slice(0, 10)} 이후)` : "닉네임 변경 대기 중입니다.",
-          };
         }
         try {
           const me = await changeNickname(validated.value);

@@ -47,7 +47,7 @@ public class NicknameController {
     }
 
     @PatchMapping({"/users/me/nickname", "/api/users/me/nickname"})
-    @Operation(summary = "닉네임 변경 (30일 1회)")
+    @Operation(summary = "닉네임 변경")
     public ApiResponse<MeResponse> changeNickname(
             @Valid @RequestBody NicknameSetRequest request,
             Authentication authentication
