@@ -425,7 +425,11 @@ export default function FieldScheduleDetailPage() {
 
         {activeTab === "board" ? (
           <div id="field-board">
-            <FieldScheduleNoticeBoard briefingId={briefingId} onToast={showAppToast} />
+            <FieldScheduleNoticeBoard
+              briefingId={briefingId}
+              siteTitle={schedule?.title || "현장 게시판"}
+              onToast={showAppToast}
+            />
           </div>
         ) : null}
 

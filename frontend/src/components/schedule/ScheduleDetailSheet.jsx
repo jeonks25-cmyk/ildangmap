@@ -112,7 +112,11 @@ export default function ScheduleDetailSheet({
 
         {showSiteBoard ? (
           <div className="schedule-detail-sheet-panel__board">
-            <FieldScheduleNoticeBoard briefingId={briefingId} onToast={onToast} />
+            <FieldScheduleNoticeBoard
+              briefingId={briefingId}
+              siteTitle={entry.title || siteName || "현장 게시판"}
+              onToast={onToast}
+            />
           </div>
         ) : null}
 

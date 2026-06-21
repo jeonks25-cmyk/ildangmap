@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { createScheduleBriefingPost, fetchScheduleBriefingPosts } from "../../api/scheduleBriefingApi";
-import { addBoardComment, listBoardComments } from "../../utils/fieldBoardComments";
-import { compressImageFileToDataUrl } from "../../utils/briefingImageCompress";
-import BriefingPostAuthorRow from "../briefing/BriefingPostAuthorRow";
+import { getApiErrorMessage } from "../../api/client";
+import FieldScheduleBoardComposeSheet from "./FieldScheduleBoardComposeSheet";
+import "../map/map-site-board.css";
 
 const POST_TYPES = [
   { value: "general", label: "공지" },
@@ -11,36 +11,63 @@ const POST_TYPES = [
   { value: "photo", label: "작업사진" },
 ];
 
-function badgeForType(type) {
-  if (type === "question") return { label: "질문", className: "field-board__badge--question" };
-  if (type === "worklog") return { label: "작업내용", className: "field-board__badge--worklog" };
-  if (type === "photo") return { label: "작업사진", className: "field-board__badge--photo" };
-  if (type === "change") return { label: "변경", className: "field-board__badge--change" };
-  return { label: "공지", className: "field-board__badge--notice" };
+function formatWhen(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const mo = d.getMonth() + 1;
+  const day = d.getDate();
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${mo}/${day} ${hh}:${mm}`;
 }
 
-export default function FieldScheduleNoticeBoard({ briefingId, onToast }) {
+function badgeForType(type) {
+  if (type === "question") return { label: "질문", className: "site-board__card-type--question" };
+  if (type === "worklog") return { label: "작업내용", className: "site-board__card-type--worklog" };
+  if (type === "photo") return { label: "작업사진", className: "site-board__card-type--photo" };
+  if (type === "change") return { label: "변경", className: "site-board__card-type--change" };
+  return { label: "공지", className: "site-board__card-type--notice" };
+}
+
+function BoardPostCard({ post }) {
+  const badge = badgeForType(post.postType);
+  const author = String(post.authorName || "작성자").trim() || "작성자";
+  return (
+    <article className="site-board__card" role="listitem">
+      <div className="site-board__card-head">
+        <span className="site-board__card-author">{author}</span>
+        <span className={`site-board__card-type ${badge.className}`}>{badge.label}</span>
+      </div>
+      {post.body ? <p className="site-board__card-body">{post.body}</p> : null}
+      {post.imageDataUrl ? <img className="site-board__card-image" src={post.imageDataUrl} alt="" /> : null}
+      <time className="site-board__card-time" dateTime={post.createdAt || undefined}>
+        {formatWhen(post.createdAt)}
+      </time>
+    </article>
+  );
+}
+
+export default function FieldScheduleNoticeBoard({ briefingId, siteTitle = "현장 게시판", onToast }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [body, setBody] = useState("");
-  const [postType, setPostType] = useState("general");
-  const [imageDataUrl, setImageDataUrl] = useState("");
-  const [commentDrafts, setCommentDrafts] = useState({});
-  const [commentsByPost, setCommentsByPost] = useState({});
+  const [loadError, setLoadError] = useState("");
+  const [composeOpen, setComposeOpen] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!briefingId) return;
+    if (!briefingId) {
+      setPosts([]);
+      setLoadError("");
+      return;
+    }
     setLoading(true);
+    setLoadError("");
     try {
       const rows = await fetchScheduleBriefingPosts(briefingId);
       setPosts(Array.isArray(rows) ? rows : []);
-      const commentMap = {};
-      (Array.isArray(rows) ? rows : []).forEach((p) => {
-        commentMap[p.id] = listBoardComments(briefingId, p.id);
-      });
-      setCommentsByPost(commentMap);
-    } catch (_) {
+    } catch (error) {
       setPosts([]);
+      setLoadError(getApiErrorMessage(error, "게시판을 불러오지 못했습니다."));
     } finally {
       setLoading(false);
     }
@@ -50,125 +77,58 @@ export default function FieldScheduleNoticeBoard({ briefingId, onToast }) {
     refresh();
   }, [refresh]);
 
-  const canSubmit = Boolean(briefingId) && (body.trim() || (postType === "photo" && imageDataUrl));
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const text = body.trim();
-    if (!canSubmit) return;
-    try {
-      await createScheduleBriefingPost(briefingId, {
-        body: text || (postType === "photo" ? "작업사진" : text),
-        postType,
-        imageDataUrl: imageDataUrl || undefined,
-      });
-      setBody("");
-      setImageDataUrl("");
-      onToast?.("게시했습니다");
-      refresh();
-    } catch (err) {
-      onToast?.(err?.message || "게시에 실패했습니다");
-    }
+  const handleSubmit = async ({ body, postType, imageDataUrl }) => {
+    if (!briefingId) throw new Error("일정 정보가 없습니다.");
+    await createScheduleBriefingPost(briefingId, { body, postType, imageDataUrl });
+    onToast?.("게시했습니다");
+    await refresh();
   };
 
-  const handleComment = (postId) => {
-    const text = String(commentDrafts[postId] || "").trim();
-    if (!text) return;
-    addBoardComment(briefingId, postId, { body: text });
-    setCommentDrafts((prev) => ({ ...prev, [postId]: "" }));
-    setCommentsByPost((prev) => ({
-      ...prev,
-      [postId]: listBoardComments(briefingId, postId),
-    }));
-  };
+  if (!briefingId) {
+    return (
+      <section className="site-board site-board--schedule" aria-label="현장 게시판">
+        <div className="site-board__empty">
+          <p className="site-board__empty-title">게시판을 열 수 없습니다</p>
+          <p className="site-board__empty-hint">일정 정보가 없어 게시판을 표시할 수 없습니다.</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
-    <section className="field-board app-card" aria-label="현장 게시판">
-      <h2 className="field-board__title">현장 게시판</h2>
-      <p className="field-board__sub">공지 · 질문 · 작업내용 · 작업사진을 남기고 댓글로 이어갑니다.</p>
-
-      <form className="field-board__composer" onSubmit={handleSubmit}>
-        <div className="field-board__type-row">
-          {POST_TYPES.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              className={`field-board__type-btn${postType === opt.value ? " is-active" : ""}`}
-              onClick={() => setPostType(opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
+    <>
+      <section className="site-board site-board--schedule" aria-label="현장 게시판">
+        <div className="site-board__head">
+          <h2 className="site-board__title">현장 게시판</h2>
+          <button type="button" className="site-board__write" onClick={() => setComposeOpen(true)}>
+            글쓰기
+          </button>
         </div>
-        <textarea
-          className="field-board__textarea"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="현장 공지나 질문을 입력하세요"
-          rows={3}
-        />
-        <label className="field-board__photo">
-          <span>사진 첨부</span>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              try {
-                const data = await compressImageFileToDataUrl(file);
-                setImageDataUrl(data);
-              } catch (_) {
-                onToast?.("이미지를 불러올 수 없습니다");
-              }
-            }}
-          />
-          {imageDataUrl ? <small>사진 첨부됨</small> : null}
-        </label>
-        <button type="submit" className="field-board__submit" disabled={!canSubmit}>
-          게시하기
-        </button>
-      </form>
 
-      {loading ? <p className="field-board__loading">불러오는 중…</p> : null}
-      <ul className="field-board__list">
-        {posts.map((post) => {
-          const badge = badgeForType(post.postType);
-          const comments = commentsByPost[post.id] || [];
-          return (
-            <li key={post.id} className="field-board__item">
-              <div className="field-board__item-head">
-                <span className={`field-board__badge ${badge.className}`}>{badge.label}</span>
-                <BriefingPostAuthorRow post={post} />
-              </div>
-              <p className="field-board__body">{post.body}</p>
-              {post.imageDataUrl ? (
-                <img className="field-board__image" src={post.imageDataUrl} alt="" />
-              ) : null}
-              {comments.length ? (
-                <ul className="field-board__comments">
-                  {comments.map((c) => (
-                    <li key={c.id}>
-                      <strong>{c.authorName}</strong> {c.body}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              <div className="field-board__comment-form">
-                <input
-                  value={commentDrafts[post.id] || ""}
-                  onChange={(e) => setCommentDrafts((prev) => ({ ...prev, [post.id]: e.target.value }))}
-                  placeholder="댓글"
-                />
-                <button type="button" onClick={() => handleComment(post.id)}>
-                  등록
-                </button>
-              </div>
-            </li>
-          );
-        })}
-        {!loading && !posts.length ? <li className="field-board__empty">아직 글이 없습니다.</li> : null}
-      </ul>
-    </section>
+        {loadError ? <p className="site-board__error">{loadError}</p> : null}
+        {loading ? <p className="site-board__loading">불러오는 중…</p> : null}
+
+        <div className="site-board__list" role="list">
+          {posts.length ? (
+            posts.map((post) => <BoardPostCard key={post.id} post={post} />)
+          ) : !loading ? (
+            <div className="site-board__empty">
+              <p className="site-board__empty-title">아직 등록된 글이 없습니다.</p>
+              <p className="site-board__empty-hint">첫 번째 현장 정보를 남겨보세요.</p>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      <FieldScheduleBoardComposeSheet
+        open={composeOpen}
+        siteTitle={siteTitle}
+        onClose={() => setComposeOpen(false)}
+        onSubmit={handleSubmit}
+        onToast={onToast}
+      />
+    </>
   );
 }
+
+export { POST_TYPES, badgeForType, formatWhen };

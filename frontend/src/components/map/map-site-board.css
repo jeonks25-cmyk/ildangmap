@@ -217,11 +217,165 @@
 }
 
 .site-board__empty-hint {
-  margin: 6px 0 0;
-  color: #78716c;
+  margin: 0;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: -0.01em;
+  color: #a8a29e;
+  line-height: 1.4;
+}
+
+/* —— 일정 현장 게시판 카드 목록 —— */
+.site-board--schedule {
+  padding: 0;
+}
+
+.site-board--schedule .site-board__title {
+  font-size: 15px;
+  color: #1c1917;
+}
+
+.site-board__loading,
+.site-board__error {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.site-board__error {
+  color: #b91c1c;
+}
+
+.site-board__loading {
+  color: #78716c;
+}
+
+.site-board__card {
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f4;
+}
+
+.site-board__card:last-child {
+  border-bottom: none;
+}
+
+.site-board__card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.site-board__card-author {
+  font-size: 13px;
+  font-weight: 900;
+  color: #1c1917;
+  letter-spacing: -0.02em;
+}
+
+.site-board__card-type {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.site-board__card-type--notice {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.site-board__card-type--question {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.site-board__card-type--worklog {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.site-board__card-type--photo {
+  background: #faf5ff;
+  color: #7e22ce;
+}
+
+.site-board__card-type--change {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.site-board__card-body {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #44403c;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.site-board__card-image {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin: 0 0 6px;
+}
+
+.site-board__card-time {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #78716c;
+}
+
+.field-board-compose__types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.field-board-compose__type {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #e7e5e4;
+  border-radius: 999px;
+  background: #fafaf9;
+  color: #57534e;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.field-board-compose__type.is-active {
+  border-color: #111827;
+  background: #111827;
+  color: #fff;
+}
+
+.field-board-compose__photo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #57534e;
+}
+
+.field-board-compose__photo input[type="file"] {
+  font-size: 12px;
+}
+
+.field-board-compose__preview {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 10px;
 }
 
 /* 게시글 상세 */
