@@ -29,6 +29,7 @@ import {
   writeJsonStorage,
 } from "./storeUtils";
 import { useContactsStore } from "./useContactsStore";
+import { useSettlementStore } from "./useSettlementStore";
 import { useUiStore } from "./useUiStore";
 import { validateNicknameInput } from "../utils/displayNickname";
 import { authDiag, authDiagStoreSnapshot } from "../utils/authDiag";
@@ -358,6 +359,9 @@ function meProfileDetailPatch(normalizedMe) {
   if (Object.prototype.hasOwnProperty.call(normalizedMe, "phone")) {
     patch.phone = String(normalizedMe.phone || "").trim();
   }
+  if (Object.prototype.hasOwnProperty.call(normalizedMe, "intro")) {
+    patch.intro = String(normalizedMe.intro || "").trim();
+  }
   const cardPatch = normalizeBusinessCardFields(normalizedMe);
   for (const key of BUSINESS_CARD_FIELD_KEYS) {
     if (Object.prototype.hasOwnProperty.call(normalizedMe, key)) {
@@ -365,6 +369,33 @@ function meProfileDetailPatch(normalizedMe) {
     }
   }
   return patch;
+}
+
+/** 서버 /me에 비어 있고 로컬 persist에만 있던 프로필 → PATCH 업로드 */
+async function migrateLocalProfileToServer(get, legacyProfile, legacyMeta) {
+  if (!get().session?.isAuthenticated) return;
+  const current = get().profile;
+  const meta = get().profileMeta || createDefaultProfileMeta();
+  const patch = {};
+  if (!current.birthYear && legacyProfile?.birthYear) patch.birthYear = legacyProfile.birthYear;
+  if (!current.craft && legacyProfile?.craft) patch.craft = legacyProfile.craft;
+  if (!current.desiredPay && legacyProfile?.desiredPay) patch.desiredPay = legacyProfile.desiredPay;
+  if (
+    (!Array.isArray(current.regions) || !current.regions.length) &&
+    Array.isArray(legacyProfile?.regions) &&
+    legacyProfile.regions.length
+  ) {
+    patch.regions = legacyProfile.regions;
+  }
+  if (!current.phone && legacyProfile?.phone) patch.phone = legacyProfile.phone;
+  const intro = String(meta.intro || legacyMeta?.intro || "").trim();
+  const legacyIntro = String(legacyMeta?.intro || legacyProfile?.intro || "").trim();
+  if (!intro && legacyIntro) patch.intro = legacyIntro;
+  for (const key of BUSINESS_CARD_FIELD_KEYS) {
+    if (!current[key] && legacyProfile?.[key]) patch[key] = legacyProfile[key];
+  }
+  if (!Object.keys(patch).length) return;
+  await get().saveProfileDetails(patch);
 }
 
 function applyMeResponse(state, me, providerOverride) {
@@ -584,16 +615,30 @@ export const useUserStore = create(
                   console.log("[AUTH-DIAG] refreshCurrentUser getMe result JSON (non-serializable)", me);
                 }
                 authDiag("refreshCurrentUser getMe result", me);
+                const legacyProfile = { ...state.profile };
+                const legacyMeta =
+                  state.profileMeta && typeof state.profileMeta === "object"
+                    ? { ...state.profileMeta }
+                    : createDefaultProfileMeta();
                 const patch = applyMeResponse(state, me);
                 const normalizedMe = extractMePayload(me);
-                const contactsUserId = normalizedMe?.id ?? normalizedMe?.userId;
-                queueMicrotask(() => {
-                  if (contactsUserId != null && contactsUserId !== "") {
-                    useContactsStore.getState().bootstrapContacts(contactsUserId).catch(() => {
+                const syncUserId = normalizedMe?.id ?? normalizedMe?.userId;
+                queueMicrotask(async () => {
+                  if (syncUserId != null && syncUserId !== "") {
+                    try {
+                      await migrateLocalProfileToServer(get, legacyProfile, legacyMeta);
+                    } catch (_) {
+                      /* profile migration best-effort */
+                    }
+                    await useContactsStore.getState().bootstrapContacts(syncUserId).catch(() => {
                       /* contactsError in store */
+                    });
+                    await useSettlementStore.getState().bootstrapSchedules(syncUserId).catch(() => {
+                      /* schedulesError in store */
                     });
                   } else {
                     useContactsStore.getState().resetContacts();
+                    useSettlementStore.getState().resetSchedules();
                   }
                 });
                 return patch;
@@ -607,6 +652,7 @@ export const useUserStore = create(
                 if (isAuthError(error)) {
                   queueMicrotask(() => {
                     useContactsStore.getState().resetContacts();
+                    useSettlementStore.getState().resetSchedules();
                   });
                   return {
                     ...next,
@@ -871,6 +917,7 @@ export const useUserStore = create(
         set(nextState);
         removeStorageKey(ONBOARDING_STORAGE_KEY);
         useContactsStore.getState().resetContacts();
+        useSettlementStore.getState().resetSchedules();
       },
 
       setProfile: (patch) =>
@@ -1096,14 +1143,11 @@ export const useUserStore = create(
       partialize: (state) =>
         pickPersistedStoreState(state, [
           "session",
-          "profile",
           "prefs",
           "userMode",
-          "profileMeta",
           "favoriteWorkers",
           "oyajiTrustProfile",
           "extrasLoaded",
-          "meVerified",
         ]),
       onRehydrateStorage: () => (state) => {
         if (state) {
@@ -1119,12 +1163,10 @@ export const useUserStore = create(
             };
           }
         }
-        const sessionAuthed = state?.session?.isAuthenticated === true;
         const patch = {
           authReady: true,
           meBootstrapLoading: false,
-          // persist된 /me 동기화 결과 유지 — stale session만으로는 meVerified true 금지
-          meVerified: sessionAuthed ? Boolean(state?.meVerified) : false,
+          meVerified: false,
           extrasLoading: false,
         };
         if (state?.profile?.needsPersonaChoice) {

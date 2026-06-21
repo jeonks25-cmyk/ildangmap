@@ -25,9 +25,30 @@ function readAll() {
 function writeAll(data) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    if (typeof window !== "undefined") {
+      import("../store/useSettlementStore")
+        .then(({ useSettlementStore }) => {
+          useSettlementStore.getState().scheduleSyncDebounced?.();
+        })
+        .catch(() => {
+          /* noop */
+        });
+    }
   } catch (_) {
     /* ignore */
   }
+}
+
+export function readAllFieldOps() {
+  return readAll();
+}
+
+export function writeAllFieldOps(data) {
+  writeAll(
+    data && typeof data === "object"
+      ? data
+      : { changeHistory: {}, changeRequests: {}, participantResponses: {} }
+  );
 }
 
 export function resolveScheduleBriefingId(schedule) {

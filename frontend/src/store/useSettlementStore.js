@@ -3,10 +3,18 @@ import { persist } from "zustand/middleware";
 import { getBriefingFilters, getBriefings } from "../api/briefingApi";
 import { getSchedules as getSchedulesApi, getSettlementSummary as getSettlementSummaryApi } from "../api/settlementApi";
 import {
+  applyFieldOpsToLegacyStorage,
+  getSchedulesData,
+  hasSchedulesPayload,
+  normalizeSchedulesPayload,
+  putSchedulesData,
+  readLegacySchedulesLocalStorage,
+  removeLegacySchedulesLocalStorage,
+} from "../api/schedulesApi";
+import { getApiErrorMessage, isNetworkError } from "../api/client";
+import {
   createScheduleFromJobMatch,
-  loadStoredSchedules,
   migrateSchedule,
-  SCHEDULES_STORAGE_KEY,
 } from "../utils/scheduleModel";
 import {
   appendScheduleInvites,
@@ -14,15 +22,49 @@ import {
   markInviteAccepted,
   markInviteDeclined,
 } from "../utils/scheduleInviteInbox";
+import { readAllFieldOps } from "../utils/scheduleFieldOpsStorage";
 import { mergeWorkerAssignmentsForInvite, syncScheduleParticipantSelection } from "../utils/workerAssignmentModel";
-import { isNetworkError } from "../api/client";
-import { createSafeJsonStorage, pickPersistedStoreState, resolveUpdater, runAsyncStoreAction, writeJsonStorage } from "./storeUtils";
+import { createSafeJsonStorage, pickPersistedStoreState, resolveUpdater, runAsyncStoreAction } from "./storeUtils";
 import { useContactsStore } from "./useContactsStore";
 
 const STORE_KEY = "ildangmap_settlement_store_v2";
 
+let schedulesSyncTimer = null;
+let schedulesBootstrapInFlight = null;
+let schedulesSyncPaused = false;
+
 function normalizeSchedules(scheduleList) {
   return (Array.isArray(scheduleList) ? scheduleList : []).map((schedule) => migrateSchedule(schedule)).filter(Boolean);
+}
+
+function scheduleSyncDebouncedImpl() {
+  const state = useSettlementStore.getState();
+  if (schedulesSyncPaused || !state.schedulesUserId || !state.schedulesLoaded) return;
+  if (schedulesSyncTimer) clearTimeout(schedulesSyncTimer);
+  schedulesSyncTimer = setTimeout(() => {
+    schedulesSyncTimer = null;
+    useSettlementStore.getState().syncSchedulesToServer().catch(() => {
+      /* schedulesError in store */
+    });
+  }, 600);
+}
+
+function payloadFromState(state) {
+  return normalizeSchedulesPayload({
+    schedules: state.schedules,
+    fieldOps: readAllFieldOps(),
+  });
+}
+
+function applyPayloadToSet(set, payload, briefingData = []) {
+  schedulesSyncPaused = true;
+  const normalized = normalizeSchedulesPayload(payload);
+  applyFieldOpsToLegacyStorage(normalized.fieldOps);
+  set({
+    schedules: normalized.schedules,
+    summary: buildLocalSummary(normalized.schedules, briefingData),
+  });
+  schedulesSyncPaused = false;
 }
 
 function createDefaultSummary() {
@@ -73,10 +115,9 @@ function buildLocalSummary(scheduleList, briefingData = [], today = new Date()) 
 }
 
 function createInitialState() {
-  const schedules = normalizeSchedules(loadStoredSchedules());
   return {
-    schedules,
-    summary: buildLocalSummary(schedules, []),
+    schedules: [],
+    summary: buildLocalSummary([], []),
     briefingData: [],
     briefingFilters: [],
     loading: false,
@@ -85,17 +126,119 @@ function createInitialState() {
     briefingError: "",
     schedulesLoaded: false,
     briefingsLoaded: false,
+    schedulesUserId: null,
+    schedulesSyncing: false,
+    schedulesError: "",
   };
-}
-
-function syncLegacySchedules(state) {
-  writeJsonStorage(SCHEDULES_STORAGE_KEY, normalizeSchedules(state.schedules));
 }
 
 export const useSettlementStore = create(
   persist(
     (set, get) => ({
       ...createInitialState(),
+
+      scheduleSyncDebounced: scheduleSyncDebouncedImpl,
+
+      buildSchedulesPayload: () => payloadFromState(get()),
+
+      applySchedulesPayload: (payload) => {
+        applyPayloadToSet(set, payload, get().briefingData);
+      },
+
+      resetSchedules: () => {
+        if (schedulesSyncTimer) {
+          clearTimeout(schedulesSyncTimer);
+          schedulesSyncTimer = null;
+        }
+        set({
+          schedules: [],
+          summary: buildLocalSummary([], get().briefingData),
+          schedulesUserId: null,
+          schedulesLoaded: false,
+          schedulesSyncing: false,
+          schedulesError: "",
+        });
+      },
+
+      syncSchedulesToServer: async () => {
+        const userId = get().schedulesUserId;
+        if (!userId || !get().schedulesLoaded) return null;
+        set({ schedulesSyncing: true, schedulesError: "" });
+        try {
+          const saved = await putSchedulesData(get().buildSchedulesPayload());
+          applyPayloadToSet(set, saved, get().briefingData);
+          return saved;
+        } catch (error) {
+          set({ schedulesError: getApiErrorMessage(error, "일정을 저장하지 못했습니다.") });
+          throw error;
+        } finally {
+          set({ schedulesSyncing: false });
+        }
+      },
+
+      bootstrapSchedules: async (userId) => {
+        const uid = userId != null && userId !== "" ? String(userId) : null;
+        if (!uid) {
+          get().resetSchedules();
+          return;
+        }
+        if (get().schedulesUserId && get().schedulesUserId !== uid) {
+          get().resetSchedules();
+        }
+        if (get().schedulesLoaded && get().schedulesUserId === uid) return;
+
+        if (schedulesBootstrapInFlight) return schedulesBootstrapInFlight;
+
+        const run = (async () => {
+          set({ loading: true, schedulesError: "" });
+          try {
+            const server = normalizeSchedulesPayload(await getSchedulesData());
+            if (hasSchedulesPayload(server)) {
+              get().applySchedulesPayload(server);
+              set({ schedulesUserId: uid, schedulesLoaded: true });
+              return;
+            }
+
+            const legacy = readLegacySchedulesLocalStorage();
+            if (hasSchedulesPayload(legacy)) {
+              get().applySchedulesPayload(legacy);
+              const saved = normalizeSchedulesPayload(await putSchedulesData(get().buildSchedulesPayload()));
+              get().applySchedulesPayload(saved);
+              removeLegacySchedulesLocalStorage();
+              set({ schedulesUserId: uid, schedulesLoaded: true });
+              return;
+            }
+
+            get().applySchedulesPayload(normalizeSchedulesPayload({ schedules: [], fieldOps: readAllFieldOps() }));
+            set({ schedulesUserId: uid, schedulesLoaded: true });
+          } catch (error) {
+            const legacy = readLegacySchedulesLocalStorage();
+            if (hasSchedulesPayload(legacy)) {
+              get().applySchedulesPayload(legacy);
+              set({
+                schedulesUserId: uid,
+                schedulesLoaded: true,
+                schedulesError: getApiErrorMessage(error, "일정을 불러오지 못했습니다. 오프라인 데이터를 표시합니다."),
+              });
+              return;
+            }
+            set({
+              schedulesError: getApiErrorMessage(error, "일정을 불러오지 못했습니다."),
+              schedulesUserId: uid,
+              schedulesLoaded: true,
+            });
+          } finally {
+            set({ loading: false });
+          }
+        })();
+
+        schedulesBootstrapInFlight = run;
+        try {
+          await run;
+        } finally {
+          schedulesBootstrapInFlight = null;
+        }
+      },
 
       setSchedules: (nextSchedules) =>
         set((state) => {
@@ -364,6 +507,17 @@ export const useSettlementStore = create(
       },
 
       refreshSettlementData: async ({ force = false } = {}) => {
+        if (get().schedulesLoaded && get().schedulesUserId) {
+          const summary = await getSettlementSummaryApi(get().schedules);
+          set((state) => ({
+            summary: {
+              ...createDefaultSummary(),
+              ...summary,
+              briefingData: state.briefingData,
+            },
+          }));
+          return get().schedules;
+        }
         if (!force && get().schedulesLoaded) return get().schedules;
         return runAsyncStoreAction({
           set,
@@ -384,10 +538,7 @@ export const useSettlementStore = create(
           }),
           onError: (state, error) => {
             if (!isNetworkError(error)) return {};
-            const fallbackSchedules =
-              Array.isArray(state.schedules) && state.schedules.length > 0
-                ? state.schedules
-                : normalizeSchedules(loadStoredSchedules());
+            const fallbackSchedules = Array.isArray(state.schedules) ? state.schedules : [];
             return {
               schedules: fallbackSchedules,
               schedulesLoaded: true,
@@ -466,25 +617,19 @@ export const useSettlementStore = create(
       storage: createSafeJsonStorage(),
       partialize: (state) =>
         pickPersistedStoreState(state, [
-          "schedules",
           "briefingData",
           "briefingFilters",
           "summary",
-          "schedulesLoaded",
           "briefingsLoaded",
         ]),
-      onRehydrateStorage: () => (state) => {
-        if (state) syncLegacySchedules(state);
-      },
     }
   )
 );
 
-syncLegacySchedules(useSettlementStore.getState());
 useSettlementStore.subscribe((state, prevState) => {
-  syncLegacySchedules(state);
   if (state.schedules !== prevState?.schedules) {
     useContactsStore.getState().syncCoworkFromSchedules(state.schedules);
+    scheduleSyncDebouncedImpl();
   }
 });
 useContactsStore.getState().syncCoworkFromSchedules(useSettlementStore.getState().schedules);
