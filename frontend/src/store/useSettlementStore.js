@@ -14,7 +14,7 @@ import {
   markInviteAccepted,
   markInviteDeclined,
 } from "../utils/scheduleInviteInbox";
-import { mergeWorkerAssignmentsForInvite } from "../utils/workerAssignmentModel";
+import { mergeWorkerAssignmentsForInvite, syncScheduleParticipantSelection } from "../utils/workerAssignmentModel";
 import { isNetworkError } from "../api/client";
 import { createSafeJsonStorage, pickPersistedStoreState, resolveUpdater, runAsyncStoreAction, writeJsonStorage } from "./storeUtils";
 import { useContactsStore } from "./useContactsStore";
@@ -260,6 +260,41 @@ export const useSettlementStore = create(
           };
         });
         return created;
+      },
+
+      /**
+       * composer 참여자 선택과 scheduleInvites·workerAssignments를 동기화한다.
+       * - 체크 해제한 참여자는 scheduleInvites·workerAssignments에서 제거 (owner 유지)
+       * - 새로 추가된 초대만 scheduleInviteInbox에 기록
+       */
+      syncScheduleParticipants: ({ scheduleId, fromUserId, fromName, invitees }) => {
+        if (scheduleId == null) return { added: 0, removed: 0 };
+        const list = Array.isArray(get().schedules) ? get().schedules : [];
+        const origin = list.find((s) => s && String(s.id) === String(scheduleId));
+        if (!origin) return { added: 0, removed: 0 };
+
+        const existing = Array.isArray(origin.scheduleInvites) ? origin.scheduleInvites : [];
+        const existingUserIds = new Set(existing.map((x) => Number(x.userId)).filter(Number.isFinite));
+        const { scheduleInvites, workerAssignments } = syncScheduleParticipantSelection(origin, invitees);
+        get().updateSchedule(scheduleId, { scheduleInvites, workerAssignments });
+
+        const nextUserIds = new Set(scheduleInvites.map((iv) => Number(iv.userId)));
+        const removed = [...existingUserIds].filter((uid) => !nextUserIds.has(uid)).length;
+        const toAdd = (Array.isArray(invitees) ? invitees : []).filter(
+          (iv) => iv && Number.isFinite(Number(iv.userId)) && !existingUserIds.has(Number(iv.userId))
+        );
+        if (toAdd.length) {
+          appendScheduleInvites({
+            scheduleId: String(scheduleId),
+            briefingId: origin.briefingId || "",
+            fromUserId: Number(fromUserId) || 0,
+            fromName: String(fromName || "").trim(),
+            title: origin.title,
+            workDate: origin.workDate,
+            invitees: toAdd.map((iv) => ({ userId: Number(iv.userId), name: iv.name })),
+          });
+        }
+        return { added: toAdd.length, removed };
       },
 
       /**

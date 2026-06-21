@@ -134,6 +134,7 @@ export function useScheduleFieldOps(selectedDateKey) {
   const updateSchedule = useSettlementStore((s) => s.updateSchedule);
   const deleteSchedule = useSettlementStore((s) => s.deleteSchedule);
   const inviteContactsToSchedule = useSettlementStore((s) => s.inviteContactsToSchedule);
+  const syncScheduleParticipants = useSettlementStore((s) => s.syncScheduleParticipants);
   const createJobPost = useJobStore((s) => s.createJobPost);
   const updateJobLocal = useJobStore((s) => s.updateJobLocal);
   const jobs = useJobStore((s) => s.jobs);
@@ -534,14 +535,12 @@ export function useScheduleFieldOps(selectedDateKey) {
       );
       const selectedSet = new Set((participantIds || []).map(String));
       const selectedContacts = contacts.filter((c) => selectedSet.has(String(c.id)));
-      const existingIds = scheduleInvitesToParticipantIds(updated || schedule, contacts);
-      const newContacts = selectedContacts.filter((c) => !existingIds.includes(String(c.id)));
-      if (updated?.id && newContacts.length) {
-        inviteContactsToSchedule({
+      if (updated?.id) {
+        syncScheduleParticipants({
           scheduleId: updated.id,
           fromUserId: myUserId,
           fromName: getDisplayNickname(profile) || profile?.name || "현장 소장",
-          invitees: newContacts.map((c) => ({
+          invitees: selectedContacts.map((c) => ({
             userId: contactStableUserId(c),
             name: getContactDisplayName(c),
             birthYear: c.birthYear ?? null,
@@ -555,12 +554,12 @@ export function useScheduleFieldOps(selectedDateKey) {
       applySchedulePatch,
       contactOverridesById,
       favoriteById,
-      inviteContactsToSchedule,
       memoById,
       myUserId,
       profile,
       removedContactIds,
       schedules,
+      syncScheduleParticipants,
       updateJobLocal,
     ]
   );

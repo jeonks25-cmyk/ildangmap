@@ -171,6 +171,89 @@ export function formatSchedulePeriodLabel(schedule) {
   return `${formatDateKeyShort(start)} ~ ${formatDateKeyShort(end)}`;
 }
 
+/** composer 선택 목록과 scheduleInvites·workerAssignments 동기화 (owner 유지, 해제 반영) */
+export function syncScheduleParticipantSelection(schedule, selectedInvitees = []) {
+  if (!schedule) {
+    return { scheduleInvites: [], workerAssignments: [] };
+  }
+
+  const ownerId = Number(schedule.createdByUserId);
+  const existingInvites = Array.isArray(schedule.scheduleInvites) ? schedule.scheduleInvites : [];
+  const existingByUserId = new Map(
+    existingInvites
+      .filter((iv) => iv && Number.isFinite(Number(iv.userId)))
+      .map((iv) => [Number(iv.userId), iv])
+  );
+  const existingAssignments = normalizeWorkerAssignments(schedule);
+  const assignmentByUserId = new Map(
+    existingAssignments
+      .filter((row) => row.role !== ASSIGNMENT_ROLE.owner)
+      .map((row) => [row.userId, row])
+  );
+
+  const scheduleInvites = (Array.isArray(selectedInvitees) ? selectedInvitees : [])
+    .filter((iv) => iv && Number.isFinite(Number(iv.userId)) && Number(iv.userId) > 0)
+    .map((iv) => {
+      const uid = Number(iv.userId);
+      const prev = existingByUserId.get(uid);
+      return {
+        userId: uid,
+        name: String(iv.name || prev?.name || "").trim() || "기술자",
+        birthYear: Number.isFinite(Number(iv.birthYear)) ? Number(iv.birthYear) : prev?.birthYear ?? null,
+        residence: String(iv.residence || prev?.residence || "").trim(),
+        status: prev?.status || "pending",
+      };
+    });
+
+  const start = parseDateKey(schedule.workDate);
+  const end = getScheduleEndDateKey(schedule) || start;
+  const workerAssignments = [];
+
+  const ownerAssignment =
+    existingAssignments.find(
+      (row) => row.role === ASSIGNMENT_ROLE.owner || (Number.isFinite(ownerId) && row.userId === ownerId)
+    ) ||
+    (Number.isFinite(ownerId) && ownerId > 0
+      ? createWorkerAssignment({
+          scheduleId: schedule.id,
+          fieldId: schedule.fieldId || schedule.id,
+          userId: ownerId,
+          name: "현장 소장",
+          workDateStart: start,
+          workDateEnd: end,
+          role: ASSIGNMENT_ROLE.owner,
+          status: ASSIGNMENT_STATUS.confirmed,
+        })
+      : null);
+  if (ownerAssignment) workerAssignments.push(ownerAssignment);
+
+  scheduleInvites.forEach((inv) => {
+    const prev = assignmentByUserId.get(Number(inv.userId));
+    if (prev) {
+      workerAssignments.push(prev);
+      return;
+    }
+    const row = createWorkerAssignment({
+      scheduleId: schedule.id,
+      fieldId: schedule.fieldId || schedule.id,
+      userId: inv.userId,
+      name: inv.name,
+      workDateStart: start,
+      workDateEnd: end,
+      role: ASSIGNMENT_ROLE.participant,
+      status:
+        inv.status === "accepted"
+          ? ASSIGNMENT_STATUS.confirmed
+          : inv.status === "declined"
+            ? ASSIGNMENT_STATUS.declined
+            : ASSIGNMENT_STATUS.pending,
+    });
+    if (row) workerAssignments.push(row);
+  });
+
+  return { scheduleInvites, workerAssignments };
+}
+
 /** 초대 시 배정 행 추가 (기본: 현장 전체 기간) */
 export function mergeWorkerAssignmentsForInvite(schedule, invitees, { workDateStart, workDateEnd } = {}) {
   const existing = normalizeWorkerAssignments(schedule);
