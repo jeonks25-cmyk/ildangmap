@@ -12,7 +12,7 @@ const WEEK_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 
 /**
  * 그룹 일정 보드 — "날짜에 가능한 사람"을 찾는 화면.
- * 월간 캘린더에 날짜별 (가능/반일/일정/미공유) 집계를 점으로 표시하고,
+ * 월간 캘린더에 날짜별 (가능/일정) 집계를 점으로 표시하고,
  * 날짜를 누르면 그 날 그룹 멤버를 상태별로 보여준다.
  * [전체 초대]는 선택 날짜의 가능 인원에게 기존 채팅 초대(quickContactSiteActionBatch)를 재사용한다.
  * 신규 데이터 모델 없음 — useFieldScheduleStore + 그룹 멤버십 재사용.
@@ -207,7 +207,7 @@ export default function GroupScheduleBoardSheet({ open, group, members, onClose,
           <div className="group-board-detail__head">
             <strong className="group-board-detail__date">{formatMonthDay(selectedKey)}</strong>
             <span className="group-board-detail__counts">
-              🟢 가능 {selectedAgg.available} · 🔴 일정 {selectedAgg.busy} · ⚫ 미공유 {selectedAgg.none}
+              🟢 가능 {selectedAgg.available} · 🔴 일정 {selectedAgg.busy}
             </span>
           </div>
 
@@ -218,7 +218,6 @@ export default function GroupScheduleBoardSheet({ open, group, members, onClose,
               <>
                 <DetailGroup label="🟢 가능" people={dayDetail.available} onName={openPersonCard} showDays />
                 <DetailGroup label="🔴 일정 있음" people={dayDetail.busy} onName={openPersonCard} muted />
-                <DetailGroup label="⚫ 미공유" people={dayDetail.none} onName={openPersonCard} muted />
               </>
             )}
           </div>

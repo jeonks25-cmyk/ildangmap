@@ -152,3 +152,9 @@ export function buildAvailabilityOutlook({
   }
   return { state: "none", dot: "⚫", label: "일정 미공유", nextAvailableDateKey: null };
 }
+
+/** UI 노출용 — none(미공유) 상태는 화면에 표시하지 않음 */
+export function isOutlookVisibleInUi(outlook) {
+  if (!outlook) return false;
+  return outlook.state === "available" || outlook.state === "busy";
+}

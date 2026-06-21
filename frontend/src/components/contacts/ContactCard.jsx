@@ -3,16 +3,12 @@ import {
   formatContactListMetaLine,
   getContactDisplayName,
 } from "../../utils/fieldContactsMock";
+import { isOutlookVisibleInUi } from "../../utils/fieldScheduleModel";
 import { usePersonCard } from "../../context/PersonCardContext";
-
-const NONE_OUTLOOK = { state: "none", dot: "⚫", label: "일정 미공유" };
 
 /**
  * 인력 배치 보드의 한 줄 — 정보 전용(압축).
- * 표시: 이름 / 출생년도 · 거주지역 / 가용 전망(언제부터 가능한지).
- * 상태(outlook)는 일정 카드 캘린더와 같은 useFieldScheduleStore 데이터에서 계산된 값을 prop으로 받는다.
- * 행을 누르면 기술자 일정 카드(FieldBusinessCardSheet)가 열린다.
- * 호출 행동(전화/카톡/현장초대)은 이 줄에 두지 않고 일정 카드 안에서만 한다.
+ * 표시: 이름 / 출생년도 · 거주지역 / (가능·일정 있음일 때만) 가용 전망.
  */
 function ContactCardInner({ contact, outlook, onToggleFavoriteById }) {
   const { openPersonCard } = usePersonCard();
@@ -35,7 +31,7 @@ function ContactCardInner({ contact, outlook, onToggleFavoriteById }) {
 
   const displayName = getContactDisplayName(contact);
   const metaLine = formatContactListMetaLine(contact);
-  const status = outlook || NONE_OUTLOOK;
+  const showStatus = isOutlookVisibleInUi(outlook);
 
   return (
     <div className="contact-board-row" role="listitem">
@@ -47,9 +43,11 @@ function ContactCardInner({ contact, outlook, onToggleFavoriteById }) {
       >
         <span className="contact-board-row__top">
           <span className="contact-board-row__name">{displayName}</span>
-          <span className={`contact-board-row__status contact-board-row__status--${status.state}`}>
-            {status.dot} {status.label}
-          </span>
+          {showStatus ? (
+            <span className={`contact-board-row__status contact-board-row__status--${outlook.state}`}>
+              {outlook.dot} {outlook.label}
+            </span>
+          ) : null}
         </span>
         {metaLine ? <span className="contact-board-row__sub">{metaLine}</span> : null}
       </button>

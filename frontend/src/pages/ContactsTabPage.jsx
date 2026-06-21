@@ -118,14 +118,12 @@ export default function ContactsTabPage() {
   const summary = useMemo(() => {
     let available = 0;
     let busy = 0;
-    let none = 0;
     filtered.forEach((c) => {
       const st = outlookById[c.id]?.state;
       if (st === "available") available += 1;
       else if (st === "busy") busy += 1;
-      else none += 1;
     });
-    return { total: filtered.length, available, busy, none };
+    return { total: filtered.length, available, busy };
   }, [filtered, outlookById]);
 
   const handleToggleFavoriteById = useCallback((id) => toggleFavorite(id), [toggleFavorite]);
@@ -213,7 +211,6 @@ export default function ContactsTabPage() {
         <div className="team-summary-bar__stats">
           <span className="team-summary-bar__stat team-summary-bar__stat--available">🟢 가능 {summary.available}</span>
           <span className="team-summary-bar__stat team-summary-bar__stat--busy">🟡 일정 있음 {summary.busy}</span>
-          <span className="team-summary-bar__stat team-summary-bar__stat--none">⚫ 미공유 {summary.none}</span>
         </div>
       </section>
 
