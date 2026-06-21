@@ -1,4 +1,5 @@
-import { loadBriefingPostsForBriefingId, loadBriefingPostsForJob } from "./briefingPostsStorage";
+import { useSiteBoardStore } from "../store/useSiteBoardStore";
+import { loadBriefingPostsForJob } from "./briefingPostsStorage";
 
 export function toLocalDateKey(iso) {
   const d = new Date(iso);
@@ -12,7 +13,10 @@ export function toLocalDateKey(iso) {
 function loadPostsForSchedule(schedule) {
   if (!schedule) return [];
   const bid = String(schedule.briefingId || "").trim();
-  if (bid) return loadBriefingPostsForBriefingId(bid);
+  if (bid) {
+    const slice = useSiteBoardStore.getState().getBoardSlice(bid);
+    return Array.isArray(slice.posts) ? slice.posts : [];
+  }
   const jid = schedule.jobId == null ? NaN : Number(schedule.jobId);
   if (Number.isFinite(jid) && jid > 0) return loadBriefingPostsForJob(jid);
   return [];

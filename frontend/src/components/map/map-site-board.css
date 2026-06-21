@@ -333,6 +333,66 @@
   color: #78716c;
 }
 
+.site-board__card-comments {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.site-board__card-comment {
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f5f5f4;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #44403c;
+}
+
+.site-board__card-comment strong {
+  margin-right: 4px;
+  color: #1c1917;
+}
+
+.site-board__card-comment time {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a8a29e;
+}
+
+.site-board__card-comment-form {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.site-board__card-comment-form input {
+  flex: 1;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #e7e5e4;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.site-board__card-comment-form button {
+  flex-shrink: 0;
+  min-height: 34px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.site-board__card-comment-form button:disabled {
+  opacity: 0.45;
+}
+
 .field-board-compose__types {
   display: flex;
   flex-wrap: wrap;

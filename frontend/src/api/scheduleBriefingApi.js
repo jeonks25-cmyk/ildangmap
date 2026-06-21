@@ -1,23 +1,13 @@
 import { createApiError } from "./client";
+import { useSettlementStore } from "../store/useSettlementStore";
 import { useUserStore } from "../store/useUserStore";
-import { loadBriefingPostsForBriefingId, saveBriefingPostsForBriefingId } from "../utils/briefingPostsStorage";
+import { loadStoredSchedules } from "../utils/scheduleModel";
 import { mergeStoredScheduleBriefingPostsWithDemo } from "../utils/demoFieldOpsSeeds";
 import { isDemoMode } from "../utils/demoMode";
 import { loadStoredJobs } from "../utils/jobsStorage";
 import { canAccessJobBriefing, migrateJob } from "../utils/jobModel";
-import { loadStoredSchedules } from "../utils/scheduleModel";
 import { resolveViewerApplicantUserId } from "../utils/jobOwnership";
-import { buildBriefingAuthorFromViewer } from "../utils/briefingAuthor";
-
-/** 일정 현장 게시판 — 스케줄 데이터가 localStorage 기반이므로 서버 라우트 없이 로컬 저장소 사용 */
-function runScheduleBriefingLocal(handler) {
-  try {
-    return Promise.resolve(handler());
-  } catch (error) {
-    if (error?.status && error?.message) return Promise.reject(error);
-    return Promise.reject(createApiError(error?.message || "요청 처리 중 오류가 발생했습니다.", error?.status || 500));
-  }
-}
+import { useSiteBoardStore } from "../store/useSiteBoardStore";
 
 function normalizeWirePostType(t) {
   const s = String(t || "general").toLowerCase();
@@ -33,7 +23,8 @@ function normalizeWirePostType(t) {
 function findSchedulesByBriefingId(briefingId) {
   const bid = String(briefingId || "").trim();
   if (!bid) return [];
-  const list = loadStoredSchedules();
+  const fromStore = useSettlementStore.getState().schedules;
+  const list = Array.isArray(fromStore) && fromStore.length ? fromStore : loadStoredSchedules();
   return (Array.isArray(list) ? list : []).filter((s) => s && String(s.briefingId || "").trim() === bid);
 }
 
@@ -84,7 +75,7 @@ function assertScheduleBriefingAccess(briefingId) {
   throw createApiError("이 현장 게시판에 접근할 수 없습니다.", 403);
 }
 
-function mapStoredPost(p) {
+function mapPost(p) {
   return {
     id: p.id,
     body: p.body,
@@ -95,6 +86,7 @@ function mapStoredPost(p) {
     authorRoleLabel: p.authorRoleLabel || "",
     authorBirthYear: Number.isFinite(Number(p.authorBirthYear)) ? Number(p.authorBirthYear) : null,
     createdAt: p.createdAt,
+    updatedAt: p.updatedAt || p.createdAt,
     imageDataUrl: p.imageDataUrl || null,
   };
 }
@@ -156,21 +148,30 @@ function buildRoomFromSchedule(schedule) {
 export async function fetchScheduleBriefingRoom(briefingId) {
   const id = String(briefingId || "").trim();
   if (!id) throw createApiError("일정을 찾을 수 없습니다.", 404);
-  return runScheduleBriefingLocal(() => {
-    const rows = findSchedulesByBriefingId(id);
-    if (!rows.length) throw createApiError("일정을 찾을 수 없습니다.", 404);
-    assertScheduleBriefingAccess(id);
-    return buildRoomFromSchedule(pickCanonicalSchedule(rows));
-  });
+  const rows = findSchedulesByBriefingId(id);
+  if (!rows.length) throw createApiError("일정을 찾을 수 없습니다.", 404);
+  assertScheduleBriefingAccess(id);
+  return buildRoomFromSchedule(pickCanonicalSchedule(rows));
 }
 
 export async function fetchScheduleBriefingPosts(briefingId) {
   const id = String(briefingId || "").trim();
   if (!id) return [];
-  return runScheduleBriefingLocal(() => {
-    assertScheduleBriefingAccess(id);
-    return mergeStoredScheduleBriefingPostsWithDemo(id, loadBriefingPostsForBriefingId(id), new Date()).map(mapStoredPost);
-  });
+  assertScheduleBriefingAccess(id);
+  const store = useSiteBoardStore.getState();
+  const board = await store.refreshBoard(id);
+  const posts = Array.isArray(board?.posts) ? board.posts : store.getBoardSlice(id).posts;
+  return mergeStoredScheduleBriefingPostsWithDemo(id, posts, new Date()).map(mapPost);
+}
+
+export async function fetchScheduleBriefingComments(briefingId, postId) {
+  const id = String(briefingId || "").trim();
+  if (!id || !postId) return [];
+  assertScheduleBriefingAccess(id);
+  const store = useSiteBoardStore.getState();
+  await store.refreshBoard(id);
+  const slice = store.getBoardSlice(id);
+  return slice.commentsByPostId?.[String(postId)] || [];
 }
 
 export async function createScheduleBriefingPost(briefingId, { body, postType, imageDataUrl }) {
@@ -181,28 +182,26 @@ export async function createScheduleBriefingPost(briefingId, { body, postType, i
   if (safeImage && safeImage.length > 200_000) {
     throw createApiError("첨부 이미지가 너무 큽니다.", 400);
   }
-  const normalizedType = normalizeWirePostType(postType);
-  return runScheduleBriefingLocal(() => {
-    assertScheduleBriefingAccess(id);
-    const text = String(body || "").trim();
-    if (!text && !safeImage) throw createApiError("내용을 입력해 주세요.", 400);
-    const viewer = mockViewerId();
-    const author = buildBriefingAuthorFromViewer();
-    const row = {
-      id: `sbp-${Date.now()}`,
-      briefingId: id,
-      body: text || (normalizedType === "photo" ? "작업사진" : ""),
-      postType: normalizedType,
-      authorUserId: viewer,
-      authorName: author.authorName,
-      authorImageUrl: author.authorImageUrl,
-      authorRoleLabel: author.authorRoleLabel,
-      authorBirthYear: author.authorBirthYear ?? null,
-      createdAt: new Date().toISOString(),
-      imageDataUrl: safeImage,
-    };
-    const next = [row, ...loadBriefingPostsForBriefingId(id)];
-    saveBriefingPostsForBriefingId(id, next);
-    return mapStoredPost(row);
+  assertScheduleBriefingAccess(id);
+  const text = String(body || "").trim();
+  if (!text && !safeImage) throw createApiError("내용을 입력해 주세요.", 400);
+  const post = await useSiteBoardStore.getState().createPost(id, {
+    body: text,
+    postType: normalizeWirePostType(postType),
+    imageDataUrl: safeImage,
   });
+  return mapPost(post);
 }
+
+export async function createScheduleBriefingComment(briefingId, postId, { body, authorName }) {
+  const id = String(briefingId || "").trim();
+  if (!id) throw createApiError("일정을 찾을 수 없습니다.", 404);
+  assertScheduleBriefingAccess(id);
+  const text = String(body || "").trim();
+  if (!text) throw createApiError("댓글 내용을 입력해 주세요.", 400);
+  void authorName;
+  const comment = await useSiteBoardStore.getState().createComment(id, postId, text);
+  return comment;
+}
+
+export { normalizeWirePostType as normalizePostType };

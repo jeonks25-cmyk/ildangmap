@@ -30,6 +30,7 @@ import {
 } from "./storeUtils";
 import { useContactsStore } from "./useContactsStore";
 import { useSettlementStore } from "./useSettlementStore";
+import { useSiteBoardStore } from "./useSiteBoardStore";
 import { useUiStore } from "./useUiStore";
 import { validateNicknameInput } from "../utils/displayNickname";
 import { authDiag, authDiagStoreSnapshot } from "../utils/authDiag";
@@ -636,9 +637,13 @@ export const useUserStore = create(
                     await useSettlementStore.getState().bootstrapSchedules(syncUserId).catch(() => {
                       /* schedulesError in store */
                     });
+                    await useSiteBoardStore.getState().bootstrapSiteBoards(syncUserId).catch(() => {
+                      /* siteBoardError in store */
+                    });
                   } else {
                     useContactsStore.getState().resetContacts();
                     useSettlementStore.getState().resetSchedules();
+                    useSiteBoardStore.getState().resetSiteBoards();
                   }
                 });
                 return patch;
@@ -653,6 +658,7 @@ export const useUserStore = create(
                   queueMicrotask(() => {
                     useContactsStore.getState().resetContacts();
                     useSettlementStore.getState().resetSchedules();
+                    useSiteBoardStore.getState().resetSiteBoards();
                   });
                   return {
                     ...next,
@@ -918,6 +924,7 @@ export const useUserStore = create(
         removeStorageKey(ONBOARDING_STORAGE_KEY);
         useContactsStore.getState().resetContacts();
         useSettlementStore.getState().resetSchedules();
+        useSiteBoardStore.getState().resetSiteBoards();
       },
 
       setProfile: (patch) =>

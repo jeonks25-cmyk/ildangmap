@@ -1,6 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { createScheduleBriefingPost, fetchScheduleBriefingPosts } from "../../api/scheduleBriefingApi";
+import {
+  createScheduleBriefingComment,
+  createScheduleBriefingPost,
+  fetchScheduleBriefingComments,
+  fetchScheduleBriefingPosts,
+} from "../../api/scheduleBriefingApi";
 import { getApiErrorMessage } from "../../api/client";
+import { buildBriefingAuthorFromViewer } from "../../utils/briefingAuthor";
 import FieldScheduleBoardComposeSheet from "./FieldScheduleBoardComposeSheet";
 import "../map/map-site-board.css";
 
@@ -30,9 +36,11 @@ function badgeForType(type) {
   return { label: "공지", className: "site-board__card-type--notice" };
 }
 
-function BoardPostCard({ post }) {
+function BoardPostCard({ post, comments, commentDraft, onCommentDraft, onSubmitComment }) {
   const badge = badgeForType(post.postType);
   const author = String(post.authorName || "작성자").trim() || "작성자";
+  const commentList = Array.isArray(comments) ? comments : [];
+
   return (
     <article className="site-board__card" role="listitem">
       <div className="site-board__card-head">
@@ -43,13 +51,46 @@ function BoardPostCard({ post }) {
       {post.imageDataUrl ? <img className="site-board__card-image" src={post.imageDataUrl} alt="" /> : null}
       <time className="site-board__card-time" dateTime={post.createdAt || undefined}>
         {formatWhen(post.createdAt)}
+        {post.updatedAt && post.updatedAt !== post.createdAt ? ` · 수정 ${formatWhen(post.updatedAt)}` : ""}
       </time>
+
+      {commentList.length ? (
+        <ul className="site-board__card-comments">
+          {commentList.map((c) => (
+            <li key={c.id} className="site-board__card-comment">
+              <strong>{c.authorName || "작성자"}</strong> {c.body}
+              <time dateTime={c.createdAt}>{formatWhen(c.createdAt)}</time>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <form
+        className="site-board__card-comment-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSubmitComment?.();
+        }}
+      >
+        <input
+          type="text"
+          value={commentDraft || ""}
+          onChange={(e) => onCommentDraft?.(e.target.value)}
+          placeholder="댓글"
+          maxLength={500}
+        />
+        <button type="submit" disabled={!String(commentDraft || "").trim()}>
+          등록
+        </button>
+      </form>
     </article>
   );
 }
 
 export default function FieldScheduleNoticeBoard({ briefingId, siteTitle = "현장 게시판", onToast }) {
   const [posts, setPosts] = useState([]);
+  const [commentsByPost, setCommentsByPost] = useState({});
+  const [commentDrafts, setCommentDrafts] = useState({});
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
@@ -57,6 +98,7 @@ export default function FieldScheduleNoticeBoard({ briefingId, siteTitle = "현�
   const refresh = useCallback(async () => {
     if (!briefingId) {
       setPosts([]);
+      setCommentsByPost({});
       setLoadError("");
       return;
     }
@@ -64,9 +106,18 @@ export default function FieldScheduleNoticeBoard({ briefingId, siteTitle = "현�
     setLoadError("");
     try {
       const rows = await fetchScheduleBriefingPosts(briefingId);
-      setPosts(Array.isArray(rows) ? rows : []);
+      const list = Array.isArray(rows) ? rows : [];
+      setPosts(list);
+      const commentMap = {};
+      await Promise.all(
+        list.map(async (p) => {
+          commentMap[p.id] = await fetchScheduleBriefingComments(briefingId, p.id);
+        })
+      );
+      setCommentsByPost(commentMap);
     } catch (error) {
       setPosts([]);
+      setCommentsByPost({});
       setLoadError(getApiErrorMessage(error, "게시판을 불러오지 못했습니다."));
     } finally {
       setLoading(false);
@@ -82,6 +133,24 @@ export default function FieldScheduleNoticeBoard({ briefingId, siteTitle = "현�
     await createScheduleBriefingPost(briefingId, { body, postType, imageDataUrl });
     onToast?.("게시했습니다");
     await refresh();
+  };
+
+  const handleComment = async (postId) => {
+    const text = String(commentDrafts[postId] || "").trim();
+    if (!text || !briefingId) return;
+    const author = buildBriefingAuthorFromViewer();
+    try {
+      await createScheduleBriefingComment(briefingId, postId, {
+        body: text,
+        authorName: author.authorName,
+      });
+      setCommentDrafts((prev) => ({ ...prev, [postId]: "" }));
+      const next = await fetchScheduleBriefingComments(briefingId, postId);
+      setCommentsByPost((prev) => ({ ...prev, [postId]: next }));
+      await refresh();
+    } catch (error) {
+      onToast?.(getApiErrorMessage(error, "댓글 등록에 실패했습니다."));
+    }
   };
 
   if (!briefingId) {
@@ -110,7 +179,16 @@ export default function FieldScheduleNoticeBoard({ briefingId, siteTitle = "현�
 
         <div className="site-board__list" role="list">
           {posts.length ? (
-            posts.map((post) => <BoardPostCard key={post.id} post={post} />)
+            posts.map((post) => (
+              <BoardPostCard
+                key={post.id}
+                post={post}
+                comments={commentsByPost[post.id]}
+                commentDraft={commentDrafts[post.id]}
+                onCommentDraft={(value) => setCommentDrafts((prev) => ({ ...prev, [post.id]: value }))}
+                onSubmitComment={() => handleComment(post.id)}
+              />
+            ))
           ) : !loading ? (
             <div className="site-board__empty">
               <p className="site-board__empty-title">아직 등록된 글이 없습니다.</p>
