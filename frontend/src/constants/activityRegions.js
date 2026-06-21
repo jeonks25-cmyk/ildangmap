@@ -29,3 +29,14 @@ export function normalizeActivityRegion(value, fallback = "대전 서구") {
   if (isActivityRegion(trimmed)) return trimmed;
   return fallback;
 }
+
+/** 복수 활동지역 중 첫 값, 없으면 fallback */
+export function getPrimaryRegion(regions, fallback = "대전 서구") {
+  if (Array.isArray(regions)) {
+    for (const item of regions) {
+      const normalized = normalizeActivityRegion(item, "");
+      if (normalized) return normalized;
+    }
+  }
+  return normalizeActivityRegion(fallback);
+}
