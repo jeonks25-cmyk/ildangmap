@@ -386,14 +386,22 @@ export function useScheduleFieldOps(selectedDateKey) {
 
   const handleSubmitPersonalEntry = useCallback(
     async ({ id, title, dateKey, startTime, endTime, color, memo }) => {
-      if (id) {
-        updatePersonalEvent(ownerId, id, { title, dateKey, startTime, endTime, color, memo });
-        showAppToast?.("개인 일정을 수정했습니다");
-        return { updated: true, events: [{ id, title, dateKey, startTime, endTime, color, memo }] };
+      try {
+        if (id) {
+          updatePersonalEvent(ownerId, id, { title, dateKey, startTime, endTime, color, memo });
+          showAppToast?.("개인 일정을 수정했습니다");
+          return { updated: true, events: [{ id, title, dateKey, startTime, endTime, color, memo }] };
+        }
+        const created = addPersonalEvent(ownerId, { title, dateKey, startTime, endTime, color, memo });
+        if (!created) {
+          throw new Error("개인 일정 저장에 실패했습니다");
+        }
+        showAppToast?.("개인 일정을 추가했습니다");
+        return { updated: false, events: [created] };
+      } catch (error) {
+        console.error("[useScheduleFieldOps] handleSubmitPersonalEntry failed", error);
+        throw error instanceof Error ? error : new Error("개인 일정 저장에 실패했습니다");
       }
-      const created = addPersonalEvent(ownerId, { title, dateKey, startTime, endTime, color, memo });
-      showAppToast?.("개인 일정을 추가했습니다");
-      return { updated: false, events: created ? [created] : [] };
     },
     [addPersonalEvent, ownerId, showAppToast, updatePersonalEvent]
   );
@@ -559,120 +567,126 @@ export function useScheduleFieldOps(selectedDateKey) {
 
   const handleSubmitSiteEntry = useCallback(
     async ({ id, title, dateKey, endDateKey, workDateStart, workDateEnd, startTime, endTime, color, memo, participantIds = [] }) => {
-      if (id) {
-        await handleUpdateSiteEntry({
-          id,
-          title,
-          dateKey,
-          endDateKey,
-          workDateStart,
-          workDateEnd,
-          startTime,
-          endTime,
-          color,
-          memo,
-          participantIds,
-        });
-        return;
-      }
+      try {
+        if (id) {
+          await handleUpdateSiteEntry({
+            id,
+            title,
+            dateKey,
+            endDateKey,
+            workDateStart,
+            workDateEnd,
+            startTime,
+            endTime,
+            color,
+            memo,
+            participantIds,
+          });
+          showAppToast?.("현장 일정을 수정했습니다");
+          return;
+        }
 
-      const startKey = workDateStart || dateKey;
-      const endKey = workDateEnd || endDateKey || startKey;
-      const workTime = `${startTime}~${endTime}`;
-      const startDate = parseDateKey(startKey);
-      const endDateParsed = parseDateKey(endKey);
-      const durationDays =
-        startDate && endDateParsed && endDateParsed >= startDate
-          ? Math.max(1, Math.round((endDateParsed - startDate) / 86400000) + 1)
-          : 1;
-      const job = createFieldJobFromDraft({
-        draft: {
-          title,
-          workDate: startKey,
-          workDateEnd: endKey,
-          durationDays,
-          workTime,
-          craft: composeCraftSeed || profile?.craft || "film",
-          location: fallbackLocation,
-          mode: "post",
-        },
-        selectedDateKey: startKey,
-        fallbackLocation,
-      });
-      const persisted = await createJobPost(job);
-      const scheduleDate = scheduleDateKeyFromWorkDate((persisted || job)?.workDate) || startKey;
-      const saved = persisted || job;
-      const endDate = scheduleDateKeyFromWorkDate(saved?.workEndDate || saved?.endDate) || endKey;
-      const createdSchedule = addScheduleFromJobMatch(saved, {
-        workDate: scheduleDate,
-        endDate,
-        workDateEnd: endDate,
-        durationDays: saved?.durationDays || durationDays,
-        fieldId: `field-${saved?.id || Date.now()}`,
-        source: "schedule-entry-composer",
-        briefingId: `briefing-sched-pending-${saved?.id || Date.now()}`,
-        calendarMemo: memo,
-      });
-      if (createdSchedule?.id) {
-        updateSchedule?.(createdSchedule.id, {
-          briefingId: resolveScheduleBriefingId(createdSchedule),
-          calendarColor: color,
+        const startKey = workDateStart || dateKey;
+        const endKey = workDateEnd || endDateKey || startKey;
+        const workTime = `${startTime}~${endTime}`;
+        const startDate = parseDateKey(startKey);
+        const endDateParsed = parseDateKey(endKey);
+        const durationDays =
+          startDate && endDateParsed && endDateParsed >= startDate
+            ? Math.max(1, Math.round((endDateParsed - startDate) / 86400000) + 1)
+            : 1;
+        const job = createFieldJobFromDraft({
+          draft: {
+            title,
+            workDate: startKey,
+            workDateEnd: endKey,
+            durationDays,
+            workTime,
+            craft: composeCraftSeed || profile?.craft || "film",
+            location: fallbackLocation,
+            mode: "post",
+          },
+          selectedDateKey: startKey,
+          fallbackLocation,
+        });
+        const persisted = await createJobPost(job);
+        const scheduleDate = scheduleDateKeyFromWorkDate((persisted || job)?.workDate) || startKey;
+        const saved = persisted || job;
+        const endDate = scheduleDateKeyFromWorkDate(saved?.workEndDate || saved?.endDate) || endKey;
+        const createdSchedule = addScheduleFromJobMatch(saved, {
+          workDate: scheduleDate,
+          endDate,
+          workDateEnd: endDate,
+          durationDays: saved?.durationDays || durationDays,
+          fieldId: `field-${saved?.id || Date.now()}`,
+          source: "schedule-entry-composer",
+          briefingId: `briefing-sched-pending-${saved?.id || Date.now()}`,
           calendarMemo: memo,
         });
-      }
+        if (createdSchedule?.id) {
+          updateSchedule?.(createdSchedule.id, {
+            briefingId: resolveScheduleBriefingId(createdSchedule),
+            calendarColor: color,
+            calendarMemo: memo,
+          });
+        }
 
-      const contacts = buildContactsList(
-        favoriteById,
-        memoById,
-        addedContacts,
-        contactOverridesById,
-        removedContactIds
-      );
-      const selectedSet = new Set((participantIds || []).map(String));
-      const selectedContacts = contacts.filter((c) => selectedSet.has(String(c.id)));
-      if (createdSchedule?.id && selectedContacts.length) {
-        const invitees = selectedContacts.map((c) => ({
-          userId: contactStableUserId(c),
-          name: getContactDisplayName(c),
-          birthYear: c.birthYear ?? null,
-          residence: c.homeRegion || "",
-        }));
-        inviteContactsToSchedule({
-          scheduleId: createdSchedule.id,
-          fromUserId: myUserId,
-          fromName: getDisplayNickname(profile) || profile?.name || "현장 소장",
-          invitees,
-        });
-        updateSchedule?.(createdSchedule.id, { crewCount: Math.max(selectedContacts.length, 1) });
-      }
+        const contacts = buildContactsList(
+          favoriteById,
+          memoById,
+          addedContacts,
+          contactOverridesById,
+          removedContactIds
+        );
+        const selectedSet = new Set((participantIds || []).map(String));
+        const selectedContacts = contacts.filter((c) => selectedSet.has(String(c.id)));
+        if (createdSchedule?.id && selectedContacts.length) {
+          const invitees = selectedContacts.map((c) => ({
+            userId: contactStableUserId(c),
+            name: getContactDisplayName(c),
+            birthYear: c.birthYear ?? null,
+            residence: c.homeRegion || "",
+          }));
+          inviteContactsToSchedule({
+            scheduleId: createdSchedule.id,
+            fromUserId: myUserId,
+            fromName: getDisplayNickname(profile) || profile?.name || "현장 소장",
+            invitees,
+          });
+          updateSchedule?.(createdSchedule.id, { crewCount: Math.max(selectedContacts.length, 1) });
+        }
 
-      getScheduleMemoryKeys(createdSchedule || job, persisted || job).forEach((key) => {
-        saveFieldVisitMemory(key, createVisitMemoryFromSchedule(createdSchedule || job, persisted || job));
-        saveFieldTimelineEvent(key, {
-          type: "field_created",
-          tone: "start",
-          icon: "시작",
-          text: "현장 일정 생성",
-          detail: (persisted || job)?.title || "",
-          source: "schedule_registration",
+        getScheduleMemoryKeys(createdSchedule || job, persisted || job).forEach((key) => {
+          saveFieldVisitMemory(key, createVisitMemoryFromSchedule(createdSchedule || job, persisted || job));
+          saveFieldTimelineEvent(key, {
+            type: "field_created",
+            tone: "start",
+            icon: "시작",
+            text: "현장 일정 생성",
+            detail: (persisted || job)?.title || "",
+            source: "schedule_registration",
+          });
         });
-      });
-      setTeamInviteContext(
-        selectedContacts?.length
-          ? null
-          : {
-              job: saved,
-              scheduleId: createdSchedule?.id || null,
-              title: saved?.title || "새 현장",
-              workDateStart: scheduleDate,
-              workDateEnd: endDate,
-            }
-      );
-      showAppToast?.(
-        selectedContacts.length
-          ? `현장 일정을 저장했습니다 · ${selectedContacts.length}명 배정`
-          : "현장 일정을 저장했습니다"
-      );
+        setTeamInviteContext(
+          selectedContacts?.length
+            ? null
+            : {
+                job: saved,
+                scheduleId: createdSchedule?.id || null,
+                title: saved?.title || "새 현장",
+                workDateStart: scheduleDate,
+                workDateEnd: endDate,
+              }
+        );
+        showAppToast?.(
+          selectedContacts.length
+            ? `현장 일정을 저장했습니다 · ${selectedContacts.length}명 배정`
+            : "현장 일정을 저장했습니다"
+        );
+      } catch (error) {
+        console.error("[useScheduleFieldOps] handleSubmitSiteEntry failed", error);
+        throw error instanceof Error ? error : new Error("현장 일정 저장에 실패했습니다");
+      }
     },
     [
       addScheduleFromJobMatch,

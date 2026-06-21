@@ -5,6 +5,7 @@ import SchedulePasteImportPanel from "./SchedulePasteImportPanel";
 import ScheduleShareSheet from "./ScheduleShareSheet";
 import ScheduleParticipantPicker from "./ScheduleParticipantPicker";
 import { useUiStore } from "../../store/useUiStore";
+import { toDateKey } from "../../utils/fieldScheduleModel";
 
 const ENTRY_TYPES = [
   { id: "site", label: "현장 일정" },
@@ -37,7 +38,7 @@ export default function ScheduleEntryComposerSheet({
   useEffect(() => {
     if (!open) return;
     const seed = initial || {};
-    const seedDate = seed.dateKey || seed.workDateStart || dateKey || "";
+    const seedDate = seed.dateKey || seed.workDateStart || dateKey || toDateKey(new Date());
     setEntryType(seed.entryType || "site");
     setTitle(seed.title || "");
     setWorkDateStart(seedDate);
@@ -83,20 +84,38 @@ export default function ScheduleEntryComposerSheet({
 
   const isEdit = Boolean(initial?.id);
   const isSite = entryType === "site";
-  const canSave = title.trim() && workDateStart && endDate && startTime && endTime && endDate >= workDateStart;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!canSave || saving) return;
+    if (saving) return;
+
+    const resolvedStart = workDateStart || dateKey || toDateKey(new Date());
+    const resolvedEnd = workDateEnd || endDate || resolvedStart;
+    const resolvedStartTime = startTime || SCHEDULE_DEFAULT_START_TIME;
+    const resolvedEndTime = endTime || SCHEDULE_DEFAULT_END_TIME;
+    const trimmedTitle = title.trim();
+    const readyToSave =
+      trimmedTitle &&
+      resolvedStart &&
+      resolvedEnd &&
+      resolvedStartTime &&
+      resolvedEndTime &&
+      resolvedEnd >= resolvedStart;
+
+    if (!readyToSave) {
+      showAppToast?.("제목, 날짜, 시간을 확인해 주세요");
+      return;
+    }
+
     const payload = {
       id: initial?.id,
-      title: title.trim(),
-      dateKey: workDateStart,
-      endDateKey: endDate,
-      workDateStart,
-      workDateEnd: endDate,
-      startTime,
-      endTime,
+      title: trimmedTitle,
+      dateKey: resolvedStart,
+      endDateKey: resolvedEnd,
+      workDateStart: resolvedStart,
+      workDateEnd: resolvedEnd,
+      startTime: resolvedStartTime,
+      endTime: resolvedEndTime,
       color,
       memo: memo.trim(),
     };
@@ -108,6 +127,9 @@ export default function ScheduleEntryComposerSheet({
         await onSubmitSite?.({ ...payload, participantIds });
       }
       onClose?.();
+    } catch (error) {
+      console.error("[ScheduleEntryComposerSheet] save failed", error);
+      showAppToast?.(error?.message || "일정 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setSaving(false);
     }
@@ -275,7 +297,7 @@ export default function ScheduleEntryComposerSheet({
           <button type="button" className="schedule-entry-composer__ghost" onClick={onClose}>
             취소
           </button>
-          <button type="submit" className="schedule-entry-composer__primary" disabled={!canSave || saving}>
+          <button type="submit" className="schedule-entry-composer__primary" disabled={saving}>
             {saving ? "저장 중…" : "저장"}
           </button>
         </div>

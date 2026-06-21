@@ -10,24 +10,25 @@ import {
  */
 
 export function normalizeProfileFields(raw = {}) {
-  const experienceYears = Number.isFinite(Number(raw.experienceYears))
-    ? Number(raw.experienceYears)
-    : Number.isFinite(Number(raw.careerYears))
-      ? Number(raw.careerYears)
+  const source = raw && typeof raw === "object" ? raw : {};
+  const experienceYears = Number.isFinite(Number(source.experienceYears))
+    ? Number(source.experienceYears)
+    : Number.isFinite(Number(source.careerYears))
+      ? Number(source.careerYears)
       : null;
-  const desiredPay = Number.isFinite(Number(raw.desiredPay)) && Number(raw.desiredPay) > 0 ? Number(raw.desiredPay) : null;
-  const regions = normalizeActivityRegions(raw.regions ?? raw.region ?? raw.residence);
+  const desiredPay = Number.isFinite(Number(source.desiredPay)) && Number(source.desiredPay) > 0 ? Number(source.desiredPay) : null;
+  const regions = normalizeActivityRegions(source.regions ?? source.region ?? source.residence);
   const region = getPrimaryRegion(regions);
 
   return {
-    nickname: String(raw.nickname || raw.displayNickname || "").trim(),
+    nickname: String(source.nickname || source.displayNickname || "").trim(),
     regions,
     region,
-    craft: String(raw.craft || "film").trim(),
+    craft: String(source.craft || "film").trim(),
     experienceYears: experienceYears != null && experienceYears >= 0 ? experienceYears : null,
     desiredPay,
-    phone: String(raw.phone || "").trim(),
-    intro: String(raw.intro || "").trim(),
+    phone: String(source.phone || "").trim(),
+    intro: String(source.intro || "").trim(),
   };
 }
 

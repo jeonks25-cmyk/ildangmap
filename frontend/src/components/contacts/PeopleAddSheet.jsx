@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useContactsStore } from "../../store/useContactsStore";
+import { buildContactsList, useContactsStore } from "../../store/useContactsStore";
 import { useUiStore } from "../../store/useUiStore";
 import { useUserStore } from "../../store/useUserStore";
 import { getUsers } from "../../api/usersApi";
@@ -23,7 +23,15 @@ function formatPhoneHint(phone) {
  * 인원 추가 — 일당맵 가입자 검색(자동완성) + 연락처 초대.
  */
 export default function PeopleAddSheet({ open, onClose, onAdded }) {
-  const contacts = useContactsStore((s) => s.getContacts());
+  const favoriteById = useContactsStore((s) => s.favoriteById);
+  const memoById = useContactsStore((s) => s.memoById);
+  const addedContacts = useContactsStore((s) => s.addedContacts);
+  const contactOverridesById = useContactsStore((s) => s.contactOverridesById);
+  const removedContactIds = useContactsStore((s) => s.removedContactIds);
+  const contacts = useMemo(
+    () => buildContactsList(favoriteById, memoById, addedContacts, contactOverridesById, removedContactIds),
+    [favoriteById, memoById, addedContacts, contactOverridesById, removedContactIds]
+  );
   const addContact = useContactsStore((s) => s.addContact);
   const showAppToast = useUiStore((s) => s.showAppToast);
   const myUserId = useUserStore((s) => s.session?.userId ?? s.profile?.userId ?? 1);
