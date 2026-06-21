@@ -8,7 +8,7 @@ function digitsOnly(value, maxLen) {
   return String(value || "").replace(/[^\d]/g, "").slice(0, maxLen);
 }
 
-export default function ContactEditSheet({ open, contact, onClose, onSave, onDelete }) {
+export default function ContactEditSheet({ open, contact, onClose, onSave }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [homeRegion, setHomeRegion] = useState("대전 서구");
@@ -53,12 +53,6 @@ export default function ContactEditSheet({ open, contact, onClose, onSave, onDel
       basePay: Number.isFinite(basePay) && basePay > 0 ? basePay : null,
       memo: memo.trim(),
     });
-  };
-
-  const handleDelete = () => {
-    const ok = window.confirm(`'${displayName}'님을 목록에서 삭제할까요?`);
-    if (!ok) return;
-    onDelete?.();
   };
 
   return createPortal(
@@ -163,9 +157,6 @@ export default function ContactEditSheet({ open, contact, onClose, onSave, onDel
           <div className="contact-edit-sheet__actions">
             <button type="button" className="contact-edit-sheet__save" onClick={handleSave} disabled={!name.trim()}>
               저장
-            </button>
-            <button type="button" className="contact-edit-sheet__delete" onClick={handleDelete}>
-              삭제
             </button>
           </div>
         </div>

@@ -590,6 +590,32 @@
   gap: 10px;
 }
 
+.person-detail-manage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px 0 8px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(120, 113, 108, 0.12);
+}
+
+.person-detail-manage__btn {
+  min-height: 46px;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  border-radius: 12px;
+  background: #fff;
+  color: #374151;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.person-detail-manage__btn--danger {
+  border-color: rgba(220, 38, 38, 0.35);
+  background: rgba(254, 226, 226, 0.5);
+  color: #b91c1c;
+}
+
 .person-detail-head__edit {
   flex-shrink: 0;
   min-height: 32px;
@@ -1370,6 +1396,241 @@
 .people-add-sheet__save:disabled {
   background: #d6d3d1;
   cursor: not-allowed;
+}
+
+.people-add-sheet__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px 16px 0;
+  background: #fff;
+  border-bottom: 1px solid rgba(120, 113, 108, 0.1);
+}
+
+.people-add-sheet__tab {
+  min-height: 44px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.people-add-sheet__tab.is-active {
+  color: #111827;
+  border-bottom-color: #16a34a;
+}
+
+.people-add-sheet__lead {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #6b7280;
+}
+
+.people-add-sheet__hint--idle {
+  margin-top: 12px;
+}
+
+.people-add-sheet__results--autocomplete {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  border: 1px solid rgba(120, 113, 108, 0.14);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.people-add-sheet__result-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 14px;
+  border: none;
+  border-bottom: 1px solid rgba(120, 113, 108, 0.08);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.people-add-sheet__results--autocomplete li:last-child .people-add-sheet__result-btn {
+  border-bottom: none;
+}
+
+.people-add-sheet__result-btn:active {
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.people-add-sheet__result-action {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #16a34a;
+}
+
+.people-add-sheet__pick-btn {
+  width: 100%;
+  min-height: 52px;
+  margin-bottom: 12px;
+  border: 1px dashed rgba(22, 163, 74, 0.5);
+  border-radius: 14px;
+  background: rgba(22, 163, 74, 0.06);
+  color: #15803d;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.people-add-sheet__picked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 113, 108, 0.16);
+  background: #fff;
+}
+
+.people-add-sheet__picked-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.people-add-sheet__picked-body strong {
+  font-size: 16px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.people-add-sheet__picked-body span {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.people-add-sheet__picked-clear {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  color: #374151;
+  cursor: pointer;
+}
+
+.people-add-sheet__invite-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.people-add-sheet__invite-btn {
+  min-height: 50px;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  border-radius: 14px;
+  background: #fff;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.people-add-sheet__invite-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.people-add-sheet__invite-btn--primary {
+  border-color: transparent;
+  background: #16a34a;
+  color: #fff;
+}
+
+.confirm-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.confirm-dialog__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(15, 23, 42, 0.5);
+  cursor: pointer;
+}
+
+.confirm-dialog__panel {
+  position: relative;
+  width: min(100%, 340px);
+  padding: 20px 18px 16px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.22);
+}
+
+.confirm-dialog__title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.confirm-dialog__message {
+  margin: 0 0 18px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #4b5563;
+}
+
+.confirm-dialog__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.confirm-dialog__btn {
+  min-height: 48px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.confirm-dialog__btn--cancel {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+}
+
+.confirm-dialog__btn--confirm {
+  border: none;
+  background: #111827;
+  color: #fff;
+}
+
+.confirm-dialog__btn--danger {
+  border: none;
+  background: #dc2626;
+  color: #fff;
 }
 
 /* === 사용자 정의 그룹 보드 === */

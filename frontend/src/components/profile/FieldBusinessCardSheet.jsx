@@ -22,6 +22,7 @@ export default function FieldBusinessCardSheet({
   isUnregistered = false,
   onClose,
   onEdit,
+  onDelete,
   onCall,
   onKakao,
   onInvite,
@@ -53,20 +54,7 @@ export default function FieldBusinessCardSheet({
 
         <div className="field-card-sheet__scroll">
           <header className="person-detail-head">
-            <div className="person-detail-head__row">
-              <h2 className="person-detail-head__name">{headline}</h2>
-              <button
-                type="button"
-                className="person-detail-head__edit"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit?.();
-                }}
-                aria-label="정보 수정"
-              >
-                수정
-              </button>
-            </div>
+            <h2 className="person-detail-head__name">{headline}</h2>
             {birthLabel ? <p className="person-detail-head__birth">{birthLabel}</p> : null}
             <p className="person-detail-head__region">{residence}</p>
             {craftCareerLine ? <p className="person-detail-head__craft">{craftCareerLine}</p> : null}
@@ -90,6 +78,15 @@ export default function FieldBusinessCardSheet({
               함께한 현장 이력 보기
             </button>
           ) : null}
+        </div>
+
+        <div className="person-detail-manage" role="group" aria-label="인원 관리">
+          <button type="button" className="person-detail-manage__btn" onClick={() => onEdit?.()}>
+            인원 수정
+          </button>
+          <button type="button" className="person-detail-manage__btn person-detail-manage__btn--danger" onClick={() => onDelete?.()}>
+            인원 삭제
+          </button>
         </div>
 
         {isUnregistered ? (

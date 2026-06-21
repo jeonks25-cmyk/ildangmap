@@ -17,6 +17,7 @@ import {
 import FieldBusinessCardSheet from "../components/profile/FieldBusinessCardSheet";
 import ContactEditSheet from "../components/contacts/ContactEditSheet";
 import ContactSiteShareSheet from "../components/contacts/ContactSiteShareSheet";
+import ConfirmDialog from "../components/common/ConfirmDialog";
 import {
   deriveCoworkStats,
   listCoworkHistoryForContact,
@@ -106,6 +107,7 @@ export function PersonCardProvider({ children }) {
   const [card, setCard] = useState(null);
   const [inviteContact, setInviteContact] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const shareableJobs = useMemo(() => loadStoredJobs().filter(Boolean), []);
 
@@ -247,9 +249,19 @@ export function PersonCardProvider({ children }) {
     if (!contact?.id) return;
     deleteContact(contact.id);
     setEditOpen(false);
+    setDeleteConfirmOpen(false);
     setCard(null);
     useUiStore.getState().showAppToast("목록에서 삭제했습니다");
   }, [editContact, card, deleteContact]);
+
+  const handleRequestDelete = useCallback(() => {
+    const contact = editContact || card?.contact;
+    if (!contact?.id) {
+      useUiStore.getState().showAppToast("삭제할 연락처가 없습니다");
+      return;
+    }
+    setDeleteConfirmOpen(true);
+  }, [editContact, card]);
 
   const isUnregistered = isUnregisteredContact(card?.contact);
 
@@ -280,6 +292,7 @@ export function PersonCardProvider({ children }) {
         isUnregistered={isUnregistered}
         onClose={() => setCard(null)}
         onEdit={handleEdit}
+        onDelete={handleRequestDelete}
         onCall={handleCall}
         onKakao={handleKakao}
         onInvite={handleInvite}
@@ -292,7 +305,20 @@ export function PersonCardProvider({ children }) {
         contact={editContact}
         onClose={() => setEditOpen(false)}
         onSave={handleSaveEdit}
-        onDelete={handleDeleteContact}
+      />
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        title="인원 삭제"
+        message={
+          editContact || card?.contact
+            ? `'${getContactDisplayName(editContact || card?.contact)}'님을 목록에서 삭제할까요?`
+            : "목록에서 삭제할까요?"
+        }
+        confirmLabel="삭제"
+        cancelLabel="취소"
+        danger
+        onConfirm={handleDeleteContact}
+        onCancel={() => setDeleteConfirmOpen(false)}
       />
       <ContactSiteShareSheet
         open={Boolean(inviteContact)}

@@ -438,6 +438,30 @@
   cursor: pointer;
 }
 
+.person-detail-manage {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 16px 8px;
+}
+
+.person-detail-manage__btn {
+  min-height: 46px;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+  border-radius: 12px;
+  background: #fff;
+  color: #374151;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.person-detail-manage__btn--danger {
+  border-color: rgba(220, 38, 38, 0.35);
+  background: rgba(254, 226, 226, 0.5);
+  color: #b91c1c;
+}
+
 /* ─── 작업자 가용 캘린더 (가능/불가 2상태) ─── */
 .person-avail-cal {
   display: flex;
