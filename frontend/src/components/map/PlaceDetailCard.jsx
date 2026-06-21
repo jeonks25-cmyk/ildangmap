@@ -134,7 +134,7 @@ export default function PlaceDetailCard({ place, onToast, onEdit, onUpdatePlace,
   };
 
   const editingPost = posts.find((p) => p.id === editingId);
-  const mapItemId = place.source?.id || place.sourceId || place.id;
+  const mapItemId = place?.source?.id || place?.sourceId || place?.id || "";
 
   const handleReport = async (post, reason) => {
     if (!requireAuth()) return;

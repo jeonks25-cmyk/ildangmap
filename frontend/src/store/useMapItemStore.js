@@ -20,6 +20,7 @@ export const useMapItemStore = create(
         let updated = null;
         set((state) => ({
           items: (Array.isArray(state.items) ? state.items : []).map((item) => {
+            if (!item) return item;
             if (String(item.id) !== String(id)) return item;
             const next = normalizeMapItemDraft({
               ...item,
@@ -75,7 +76,9 @@ export const useMapItemStore = create(
       removeMapItem: (id) => {
         const target = String(id);
         set((state) => ({
-          items: (Array.isArray(state.items) ? state.items : []).filter((item) => String(item.id) !== target),
+          items: (Array.isArray(state.items) ? state.items : []).filter(
+            (item) => item && String(item.id) !== target
+          ),
         }));
       },
     }),

@@ -7,6 +7,7 @@ import "./styles/oyaji-product.css";
 import "./styles/daangn-shell-desktop.css";
 import "./styles/responsive-desktop.css";
 import App from "./App";
+import AppErrorBoundary from "./components/AppErrorBoundary";
 import * as serviceWorkerRegistration from "./serviceWorkerRegistration";
 import { captureInviteFromUrl } from "./utils/pendingInvite";
 
@@ -16,6 +17,10 @@ const root = ReactDOM.createRoot(document.getElementById("root"));
 
 // StrictMode off in dev: map overlay/marker effects were mounting twice (perf diagnosis).
 // Re-enable before release if desired.
-root.render(<App />);
+root.render(
+  <AppErrorBoundary>
+    <App />
+  </AppErrorBoundary>
+);
 
 serviceWorkerRegistration.register();

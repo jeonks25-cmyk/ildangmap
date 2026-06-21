@@ -102,7 +102,7 @@ function buildNotifications({ jobs, schedules }) {
       const name = teamNames[index % teamNames.length];
       const arrived = stage === WORKER_STAGE.ARRIVED;
       return {
-        id: `team-${job.id}-${stage}`,
+        id: job?.id != null ? `team-${job.id}-${stage}` : `team-${index}-${stage}`,
         kind: arrived ? NOTIFICATION_KIND.TEAM_ARRIVED : NOTIFICATION_KIND.TEAM_DEPARTED,
         sectionLabel: "팀",
         primaryLine: arrived ? `${name}님 현장 도착` : `${name}님 출발`,
@@ -113,7 +113,7 @@ function buildNotifications({ jobs, schedules }) {
     });
 
   const siteNotifications = sourceJobs.slice(0, 2).map((job, index) => ({
-    id: `site-reg-${job.id}`,
+    id: job?.id != null ? `site-reg-${job.id}` : `site-reg-${index}`,
     kind: NOTIFICATION_KIND.SITE_REGISTERED,
     sectionLabel: "현장",
     primaryLine: `${buildFieldJobTitle(job)} 등록됨`,
@@ -123,7 +123,7 @@ function buildNotifications({ jobs, schedules }) {
   }));
 
   const scheduleNotifications = sourceSchedules.slice(0, 2).map((schedule, index) => ({
-    id: `sched-${schedule.id}`,
+    id: schedule?.id != null ? `sched-${schedule.id}` : `sched-${index}`,
     kind: index === 0 ? NOTIFICATION_KIND.SCHEDULE_TIME_CHANGE : NOTIFICATION_KIND.SCHEDULE_DATE_CHANGE,
     sectionLabel: "일정",
     primaryLine: index === 0 ? "작업시간 변경" : "작업일 변경",
@@ -142,7 +142,7 @@ function buildNotifications({ jobs, schedules }) {
     .map((schedule, index) => {
       const isDone = schedule.settlementStatus === SCHEDULE_SETTLEMENT_STATUS.SETTLED;
       return {
-        id: `settlement-${schedule.id}`,
+        id: schedule?.id != null ? `settlement-${schedule.id}` : `settlement-${index}`,
         kind: isDone ? NOTIFICATION_KIND.SETTLEMENT_DONE : NOTIFICATION_KIND.SETTLEMENT_REVIEW,
         sectionLabel: "정산",
         primaryLine: isDone ? "정산 완료" : "정산 확인 필요",
