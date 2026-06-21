@@ -37,12 +37,34 @@ public class LocalFeedbackStorageService implements FeedbackStorageService {
     public LocalFeedbackStorageService(
             @Value("${app.feedback.storage.local.base-dir:uploads/feedback}") String baseDir
     ) {
-        this.baseDir = Paths.get(baseDir).toAbsolutePath().normalize();
+        this.baseDir = resolveWritableBaseDir(baseDir);
+        log.info("[feedback-storage] local baseDir={}", this.baseDir);
+    }
+
+    private static Path resolveWritableBaseDir(String configured) {
+        Path primary = Paths.get(configured).toAbsolutePath().normalize();
+        if (ensureDirectory(primary)) {
+            return primary;
+        }
+        Path fallback = Paths.get(System.getProperty("java.io.tmpdir", "/tmp"), "ildangmap", "uploads", "feedback")
+                .toAbsolutePath()
+                .normalize();
+        if (ensureDirectory(fallback)) {
+            log.warn("[feedback-storage] using fallback baseDir={} (configured path not writable: {})", fallback, primary);
+            return fallback;
+        }
+        throw new IllegalStateException(
+                "피드백 업로드 디렉터리를 생성하지 못했습니다: " + primary + " (fallback: " + fallback + ")"
+        );
+    }
+
+    private static boolean ensureDirectory(Path dir) {
         try {
-            Files.createDirectories(this.baseDir);
-            log.info("[feedback-storage] local baseDir={}", this.baseDir);
+            Files.createDirectories(dir);
+            return Files.isWritable(dir);
         } catch (IOException e) {
-            throw new IllegalStateException("피드백 업로드 디렉터리를 생성하지 못했습니다: " + this.baseDir, e);
+            log.warn("[feedback-storage] cannot create baseDir={}: {}", dir, e.getMessage());
+            return false;
         }
     }
 

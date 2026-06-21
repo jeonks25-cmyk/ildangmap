@@ -1082,6 +1082,13 @@ export const useUserStore = create(
           if (state.profile?.needsPersonaChoice) {
             state.profile = { ...state.profile, needsPersonaChoice: false };
           }
+          if (state.profile) {
+            state.profile = {
+              ...state.profile,
+              canChangeNickname: true,
+              nicknameChangeAvailableAt: "",
+            };
+          }
         }
         const sessionAuthed = state?.session?.isAuthenticated === true;
         const patch = {

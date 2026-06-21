@@ -28,6 +28,7 @@ public class HealthCheckService {
         result.put("sessionBootstrap", true);
         result.put("oauthProvider", resolveOAuthProviderStatus());
         result.put("websocketReady", true);
+        result.put("nicknameChangePolicy", "unlimited");
         return result;
     }
 
