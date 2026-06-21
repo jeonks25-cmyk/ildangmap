@@ -16,6 +16,7 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 export default function ScheduleMonthCalendar({
   selectedDateKey,
   onSelectDate,
+  onSelectEntry,
   selectDateOnGoToday = true,
 }) {
   const ownerId = getMyScheduleOwnerId();
@@ -139,8 +140,21 @@ export default function ScheduleMonthCalendar({
                       return (
                         <span
                           key={item.id}
-                          className="schedule-month-cal__site-label"
+                          role="button"
+                          tabIndex={0}
+                          className="schedule-month-cal__site-label schedule-month-cal__site-label--clickable"
                           style={{ background: tone.bg, color: tone.text }}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onSelectEntry?.(item.id, dateKey);
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              event.stopPropagation();
+                              onSelectEntry?.(item.id, dateKey);
+                            }
+                          }}
                         >
                           {item.shortTitle}
                         </span>

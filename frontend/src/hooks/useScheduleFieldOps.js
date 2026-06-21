@@ -29,6 +29,11 @@ import { SCHEDULE_DEFAULT_END_TIME, SCHEDULE_DEFAULT_START_TIME } from "../const
 import { scheduleDateKeyFromWorkDate, toDateKey } from "../utils/fieldScheduleModel";
 import { getScheduleDurationDays, scheduleCoversDate } from "../utils/scheduleModel";
 import {
+  entryToComposerInitial,
+  entryToCopyComposerInitial,
+  scheduleInvitesToParticipantIds,
+} from "../utils/scheduleEntryHelpers";
+import {
   fieldMemorySiteKeyFromAddress,
   fieldMemorySiteKeyFromJobId,
   saveFieldMemoryItem,
@@ -117,14 +122,17 @@ export function useScheduleFieldOps(selectedDateKey) {
   const [teamInviteContext, setTeamInviteContext] = useState(null);
   const [editSchedule, setEditSchedule] = useState(null);
   const [changeSchedule, setChangeSchedule] = useState(null);
+  const [detailEntry, setDetailEntry] = useState(null);
   const ownerId = getMyScheduleOwnerId();
   const schedules = useSettlementStore((s) => s.schedules);
   const personalEvents = useFieldScheduleStore((s) => selectPersonalEventsForOwner(s, ownerId));
   const personalRevision = useFieldScheduleStore((s) => s.revisionsByOwner[ownerId]);
   const addPersonalEvent = useFieldScheduleStore((s) => s.addPersonalEvent);
   const updatePersonalEvent = useFieldScheduleStore((s) => s.updatePersonalEvent);
+  const removePersonalEvent = useFieldScheduleStore((s) => s.removePersonalEvent);
   const addScheduleFromJobMatch = useSettlementStore((s) => s.addScheduleFromJobMatch);
   const updateSchedule = useSettlementStore((s) => s.updateSchedule);
+  const deleteSchedule = useSettlementStore((s) => s.deleteSchedule);
   const inviteContactsToSchedule = useSettlementStore((s) => s.inviteContactsToSchedule);
   const createJobPost = useJobStore((s) => s.createJobPost);
   const updateJobLocal = useJobStore((s) => s.updateJobLocal);
@@ -413,8 +421,161 @@ export function useScheduleFieldOps(selectedDateKey) {
     [addPersonalEvent, ownerId, showAppToast]
   );
 
+  const openEntryDetail = useCallback((entry) => {
+    if (!entry) return;
+    setDetailEntry(entry);
+  }, []);
+
+  const closeEntryDetail = useCallback(() => {
+    setDetailEntry(null);
+  }, []);
+
+  const openEntryEdit = useCallback(
+    (entry) => {
+      const initial = entryToComposerInitial(entry);
+      if (!initial) return;
+      if (entry.kind === "site" && initial.schedule) {
+        const contacts = buildContactsList(
+          favoriteById,
+          memoById,
+          addedContacts,
+          contactOverridesById,
+          removedContactIds
+        );
+        initial.participantIds = scheduleInvitesToParticipantIds(initial.schedule, contacts);
+      }
+      setDetailEntry(null);
+      setComposerInitial(initial);
+      setComposerOpen(true);
+    },
+    [addedContacts, contactOverridesById, favoriteById, memoById, removedContactIds]
+  );
+
+  const openEntryCopy = useCallback((entry) => {
+    const initial = entryToCopyComposerInitial(entry);
+    if (!initial) return;
+    setDetailEntry(null);
+    setComposerInitial(initial);
+    setComposerOpen(true);
+  }, []);
+
+  const handleDeleteEntry = useCallback(
+    (entry) => {
+      if (!entry) return;
+      if (entry.kind === "personal" && entry.personalEvent?.id) {
+        removePersonalEvent(ownerId, entry.personalEvent.id);
+        showAppToast?.("일정을 삭제했습니다");
+      } else if (entry.kind === "site" && entry.schedule?.id) {
+        deleteSchedule?.(entry.schedule.id);
+        showAppToast?.("일정을 삭제했습니다");
+      }
+      setDetailEntry(null);
+    },
+    [deleteSchedule, ownerId, removePersonalEvent, showAppToast]
+  );
+
+  const handleUpdateSiteEntry = useCallback(
+    async ({ id, title, dateKey, endDateKey, workDateStart, workDateEnd, startTime, endTime, color, memo, participantIds = [] }) => {
+      const schedule = (Array.isArray(schedules) ? schedules : []).find((s) => String(s?.id) === String(id));
+      if (!schedule) return;
+
+      const startKey = workDateStart || dateKey;
+      const endKey = workDateEnd || endDateKey || startKey;
+      const startDate = parseDateKey(startKey);
+      const endDateParsed = parseDateKey(endKey);
+      const durationDays =
+        startDate && endDateParsed && endDateParsed >= startDate
+          ? Math.max(1, Math.round((endDateParsed - startDate) / 86400000) + 1)
+          : 1;
+      const workTime = `${startTime}~${endTime}`;
+
+      const updated = applySchedulePatch(
+        schedule,
+        {
+          title: title.trim(),
+          workDate: startKey,
+          date: startKey,
+          endDate: endKey,
+          workDateEnd: endKey,
+          durationDays,
+          workTime,
+          calendarColor: color,
+          calendarMemo: memo,
+        },
+        "일정을 수정했습니다"
+      );
+
+      if (updated?.jobId) {
+        updateJobLocal?.(updated.jobId, {
+          title: title.trim(),
+          date: startKey,
+          workDate: startKey,
+          durationDays,
+          endDate: endKey,
+          workEndDate: endKey,
+          workTime,
+        });
+      }
+
+      const contacts = buildContactsList(
+        favoriteById,
+        memoById,
+        addedContacts,
+        contactOverridesById,
+        removedContactIds
+      );
+      const selectedSet = new Set((participantIds || []).map(String));
+      const selectedContacts = contacts.filter((c) => selectedSet.has(String(c.id)));
+      const existingIds = scheduleInvitesToParticipantIds(updated || schedule, contacts);
+      const newContacts = selectedContacts.filter((c) => !existingIds.includes(String(c.id)));
+      if (updated?.id && newContacts.length) {
+        inviteContactsToSchedule({
+          scheduleId: updated.id,
+          fromUserId: myUserId,
+          fromName: getDisplayNickname(profile) || profile?.name || "현장 소장",
+          invitees: newContacts.map((c) => ({
+            userId: contactStableUserId(c),
+            name: getContactDisplayName(c),
+            birthYear: c.birthYear ?? null,
+            residence: c.homeRegion || "",
+          })),
+        });
+      }
+    },
+    [
+      addedContacts,
+      applySchedulePatch,
+      contactOverridesById,
+      favoriteById,
+      inviteContactsToSchedule,
+      memoById,
+      myUserId,
+      profile,
+      removedContactIds,
+      schedules,
+      updateJobLocal,
+    ]
+  );
+
   const handleSubmitSiteEntry = useCallback(
-    async ({ title, dateKey, endDateKey, workDateStart, workDateEnd, startTime, endTime, color, memo, participantIds = [] }) => {
+    async ({ id, title, dateKey, endDateKey, workDateStart, workDateEnd, startTime, endTime, color, memo, participantIds = [] }) => {
+      if (id) {
+        await handleUpdateSiteEntry({
+          id,
+          title,
+          dateKey,
+          endDateKey,
+          workDateStart,
+          workDateEnd,
+          startTime,
+          endTime,
+          color,
+          memo,
+          participantIds,
+        });
+        return;
+      }
+
       const startKey = workDateStart || dateKey;
       const endKey = workDateEnd || endDateKey || startKey;
       const workTime = `${startTime}~${endTime}`;
@@ -521,6 +682,7 @@ export function useScheduleFieldOps(selectedDateKey) {
       createJobPost,
       fallbackLocation,
       favoriteById,
+      handleUpdateSiteEntry,
       inviteContactsToSchedule,
       memoById,
       myUserId,
@@ -634,6 +796,12 @@ export function useScheduleFieldOps(selectedDateKey) {
     setSyncOpen,
     teamInviteContext,
     setTeamInviteContext,
+    detailEntry,
+    openEntryDetail,
+    closeEntryDetail,
+    openEntryEdit,
+    openEntryCopy,
+    handleDeleteEntry,
     editSchedule,
     setEditSchedule,
     changeSchedule,

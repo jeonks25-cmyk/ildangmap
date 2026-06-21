@@ -12,7 +12,12 @@ import { MAP_ITEM_TYPE } from "../constants/mapItemTypes";
 import { toDateKey } from "../utils/fieldScheduleModel";
 import { useScheduleFieldOps } from "../hooks/useScheduleFieldOps";
 import ScheduleEntryComposerSheet from "../components/schedule/ScheduleEntryComposerSheet";
+import ScheduleDetailSheet from "../components/schedule/ScheduleDetailSheet";
 import ScheduleShareSheet from "../components/schedule/ScheduleShareSheet";
+import { resolveDayEntryFromEventId } from "../utils/scheduleEntryHelpers";
+import { getDisplayNickname } from "../utils/displayNickname";
+import { getMyScheduleOwnerId, selectPersonalEventsForOwner, useFieldScheduleStore } from "../store/useFieldScheduleStore";
+import { useSettlementStore } from "../store/useSettlementStore";
 import { getScheduleColorOption } from "../constants/scheduleColors";
 import { personalEventToIcsInput } from "../features/calendar-export";
 import "../styles/schedule-page-mobile.css";
@@ -38,6 +43,20 @@ export default function ScheduleMonthPage() {
   const [shareEntry, setShareEntry] = useState(null);
   const [calendarExportEvents, setCalendarExportEvents] = useState(null);
   const ops = useScheduleFieldOps(selectedDateKey);
+  const schedules = useSettlementStore((s) => s.schedules);
+  const ownerId = getMyScheduleOwnerId();
+  const personalEvents = useFieldScheduleStore((s) => selectPersonalEventsForOwner(s, ownerId));
+  const creatorLabel = getDisplayNickname(ops.profile) || "나";
+
+  const handleCalendarEntrySelect = useCallback(
+    (eventId, dateKey) => {
+      if (!eventId || !dateKey) return;
+      setSelectedDateKey(dateKey);
+      const entry = resolveDayEntryFromEventId({ eventId, dateKey, schedules, personalEvents });
+      if (entry) ops.openEntryDetail(entry);
+    },
+    [ops, personalEvents, schedules]
+  );
 
   useEffect(() => {
     const compose = location.state?.composeField;
@@ -96,6 +115,7 @@ export default function ScheduleMonthPage() {
         <ScheduleAvailabilityCalendar
           selectedDateKey={selectedDateKey}
           onSelectDate={onSelectDate}
+          onSelectEntry={handleCalendarEntrySelect}
           selectDateOnGoToday
         />
       </div>
@@ -109,17 +129,12 @@ export default function ScheduleMonthPage() {
             <ul className="schedule-oyaji-list__items">
               {ops.dayEntries.map((entry) => {
                 const tone = getScheduleColorOption(entry.colorId);
-                const isPersonal = entry.kind === "personal";
                 return (
                   <li key={entry.id} className="schedule-oyaji-list__item">
                     <button
                       type="button"
                       className="schedule-oyaji-list__row"
-                      onClick={() =>
-                        isPersonal
-                          ? ops.openPersonalComposer(entry.personalEvent)
-                          : ops.navigateToFieldDetail(entry.schedule)
-                      }
+                      onClick={() => ops.openEntryDetail(entry)}
                     >
                       <strong
                         className="schedule-oyaji-list__name"
@@ -128,10 +143,10 @@ export default function ScheduleMonthPage() {
                         {entry.shortTitle || entry.title}
                       </strong>
                       <span className="schedule-oyaji-list__time">{entry.time}</span>
-                      {!isPersonal && entry.address ? (
+                      {entry.kind === "site" && entry.address ? (
                         <span className="schedule-oyaji-list__addr">{entry.address}</span>
                       ) : null}
-                      {isPersonal && entry.memo ? (
+                      {entry.memo ? (
                         <span className="schedule-oyaji-list__memo">{entry.memo}</span>
                       ) : null}
                     </button>
@@ -233,6 +248,19 @@ export default function ScheduleMonthPage() {
         scheduleInput={shareEntry}
         onClose={() => setShareEntry(null)}
         onToast={ops.showAppToast}
+      />
+      <ScheduleDetailSheet
+        open={Boolean(ops.detailEntry)}
+        entry={ops.detailEntry}
+        creatorLabel={creatorLabel}
+        onClose={ops.closeEntryDetail}
+        onEdit={ops.openEntryEdit}
+        onShare={(entry) => {
+          ops.closeEntryDetail();
+          setShareEntry(entry);
+        }}
+        onCopy={ops.openEntryCopy}
+        onDelete={ops.handleDeleteEntry}
       />
       <FloatingActionButton label="일정" aria-label="일정 추가" onClick={ops.openFieldScheduleComposer} />
     </div>

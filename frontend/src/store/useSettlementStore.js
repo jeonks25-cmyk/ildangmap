@@ -153,6 +153,23 @@ export const useSettlementStore = create(
         return updated;
       },
 
+      deleteSchedule: (scheduleId) => {
+        if (scheduleId == null) return false;
+        let removed = false;
+        set((state) => {
+          const schedules = (Array.isArray(state.schedules) ? state.schedules : []).filter((schedule) => {
+            if (!schedule || String(schedule.id) !== String(scheduleId)) return true;
+            removed = true;
+            return false;
+          });
+          return {
+            schedules,
+            summary: buildLocalSummary(schedules, state.briefingData),
+          };
+        });
+        return removed;
+      },
+
       createSharedFieldSchedule: (payload) => {
         const briefingId =
           typeof window !== "undefined" && window.crypto && typeof window.crypto.randomUUID === "function"

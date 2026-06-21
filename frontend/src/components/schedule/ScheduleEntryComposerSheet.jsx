@@ -48,7 +48,7 @@ export default function ScheduleEntryComposerSheet({
     setMemo(seed.memo || "");
     setSaving(false);
     setShareOpen(false);
-    setParticipantIds([]);
+    setParticipantIds(Array.isArray(seed.participantIds) ? seed.participantIds.map(String) : []);
   }, [open, initial, dateKey]);
 
   const handlePasteApply = useCallback((result) => {

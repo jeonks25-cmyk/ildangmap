@@ -21,8 +21,20 @@ function getSiteAddress(schedule) {
   return schedule?.fullAddress || schedule?.shortRegion || schedule?.regionLabel || schedule?.address || "";
 }
 
+function resolveScheduleMemo(schedule) {
+  if (!schedule) return "";
+  const chunks = [
+    schedule.calendarMemo,
+    schedule.workDetails,
+    schedule.specialNote,
+    ...(Array.isArray(schedule.summaryLines) ? schedule.summaryLines : []),
+  ]
+    .map((v) => String(v || "").trim())
+    .filter(Boolean);
+  return chunks.join("\n");
+}
+
 /**
- * @typedef {'site'|'personal'} DayEntryKind
  * @typedef {{ id: string, kind: DayEntryKind, title: string, shortTitle: string, time: string, colorId: string, address?: string, memo?: string, schedule?: object, personalEvent?: object, sortKey: number }} UnifiedDayEntry
  */
 
@@ -42,7 +54,7 @@ export function buildUnifiedDayEntries({ schedules = [], personalEvents = [], da
         time: schedule.workTime || "시간 미정",
         colorId: resolveFieldScheduleColor(schedule),
         address: getSiteAddress(schedule),
-        memo: "",
+        memo: resolveScheduleMemo(schedule),
         schedule,
         sortKey: parseTimeToMinutes(schedule.workTime),
       });
