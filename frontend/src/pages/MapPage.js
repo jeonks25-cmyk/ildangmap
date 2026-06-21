@@ -48,6 +48,7 @@ import MapFloatingActionLayer from "../components/map/MapFloatingActionLayer";
 import MapSearchPanel from "../components/map/MapSearchPanel";
 import "../components/map/map-search-panel-card.css";
 import PlaceRegisterSheet from "../components/map/PlaceRegisterSheet";
+import PlaceCategorySelectorSheet from "../components/map/PlaceCategorySelectorSheet";
 import MapSearchMarkerInfo from "../components/map/MapSearchMarkerInfo";
 import FieldFlowStrip from "../components/field/FieldFlowStrip";
 import MapWriteMenuSheet from "../components/map/MapWriteMenuSheet";
@@ -282,6 +283,7 @@ export default function MapPage() {
   const [selectedEstimateId, setSelectedEstimateId] = useState(null);
   const [writeMenuOpen, setWriteMenuOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [placeCategoryOpen, setPlaceCategoryOpen] = useState(false);
   const [fieldImportOpen, setFieldImportOpen] = useState(false);
   const [fieldImportResume, setFieldImportResume] = useState(null);
   const [teamInviteContext, setTeamInviteContext] = useState(null);
@@ -949,6 +951,11 @@ export default function MapPage() {
   const createDirectDraftAt = useCallback(
     async ({ lat, lng, preferredType = null, mode = null } = {}) => {
       if (!kakao || !map) return;
+      const isFieldPick = mode === "field_location_pick";
+      if (!isFieldPick && !preferredType) {
+        setPlaceCategoryOpen(true);
+        return;
+      }
       let nextLat = Number(lat);
       let nextLng = Number(lng);
       if (!Number.isFinite(nextLat) || !Number.isFinite(nextLng)) {
@@ -957,8 +964,7 @@ export default function MapPage() {
         nextLng = Number(center?.getLng?.());
       }
       if (!Number.isFinite(nextLat) || !Number.isFinite(nextLng)) return;
-      const placeType = preferredType || MAP_ITEM_TYPE.RESTAURANT;
-      const isFieldPick = mode === "field_location_pick";
+      const placeType = preferredType;
       const draft = {
         id: `search_draft:direct:${Date.now()}`,
         sourceId: `direct:${Date.now()}`,
@@ -983,6 +989,7 @@ export default function MapPage() {
       openMapDraftPinPanel(draft);
       setSelectedEstimateId(null);
       setDetailJobId(null);
+      setPlaceCategoryOpen(false);
       map.setCenter(new kakao.maps.LatLng(nextLat, nextLng));
       setQuickAddOpen(false);
 
@@ -1416,7 +1423,26 @@ export default function MapPage() {
         });
         return;
       }
-      const placeType = tempSearchItemRef.current.preferredType || MAP_ITEM_TYPE.RESTAURANT;
+      const placeType = tempSearchItemRef.current.preferredType;
+      if (!placeType) {
+        reverseGeocodeLatLngDetailed(kakao, next.lat, next.lng).then((addressInfo) => {
+          if (seq !== centerGeocodeSeqRef.current) return;
+          setCenterPinMoving(false);
+          if (!tempSearchItemRef.current) return;
+          setTempSearchItem((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  lat: next.lat,
+                  lng: next.lng,
+                  ...addressInfo,
+                  autoFillLoading: false,
+                }
+              : prev
+          );
+        });
+        return;
+      }
       autoFillPlaceFromLatLng(kakao, next.lat, next.lng, placeType).then((result) => {
         if (seq !== centerGeocodeSeqRef.current) return;
         setCenterPinMoving(false);
@@ -1474,8 +1500,16 @@ export default function MapPage() {
 
   const handleQuickAddToggle = useCallback(() => {
     if (placeRegisterOpen) return;
-    handlePlaceAdd();
-  }, [handlePlaceAdd, placeRegisterOpen]);
+    setPlaceCategoryOpen(true);
+  }, [placeRegisterOpen]);
+
+  const handlePlaceCategorySelect = useCallback(
+    (type) => {
+      setPlaceCategoryOpen(false);
+      handlePlaceAdd({ preferredType: type });
+    },
+    [handlePlaceAdd]
+  );
 
   const handleQuickAddSelect = useCallback(
     (actionKey) => {
@@ -1950,7 +1984,7 @@ export default function MapPage() {
                 locating={locating}
                 listOpen={activePanel === MAP_ACTIVE_PANEL.LIST}
               />
-              {!placeRegisterOpen ? (
+              {!placeRegisterOpen && !placeCategoryOpen ? (
                 <MapFloatingActionLayer
                   quickAddOpen={quickAddOpen}
                   onQuickAddToggle={handleQuickAddToggle}
@@ -2088,6 +2122,12 @@ export default function MapPage() {
           />
         </Suspense>
       ) : null}
+
+      <PlaceCategorySelectorSheet
+        open={placeCategoryOpen}
+        onClose={() => setPlaceCategoryOpen(false)}
+        onSelect={handlePlaceCategorySelect}
+      />
 
       <PlaceRegisterSheet
         item={tempSearchItem}

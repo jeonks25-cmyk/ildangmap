@@ -71,3 +71,11 @@ export const PLACE_REGISTER_CONFIG = {
 export function getPlaceRegisterConfig(type) {
   return PLACE_REGISTER_CONFIG[type] || null;
 }
+
+/** + 장소 FAB → 유형 선택 시트 옵션 */
+export const PLACE_CATEGORY_OPTIONS = [
+  { type: MAP_ITEM_TYPE.RESTAURANT, label: "식당", desc: "근처 식당 자동 찾기" },
+  { type: MAP_ITEM_TYPE.RESTROOM, label: "화장실", desc: "위치 설명 직접 입력" },
+  { type: MAP_ITEM_TYPE.PARKING, label: "주차장", desc: "자동 찾기 또는 직접 입력" },
+  { type: MAP_ITEM_TYPE.FIELD, label: "아파트", desc: "단지·현장 위치 등록" },
+];

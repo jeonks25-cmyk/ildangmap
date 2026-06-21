@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { MAP_ITEM_TYPE } from "../../constants/mapItemTypes";
 import {
   getPlaceRegisterConfig,
@@ -97,19 +97,17 @@ export default function PlaceRegisterSheet({
     setForceManualEntry(false);
   }, [item, open]);
 
-  const quickRegisterType = useMemo(() => {
-    if (item?.preferredType) return item.preferredType;
-    return MAP_ITEM_TYPE.RESTAURANT;
-  }, [item?.preferredType]);
-
-  const quickConfig = getPlaceRegisterConfig(quickRegisterType);
+  const quickRegisterType = item?.preferredType;
+  const quickConfig = quickRegisterType ? getPlaceRegisterConfig(quickRegisterType) : null;
 
   if (!open || !item) return null;
 
   const roadAddress = item.roadAddress || item.address || "";
   const jibunAddress = item.jibunAddress || "";
   const canQuickRegister =
-    !forceManualEntry && canQuickRegisterPlace(item, quickConfig, { isEdit, loading });
+    Boolean(quickRegisterType) &&
+    !forceManualEntry &&
+    canQuickRegisterPlace(item, quickConfig, { isEdit, loading });
   const showManualFields = shouldShowManualForm(item, config, { isEdit, loading, canQuickRegister });
   const showFailHint =
     Boolean(item.showAutoSearchFailHint) &&
