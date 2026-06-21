@@ -29,13 +29,7 @@ import {
 import { useUiStore } from "./useUiStore";
 import { validateNicknameInput } from "../utils/displayNickname";
 import { authDiag, authDiagStoreSnapshot } from "../utils/authDiag";
-import {
-  ACTIVITY_REGIONS,
-  formatRegionsLabel,
-  getPrimaryRegion,
-  normalizeActivityRegion,
-  normalizeActivityRegions,
-} from "../constants/activityRegions";
+import { ACTIVITY_REGIONS, normalizeActivityRegion } from "../constants/activityRegions";
 
 const STORE_KEY = "ildangmap_user_store_v1";
 
@@ -78,6 +72,8 @@ const USER_MODE_STORAGE_KEY = "user_mode_v1";
 const USER_PREFS_STORAGE_KEY = "user_map_prefs_v1";
 const VALID_CRAFTS = ["film", "wallpaper", "tile", "electric", "facility", "paint"];
 const VALID_ROLES = ["조공", "준기공", "기공", "오야지", "소비자", "전체"];
+const VALID_REGIONS = ACTIVITY_REGIONS;
+
 function createDefaultSession() {
   return {
     isAuthenticated: false,
@@ -110,7 +106,7 @@ function createDefaultProfile() {
     shellPersona: "",
     needsPersonaChoice: false,
     trade: "전체",
-    regions: ["대전"],
+    region: "대전 서구",
     craft: "film",
     role: "기공",
     experienceYears: null,
@@ -126,7 +122,7 @@ function createDefaultProfile() {
 
 function createDefaultPrefs() {
   return {
-    regionLabel: "대전",
+    regionLabel: "대전 서구",
     trade: "전체",
     craft: null,
   };
@@ -137,7 +133,7 @@ function createDefaultProfileMeta() {
     name: "",
     trade: "기공",
     craft: "film",
-    regions: ["대전"],
+    region: "대전 서구",
     profileImage: "",
     trustStats: [],
     verificationBadges: [],
@@ -178,9 +174,7 @@ function normalizePrefs(raw) {
   const defaults = createDefaultPrefs();
   if (!raw || typeof raw !== "object") return defaults;
   const regionLabel =
-    typeof raw.regionLabel === "string" && ACTIVITY_REGIONS.includes(normalizeActivityRegion(raw.regionLabel))
-      ? normalizeActivityRegion(raw.regionLabel)
-      : defaults.regionLabel;
+    typeof raw.regionLabel === "string" && VALID_REGIONS.includes(raw.regionLabel) ? raw.regionLabel : defaults.regionLabel;
   const trade = typeof raw.trade === "string" && VALID_ROLES.includes(raw.trade) ? raw.trade : defaults.trade;
   const craft =
     raw.craft == null || VALID_CRAFTS.includes(raw.craft)
@@ -214,13 +208,12 @@ function normalizeProfile(raw) {
   const realName = realNameRaw || nameRaw || defaults.realName;
   const name = nameRaw || realName || defaults.name;
   const birthYear = Number.isFinite(Number(raw.birthYear)) && Number(raw.birthYear) > 1900 ? Number(raw.birthYear) : defaults.birthYear;
-  const regions = normalizeActivityRegions(raw, defaults.regions);
   const residence =
     typeof raw.residence === "string" && raw.residence.trim()
       ? raw.residence.trim()
       : typeof raw.homeRegion === "string" && raw.homeRegion.trim()
         ? raw.homeRegion.trim()
-        : formatRegionsLabel(regions);
+        : defaults.residence;
   const careerYears = Number.isFinite(Number(raw.careerYears))
     ? Number(raw.careerYears)
     : Number.isFinite(Number(raw.experienceYears))
@@ -264,7 +257,7 @@ function normalizeProfile(raw) {
     shellPersona,
     needsPersonaChoice: raw.needsPersonaChoice === true,
     trade: tradeStr,
-    regions,
+    region: normalizeActivityRegion(raw.region, defaults.region),
     desiredPay: Number.isFinite(Number(raw.desiredPay))
       ? Number(raw.desiredPay)
       : Number.isFinite(Number(raw.basePay))
@@ -625,8 +618,7 @@ export const useUserStore = create(
                 nicknameSetupRequired: true,
                 profileImage: state.profile.profileImage || pickedUser.profileImage || "",
                 loginProvider: "kakao-mock",
-                region: getPrimaryRegion(state.profile.regions, state.prefs.regionLabel),
-                regions: normalizeActivityRegions(state.profile.regions, [state.prefs.regionLabel]),
+                region: state.prefs.regionLabel || state.profile.region,
                 craft: state.prefs.craft != null ? state.prefs.craft : state.profile.craft,
                 role: state.prefs.trade && state.prefs.trade !== "전체" ? state.prefs.trade : state.profile.role,
                 trade: state.prefs.trade || state.profile.trade,
@@ -676,8 +668,7 @@ export const useUserStore = create(
             profileImage:
               typeof pickedUser.profileImage === "string" ? pickedUser.profileImage : state.profile.profileImage,
             loginProvider: provider,
-            region: getPrimaryRegion(state.profile.regions, state.prefs.regionLabel),
-            regions: normalizeActivityRegions(state.profile.regions, [state.prefs.regionLabel]),
+            region: state.prefs.regionLabel || state.profile.region,
             craft: state.prefs.craft != null ? state.prefs.craft : state.profile.craft,
             role: state.prefs.trade && state.prefs.trade !== "전체" ? state.prefs.trade : state.profile.role,
             trade: state.prefs.trade || state.profile.trade,
@@ -777,20 +768,13 @@ export const useUserStore = create(
           profile: normalizeProfile({
             ...state.profile,
             ...patch,
-            regions:
-              patch.regions != null
-                ? normalizeActivityRegions(patch.regions, state.profile.regions)
-                : patch.region != null
-                  ? normalizeActivityRegions(patch.region, state.profile.regions)
-                  : state.profile.regions,
+            region: patch.region != null ? normalizeActivityRegion(patch.region, state.profile.region) : state.profile.region,
             residence:
               patch.residence != null
                 ? String(patch.residence).trim()
-                : patch.regions != null
-                  ? formatRegionsLabel(normalizeActivityRegions(patch.regions, state.profile.regions))
-                  : patch.region != null
-                    ? formatRegionsLabel(normalizeActivityRegions(patch.region, state.profile.regions))
-                    : state.profile.residence,
+                : patch.region != null
+                  ? normalizeActivityRegion(patch.region, state.profile.region)
+                  : state.profile.residence,
             birthYear:
               patch.birthYear != null
                 ? Number.isFinite(Number(patch.birthYear)) && Number(patch.birthYear) > 1900
@@ -820,11 +804,7 @@ export const useUserStore = create(
           prefs: normalizePrefs({
             ...state.prefs,
             regionLabel:
-              patch.regions != null
-                ? getPrimaryRegion(patch.regions, state.prefs.regionLabel)
-                : patch.region != null
-                  ? normalizeActivityRegion(patch.region, state.prefs.regionLabel)
-                  : state.prefs.regionLabel,
+              patch.region != null ? normalizeActivityRegion(patch.region, state.prefs.regionLabel) : state.prefs.regionLabel,
             craft: patch.craft != null ? patch.craft : state.prefs.craft,
             trade: patch.role != null ? patch.role : patch.trade != null ? patch.trade : state.prefs.trade,
           }),

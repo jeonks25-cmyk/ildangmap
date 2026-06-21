@@ -618,50 +618,6 @@ button.settings-menu-row--action:active {
   font-size: 15px;
   font-weight: 800;
   text-align: left;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.settings-region-sheet__hint {
-  margin: 0 0 10px;
-  font-size: 12px;
-  color: var(--app-color-muted, #9ca3af);
-}
-
-.settings-region-sheet__check {
-  font-size: 14px;
-  color: var(--ildang-brand, #c45a16);
-}
-
-.settings-region-sheet__foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #eef0f3;
-}
-
-.settings-region-sheet__summary {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: #374151;
-}
-
-.settings-region-sheet__done {
-  min-height: 40px;
-  padding: 0 16px;
-  border: none;
-  border-radius: 10px;
-  background: var(--ildang-brand, #c45a16);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 800;
 }
 
 .settings-region-sheet__item.is-active {

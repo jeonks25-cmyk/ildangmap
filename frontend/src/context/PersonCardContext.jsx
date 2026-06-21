@@ -9,7 +9,6 @@ import { useUserStore } from "../store/useUserStore";
 import { loadStoredJobs } from "../utils/jobsStorage";
 import { getDisplayNickname } from "../utils/displayNickname";
 import { buildInviteSharePayload, buildSmsHref } from "../utils/inviteLink";
-import { formatRegionsLabel } from "../constants/activityRegions";
 import {
   CONTACT_QUICK_MODE,
   quickActionToastMessage,
@@ -46,13 +45,7 @@ function firstValue(...vals) {
 function resolvePerson(src, contacts, coworkHistory = []) {
   const rawName = firstValue(src.realName, src.name, src.authorName, src.ownerName);
   const rawBirth = firstValue(src.birthYear, src.authorBirthYear, src.ownerBirthYear);
-  const rawResidence = firstValue(
-    src.residence,
-    src.homeRegion,
-    formatRegionsLabel(src.regions, { emptyLabel: "" }),
-    src.region,
-    src.ownerResidence
-  );
+  const rawResidence = firstValue(src.residence, src.homeRegion, src.region, src.ownerResidence);
   const rawUserId = firstValue(src.userId, src.authorUserId);
   const rawContactId = firstValue(src.contactId, src.id);
 

@@ -4,7 +4,6 @@ import { useUserProfile } from "../../context/UserProfileContext";
 import { useUserStore } from "../../store/useUserStore";
 import { useUiStore } from "../../store/useUiStore";
 import { suggestNicknames, validateNicknameInput } from "../../utils/displayNickname";
-import { getPrimaryRegion } from "../../constants/activityRegions";
 import { CRAFT_LABEL } from "../../utils/jobModel";
 
 /** 최초 로그인 — 활동명(닉네임) 설정 (카카오 이름 미사용) */
@@ -22,11 +21,11 @@ export default function NicknameSetupGate() {
     () =>
       suggestNicknames({
         craft: profile?.craft || prefs?.craft || "film",
-        region: getPrimaryRegion(profile?.regions, profile?.region || prefs?.regionLabel || "대전"),
+        region: profile?.region || prefs?.regionLabel || "대전 서구",
         birthYear: profile?.birthYear,
         count: 5,
       }),
-    [profile?.craft, profile?.birthYear, profile?.regions, profile?.region, prefs?.craft, prefs?.regionLabel],
+    [profile?.craft, profile?.birthYear, profile?.region, prefs?.craft, prefs?.regionLabel],
   );
 
   useEffect(() => {
@@ -120,7 +119,7 @@ export default function NicknameSetupGate() {
             ))}
           </div>
           <p className="onboarding-gate__note">
-            {craftLabel} · {getPrimaryRegion(profile?.regions, profile?.region || prefs?.regionLabel || "대전")} 기준 추천
+            {craftLabel} · {profile?.region || prefs?.regionLabel || "대전"} 기준 추천
           </p>
         </section>
 

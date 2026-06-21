@@ -5,8 +5,7 @@ import { useUiStore } from "../../store/useUiStore";
 import { useUserStore } from "../../store/useUserStore";
 import { getUsers } from "../../api/usersApi";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
-import { ACTIVITY_REGIONS, formatRegionsLabel, normalizeActivityRegions } from "../../constants/activityRegions";
-import { filterUserDirectory, getUserDirectoryRegions, phoneDigits } from "../../utils/userDirectorySearch";
+import { filterUserDirectory, phoneDigits } from "../../utils/userDirectorySearch";
 import { isContactPickerSupported, pickPhoneContact } from "../../utils/contactPicker";
 import { buildInviteSharePayload, buildSmsHref } from "../../utils/inviteLink";
 import { getDisplayNickname } from "../../utils/displayNickname";
@@ -39,7 +38,6 @@ export default function PeopleAddSheet({ open, onClose, onAdded }) {
   const [addedKeys, setAddedKeys] = useState(() => new Set());
   const [pickedContact, setPickedContact] = useState(null);
   const [searchFocused, setSearchFocused] = useState(false);
-  const [regionFilters, setRegionFilters] = useState(() => normalizeActivityRegions(profile));
 
   const debouncedQuery = useDebouncedValue(searchQuery, 250);
 
@@ -57,11 +55,6 @@ export default function PeopleAddSheet({ open, onClose, onAdded }) {
       alive = false;
     };
   }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    setRegionFilters(normalizeActivityRegions(profile));
-  }, [open, profile]);
 
   useEffect(() => {
     if (!open) {
@@ -83,23 +76,9 @@ export default function PeopleAddSheet({ open, onClose, onAdded }) {
   }, [addedContacts]);
 
   const results = useMemo(
-    () =>
-      filterUserDirectory(directory, debouncedQuery, {
-        existingPhones,
-        skipIds: addedKeys,
-        filterRegions: regionFilters,
-      }),
-    [directory, debouncedQuery, existingPhones, addedKeys, regionFilters]
+    () => filterUserDirectory(directory, debouncedQuery, { existingPhones, skipIds: addedKeys }),
+    [directory, debouncedQuery, existingPhones, addedKeys]
   );
-
-  const toggleRegionFilter = useCallback((city) => {
-    setRegionFilters((prev) => {
-      const set = new Set(prev);
-      if (set.has(city)) set.delete(city);
-      else set.add(city);
-      return ACTIVITY_REGIONS.filter((item) => set.has(item));
-    });
-  }, []);
 
   const showResults = searchFocused && debouncedQuery.trim().length > 0;
   const contactPickerReady = isContactPickerSupported();
@@ -109,8 +88,7 @@ export default function PeopleAddSheet({ open, onClose, onAdded }) {
       addContact({
         name: user.name,
         phone: user.phone,
-        regions: getUserDirectoryRegions(user),
-        homeRegion: formatRegionsLabel(getUserDirectoryRegions(user)),
+        homeRegion: user.region,
         trade: user.trade,
         userId: user.id,
         source: "appuser",
@@ -243,28 +221,6 @@ export default function PeopleAddSheet({ open, onClose, onAdded }) {
           {tab === TAB_SEARCH ? (
             <section className="people-add-sheet__section">
               <p className="people-add-sheet__lead">이름이나 전화번호로 일당맵 가입자를 찾아 바로 추가하세요.</p>
-              <div className="people-add-sheet__region-filters" role="group" aria-label="활동지역 필터">
-                <span className="people-add-sheet__region-label">활동지역</span>
-                <div className="people-add-sheet__region-chips">
-                  {ACTIVITY_REGIONS.filter((city) => city !== "전국").map((city) => (
-                    <button
-                      key={city}
-                      type="button"
-                      className={`people-add-sheet__region-chip${regionFilters.includes(city) ? " is-active" : ""}`}
-                      aria-pressed={regionFilters.includes(city)}
-                      onClick={() => toggleRegionFilter(city)}
-                    >
-                      {city}
-                    </button>
-                  ))}
-                </div>
-                <p className="people-add-sheet__hint people-add-sheet__hint--compact">
-                  {regionFilters.length
-                    ? `${formatRegionsLabel(regionFilters)} 기준으로 검색합니다.`
-                    : "지역을 선택하면 해당 지역 가입자만 표시됩니다."}
-                </p>
-              </div>
-
               <label className="contacts-search people-add-sheet__search">
                 <span className="contacts-search__icon" aria-hidden="true">
                   🔍
@@ -294,7 +250,7 @@ export default function PeopleAddSheet({ open, onClose, onAdded }) {
                           <span className="people-add-sheet__result-body">
                             <span className="people-add-sheet__result-name">{user.name}</span>
                             <span className="people-add-sheet__result-sub">
-                              {[formatRegionsLabel(getUserDirectoryRegions(user)), CRAFT_LABEL[user.trade] || user.role, formatPhoneHint(user.phone)]
+                              {[user.region, CRAFT_LABEL[user.trade] || user.role, formatPhoneHint(user.phone)]
                                 .filter(Boolean)
                                 .join(" · ")}
                             </span>
