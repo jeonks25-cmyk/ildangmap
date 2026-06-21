@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Ildangmap icon v1">
+  <rect width="1024" height="1024" fill="#1E8E5A"/>
+  <g transform="translate(512 470)">
+    <path fill="#FFFFFF" d="M0-248c-96 0-174 78-174 174 0 132 174 348 174 348s174-216 174-348c0-96-78-174-174-174z"/>
+    <circle cy="-74" r="92" fill="#FACC15"/>
+    <g transform="translate(0 -74)" fill="#FFFFFF">
+      <rect x="-56" y="-10" width="72" height="20" rx="4"/>
+      <rect x="-8" y="-52" width="20" height="72" rx="4"/>
+      <rect x="12" y="-36" width="44" height="16" rx="4" transform="rotate(38 34 -28)"/>
+    </g>
+  </g>
+</svg>
