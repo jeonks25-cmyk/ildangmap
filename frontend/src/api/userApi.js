@@ -249,3 +249,57 @@ export async function getOyajiTrustProfile() {
     useMock: isMockApiEnabled(),
   });
 }
+
+/** PATCH /api/users/me/profile — 활동지역·공종·경력·희망일당·출생년도 DB 저장 */
+export async function updateUserProfile(payload = {}) {
+  const body = {
+    birthYear: payload.birthYear ?? null,
+    craft: payload.craft ?? null,
+    experienceYears: payload.experienceYears ?? null,
+    desiredPay: payload.desiredPay ?? null,
+    regions: Array.isArray(payload.regions) ? payload.regions : [],
+    phone: payload.phone ?? "",
+    intro: payload.intro ?? "",
+  };
+  const raw = await runApiRequest({
+    path: "/api/users/me/profile",
+    method: "PATCH",
+    body,
+    useMock: isMockApiEnabled() && !hasConfiguredLiveApi(),
+    mock: () => {
+      const saved = readJsonStorage(USER_PROFILE_STORAGE_KEY, {});
+      const regions = normalizeActivityRegions(body.regions);
+      writeProfilePatch({
+        ...saved,
+        birthYear: body.birthYear,
+        craft: body.craft,
+        experienceYears: body.experienceYears,
+        desiredPay: body.desiredPay,
+        regions,
+        region: getPrimaryRegion(regions),
+        phone: body.phone,
+      });
+      const mockBase = buildMockMeResponse() || {};
+      return {
+        ...mockBase,
+        birthYear: body.birthYear,
+        craft: body.craft,
+        experienceYears: body.experienceYears,
+        desiredPay: body.desiredPay,
+        regions,
+        phone: body.phone,
+        intro: body.intro,
+      };
+    },
+  });
+  return extractMePayload(raw) ?? raw;
+}
+
+function writeProfilePatch(patch) {
+  try {
+    const prev = readJsonStorage(USER_PROFILE_STORAGE_KEY, {});
+    localStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify({ ...prev, ...patch }));
+  } catch {
+    /* noop */
+  }
+}

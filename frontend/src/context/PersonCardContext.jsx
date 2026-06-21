@@ -104,8 +104,7 @@ export function PersonCardProvider({ children }) {
   const sessionUser = useUserStore((s) => s.session?.user);
   const myDisplayName = useMemo(() => getDisplayNickname(profile, sessionUser), [profile, sessionUser]);
   const updateContactFields = useContactsStore((s) => s.updateContactFields);
-  const saveLocalProfileDetails = useUserStore((s) => s.saveLocalProfileDetails);
-  const setProfileMeta = useUserStore((s) => s.setProfileMeta);
+  const saveProfileDetails = useUserStore((s) => s.saveProfileDetails);
   const setMemo = useContactsStore((s) => s.setMemo);
   const deleteContact = useContactsStore((s) => s.deleteContact);
   const [card, setCard] = useState(null);
@@ -253,7 +252,7 @@ export function PersonCardProvider({ children }) {
 
       if (isSelf) {
         const regions = normalizeActivityRegions(patch.homeRegions ?? patch.homeRegion ?? patch.region);
-        saveLocalProfileDetails({
+        saveProfileDetails({
           regions,
           region: getPrimaryRegion(regions),
           residence: formatRegionsLabel(regions, { emptyLabel: "" }),
@@ -261,19 +260,14 @@ export function PersonCardProvider({ children }) {
           experienceYears: patch.experienceYears,
           desiredPay: patch.basePay,
           phone: patch.phone,
-        });
-        setProfileMeta({
-          regions,
-          region: getPrimaryRegion(regions),
-          craft: patch.trade,
-        });
+        }).catch(() => {});
       }
 
       setEditOpen(false);
       setCard(null);
       useUiStore.getState().showAppToast("인원 정보를 저장했습니다");
     },
-    [editContact, card, updateContactFields, setMemo, myProfileId, saveLocalProfileDetails, setProfileMeta]
+    [editContact, card, updateContactFields, setMemo, myProfileId, saveProfileDetails]
   );
 
   const handleDeleteContact = useCallback(() => {

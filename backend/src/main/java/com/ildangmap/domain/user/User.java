@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Entity
@@ -67,6 +68,25 @@ public class User extends BaseTimeEntity {
     @Column(name = "profile_image_url", length = 255, columnDefinition = "VARCHAR(255)")
     private String profileImageUrl;
 
+    @Column(name = "birth_year")
+    private Integer birthYear;
+
+    @Column(length = 30)
+    private String craft;
+
+    @Column(name = "experience_years")
+    private Integer experienceYears;
+
+    @Column(name = "desired_pay")
+    private Integer desiredPay;
+
+    /** JSON array — ["대전","세종"] */
+    @Column(name = "activity_regions", columnDefinition = "TEXT")
+    private String activityRegionsJson;
+
+    @Column(columnDefinition = "TEXT")
+    private String intro;
+
     @Column(nullable = false)
     private boolean active;
 
@@ -82,6 +102,12 @@ public class User extends BaseTimeEntity {
             String provider,
             String providerId,
             String profileImageUrl,
+            Integer birthYear,
+            String craft,
+            Integer experienceYears,
+            Integer desiredPay,
+            String activityRegionsJson,
+            String intro,
             boolean active
     ) {
         this.email = email;
@@ -94,6 +120,12 @@ public class User extends BaseTimeEntity {
         this.provider = provider;
         this.providerId = providerId;
         this.profileImageUrl = profileImageUrl;
+        this.birthYear = birthYear;
+        this.craft = craft;
+        this.experienceYears = experienceYears;
+        this.desiredPay = desiredPay;
+        this.activityRegionsJson = activityRegionsJson;
+        this.intro = intro;
         this.active = active;
     }
 
@@ -121,5 +153,44 @@ public class User extends BaseTimeEntity {
 
     public boolean hasDisplayNickname() {
         return displayNickname != null && !displayNickname.isBlank();
+    }
+
+    public void updateProfileDetails(
+            Integer birthYear,
+            String craft,
+            Integer experienceYears,
+            Integer desiredPay,
+            List<String> activityRegions,
+            String phone,
+            String intro
+    ) {
+        this.birthYear = birthYear;
+        this.craft = craft;
+        this.experienceYears = experienceYears;
+        this.desiredPay = desiredPay;
+        if (phone != null) {
+            this.phone = phone.trim();
+        }
+        if (intro != null) {
+            this.intro = intro.trim();
+        }
+        if (activityRegions != null && !activityRegions.isEmpty()) {
+            this.activityRegionsJson = String.join(",", activityRegions);
+            this.region = activityRegions.get(0);
+        }
+    }
+
+    public List<String> readActivityRegions() {
+        if (activityRegionsJson == null || activityRegionsJson.isBlank()) {
+            if (region != null && !region.isBlank()) {
+                return List.of(region.trim());
+            }
+            return List.of("대전");
+        }
+        return List.of(activityRegionsJson.split(","))
+                .stream()
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
     }
 }

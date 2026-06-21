@@ -3,6 +3,7 @@ package com.ildangmap.service;
 import com.ildangmap.config.OAuth2AttributeUtils;
 import com.ildangmap.api.user.dto.MeResponse;
 import com.ildangmap.api.user.dto.NicknameAvailabilityResponse;
+import com.ildangmap.api.user.dto.ProfileUpdateRequest;
 import com.ildangmap.domain.user.NicknameChangeHistory;
 import com.ildangmap.domain.user.User;
 import com.ildangmap.global.exception.BadRequestException;
@@ -19,6 +20,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -30,6 +32,9 @@ public class UserService {
     private static final int NICKNAME_MAX = 16;
     private static final int NICKNAME_CHANGE_COOLDOWN_DAYS = 30;
     private static final Pattern NICKNAME_PATTERN = Pattern.compile("^[가-힣a-zA-Z0-9]+$");
+    private static final List<String> ALLOWED_CRAFTS = List.of(
+            "film", "wallpaper", "tile", "electric", "facility", "paint", "other"
+    );
 
     private final UserRepository userRepository;
     private final NicknameChangeHistoryRepository nicknameChangeHistoryRepository;
@@ -179,6 +184,37 @@ public class UserService {
         return toMeResponse(user);
     }
 
+    @Transactional
+    public MeResponse updateProfileDetails(Long userId, ProfileUpdateRequest request) {
+        User user = getUser(userId);
+        String craft = request.getCraft();
+        if (craft != null && !craft.isBlank() && !ALLOWED_CRAFTS.contains(craft.trim())) {
+            throw new BadRequestException("공종 값이 올바르지 않습니다.");
+        }
+        List<String> regions = request.getRegions();
+        if (regions != null) {
+            regions = regions.stream()
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .distinct()
+                    .limit(10)
+                    .toList();
+            if (regions.isEmpty()) {
+                throw new BadRequestException("활동지역을 선택해주세요.");
+            }
+        }
+        user.updateProfileDetails(
+                request.getBirthYear(),
+                craft != null && !craft.isBlank() ? craft.trim() : null,
+                request.getExperienceYears(),
+                request.getDesiredPay(),
+                regions,
+                request.getPhone(),
+                request.getIntro()
+        );
+        return toMeResponse(userRepository.save(user));
+    }
+
     private void assertNicknameChangeAllowed(User user) {
         LocalDateTime changedAt = user.getDisplayNicknameChangedAt();
         if (changedAt == null) {
@@ -234,6 +270,13 @@ public class UserService {
                 .userType(user.getUserType().name())
                 .nicknameChangeAvailableAt(availableAtIso)
                 .canChangeNickname(canChange)
+                .birthYear(user.getBirthYear())
+                .craft(user.getCraft())
+                .experienceYears(user.getExperienceYears())
+                .desiredPay(user.getDesiredPay())
+                .regions(user.readActivityRegions())
+                .phone(StringUtils.hasText(user.getPhone()) ? user.getPhone() : null)
+                .intro(StringUtils.hasText(user.getIntro()) ? user.getIntro() : null)
                 .build();
     }
 

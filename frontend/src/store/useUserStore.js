@@ -13,10 +13,12 @@ import {
   getOyajiTrustProfile,
   getProfileMeta,
   loginWithKakaoMock as loginWithKakaoMockApi,
+  updateUserProfile,
 } from "../api/userApi";
 import { fetchOAuthConfigDiagnostics, getKakaoOAuthStartUrl, getKakaoRedirectMustMatch, getSpringOAuthApiBase, logoutSession, probeSpringOAuthBackend } from "../api/authApi";
 import { changeNickname, setInitialNickname } from "../api/nicknameApi";
-import { isNetworkError } from "../api/client";
+import { getApiBaseUrl, isMockApiEnabled, isNetworkError } from "../api/client";
+import { profileToApiPayload } from "../models/profileModel";
 import {
   createSafeJsonStorage,
   isAuthError,
@@ -305,6 +307,54 @@ function normalizeProfile(raw) {
 }
 
 /** GET /users/me 응답 → Zustand (세션이 진실 소스) */
+function hasConfiguredLiveApi() {
+  if (String(getApiBaseUrl() || "").trim() || String(process.env.REACT_APP_API_BASE_URL || "").trim()) {
+    return true;
+  }
+  if (typeof window !== "undefined" && window.location.hostname.endsWith(".vercel.app")) {
+    return true;
+  }
+  return false;
+}
+
+function meProfileDetailPatch(normalizedMe) {
+  if (!normalizedMe || typeof normalizedMe !== "object") return {};
+  const patch = {};
+  if (Object.prototype.hasOwnProperty.call(normalizedMe, "birthYear")) {
+    patch.birthYear =
+      Number.isFinite(Number(normalizedMe.birthYear)) && Number(normalizedMe.birthYear) > 1900
+        ? Number(normalizedMe.birthYear)
+        : null;
+  }
+  if (Object.prototype.hasOwnProperty.call(normalizedMe, "craft") && normalizedMe.craft) {
+    patch.craft = String(normalizedMe.craft);
+  }
+  if (Object.prototype.hasOwnProperty.call(normalizedMe, "experienceYears")) {
+    const years =
+      Number.isFinite(Number(normalizedMe.experienceYears)) && Number(normalizedMe.experienceYears) >= 0
+        ? Number(normalizedMe.experienceYears)
+        : null;
+    patch.experienceYears = years;
+    patch.careerYears = years;
+  }
+  if (Object.prototype.hasOwnProperty.call(normalizedMe, "desiredPay")) {
+    patch.desiredPay =
+      Number.isFinite(Number(normalizedMe.desiredPay)) && Number(normalizedMe.desiredPay) > 0
+        ? Number(normalizedMe.desiredPay)
+        : null;
+  }
+  if (Object.prototype.hasOwnProperty.call(normalizedMe, "regions")) {
+    const regions = normalizeActivityRegions(normalizedMe.regions);
+    patch.regions = regions;
+    patch.region = getPrimaryRegion(regions);
+    patch.residence = formatRegionsLabel(regions, { emptyLabel: "" });
+  }
+  if (Object.prototype.hasOwnProperty.call(normalizedMe, "phone")) {
+    patch.phone = String(normalizedMe.phone || "").trim();
+  }
+  return patch;
+}
+
 function applyMeResponse(state, me, providerOverride) {
   try {
     console.log("[AUTH-DIAG] applyMeResponse me JSON", JSON.stringify(me, null, 2));
@@ -347,6 +397,17 @@ function applyMeResponse(state, me, providerOverride) {
   const applicantId = Number(normalizedMe.id ?? normalizedMe.userId);
   const provider = providerOverride || state.session.provider || state.profile.loginProvider || "kakao";
   const profileImage = normalizedMe.profileImageUrl || state.profile.profileImage || "";
+  const profileDetailPatch = meProfileDetailPatch(normalizedMe);
+  const nextProfileMeta = Object.prototype.hasOwnProperty.call(normalizedMe, "intro")
+    ? {
+        ...(state.profileMeta && typeof state.profileMeta === "object" ? state.profileMeta : createDefaultProfileMeta()),
+        intro: String(normalizedMe.intro || "").trim(),
+        ...(profileDetailPatch.regions
+          ? { regions: profileDetailPatch.regions, region: profileDetailPatch.region }
+          : {}),
+        ...(profileDetailPatch.craft ? { craft: profileDetailPatch.craft } : {}),
+      }
+    : state.profileMeta;
   authDiag("applyMeResponse → authenticated", { userId: userIdStr, provider });
   return {
     authReady: true,
@@ -375,16 +436,13 @@ function applyMeResponse(state, me, providerOverride) {
       nicknameChangeAvailableAt: normalizedMe.nicknameChangeAvailableAt || "",
       userType: normalizedMe.userType ? String(normalizedMe.userType).toLowerCase() : state.profile.userType,
       loginProvider: provider,
-      // /me 응답에 없는 로컬 프로필 상세는 덮어쓰지 않음
-      regions: state.profile.regions,
-      region: state.profile.region,
-      residence: state.profile.residence,
-      birthYear: state.profile.birthYear,
-      craft: state.profile.craft,
-      experienceYears: state.profile.experienceYears,
-      careerYears: state.profile.careerYears,
-      desiredPay: state.profile.desiredPay,
-      phone: state.profile.phone,
+      ...profileDetailPatch,
+    }),
+    profileMeta: nextProfileMeta,
+    prefs: normalizePrefs({
+      ...state.prefs,
+      ...(profileDetailPatch.region ? { regionLabel: profileDetailPatch.region } : {}),
+      ...(profileDetailPatch.craft ? { craft: profileDetailPatch.craft } : {}),
     }),
   };
 }
@@ -844,6 +902,39 @@ export const useUserStore = create(
             }),
           };
         }),
+
+      /** 프로필 상세 — 서버 DB 저장 후 Zustand 반영 (mock/비로그인 시 local만) */
+      saveProfileDetails: async (patch = {}) => {
+        const state = get();
+        const regions = normalizeActivityRegions(
+          patch.regions ?? patch.region ?? state.profile.regions ?? state.profile.region
+        );
+        const mergedProfile = normalizeProfile({
+          ...state.profile,
+          ...patch,
+          regions,
+        });
+        const mergedMeta = {
+          ...(state.profileMeta && typeof state.profileMeta === "object" ? state.profileMeta : createDefaultProfileMeta()),
+          ...(patch.intro != null ? { intro: String(patch.intro || "").trim() } : {}),
+        };
+        const apiPayload = profileToApiPayload(mergedProfile, mergedMeta);
+
+        try {
+          if (state.session?.isAuthenticated && (!isMockApiEnabled() || hasConfiguredLiveApi())) {
+            const me = await updateUserProfile(apiPayload);
+            set((s) => applyMeResponse(s, me, s.session.provider || "kakao"));
+            return { ok: true };
+          }
+          get().saveLocalProfileDetails({ ...patch, regions });
+          if (patch.intro != null) {
+            get().setProfileMeta({ intro: String(patch.intro || "").trim() });
+          }
+          return { ok: true };
+        } catch (error) {
+          return { ok: false, message: error?.message || "프로필 저장에 실패했습니다." };
+        }
+      },
 
       setProfileMeta: (patch) =>
         set((state) => ({

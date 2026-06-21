@@ -37,8 +37,7 @@ export default function ProfileEditPage() {
   const navigate = useNavigate();
   const { authUser, isAuthenticated } = useAuth();
   const { profile, profileMeta } = useUserProfile();
-  const saveLocalProfileDetails = useUserStore((s) => s.saveLocalProfileDetails);
-  const setProfileMeta = useUserStore((s) => s.setProfileMeta);
+  const saveProfileDetails = useUserStore((s) => s.saveProfileDetails);
   const changeDisplayNickname = useUserStore((s) => s.changeDisplayNickname);
   const showAppToast = useUiStore((s) => s.showAppToast);
 
@@ -135,24 +134,23 @@ export default function ProfileEditPage() {
         }
       }
 
-      saveLocalProfileDetails({
+      const normalizedRegions = normalizeActivityRegions(regions);
+      const saveResult = await saveProfileDetails({
         ...profilePatchFromForm({
           nickname: trimmedNick,
-          regions,
+          regions: normalizedRegions,
           craft,
           experienceYearsText: exp.text,
           desiredPayText: pay.text,
           phone,
         }),
         birthYear: birth.number,
-      });
-      const normalizedRegions = normalizeActivityRegions(regions);
-      setProfileMeta({
         intro: String(intro || "").trim(),
-        regions: normalizedRegions,
-        region: normalizedRegions[0] || "",
-        craft,
       });
+      if (!saveResult?.ok) {
+        showAppToast(saveResult?.message || "저장에 실패했습니다.");
+        return;
+      }
 
       showAppToast("프로필을 저장했습니다.");
       navigate("/settings", { replace: true });
@@ -175,8 +173,7 @@ export default function ProfileEditPage() {
     craft,
     intro,
     changeDisplayNickname,
-    saveLocalProfileDetails,
-    setProfileMeta,
+    saveProfileDetails,
     showAppToast,
     navigate,
   ]);
