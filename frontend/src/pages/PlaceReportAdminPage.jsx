@@ -7,28 +7,44 @@ import { useMapItemStore } from "../store/useMapItemStore";
 import { usePlaceModerationStore } from "../store/usePlaceModerationStore";
 import { useUiStore } from "../store/useUiStore";
 import { formatChangeHistoryWhen } from "../utils/placeInfoCard";
-import {
-  formatModerationStatusLabel,
-  listPlaceModerationForAdmin,
-} from "../utils/placeModeration";
+import { formatModerationStatusLabel } from "../utils/placeModeration";
 import "../styles/place-moderation-admin.css";
+
+const SORT_OPTIONS = [
+  { value: "recent", label: "최근 신고 순" },
+  { value: "reports", label: "신고 많은 순" },
+];
 
 export default function PlaceReportAdminPage() {
   const navigate = useNavigate();
   const showAppToast = useUiStore((s) => s.showAppToast);
   const removeMapItem = useMapItemStore((s) => s.removeMapItem);
   const updateMapItem = useMapItemStore((s) => s.updateMapItem);
+  const fetchAdminList = usePlaceModerationStore((s) => s.fetchAdminList);
   const adminSetStatus = usePlaceModerationStore((s) => s.adminSetStatus);
+  const adminDeletePlace = usePlaceModerationStore((s) => s.adminDeletePlace);
   const mapItems = useMapItemStore((s) => s.items);
 
   const [accessChecked, setAccessChecked] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
   const [rows, setRows] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [sort, setSort] = useState("reports");
+  const [loading, setLoading] = useState(false);
   const [busyKey, setBusyKey] = useState("");
 
-  const refresh = useCallback(() => {
-    setRows(listPlaceModerationForAdmin());
-  }, []);
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await fetchAdminList(sort);
+      setRows(result.items || []);
+      setStats(result.stats);
+    } catch (error) {
+      showAppToast(error?.message || "목록을 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchAdminList, showAppToast, sort]);
 
   useEffect(() => {
     if (isMockApiEnabled()) {
@@ -61,11 +77,28 @@ export default function PlaceReportAdminPage() {
   }, [hasAccess, refresh, mapItems]);
 
   const summary = useMemo(() => {
+    if (stats) {
+      return {
+        total: stats.totalPlaces ?? 0,
+        pending: stats.pendingReview ?? 0,
+        hidden: stats.hidden ?? 0,
+        deleteCandidate: stats.deleteCandidate ?? 0,
+      };
+    }
     const pending = rows.filter((r) => r.moderationStatus === PLACE_MODERATION_STATUS.PENDING_REVIEW).length;
     const hidden = rows.filter((r) => r.moderationStatus === PLACE_MODERATION_STATUS.HIDDEN).length;
     const deleteCandidate = rows.filter((r) => r.moderationStatus === PLACE_MODERATION_STATUS.DELETE_CANDIDATE).length;
     return { pending, hidden, deleteCandidate, total: rows.length };
-  }, [rows]);
+  }, [rows, stats]);
+
+  const resolveMapItemId = (row) => {
+    if (row.mapItemId) return row.mapItemId;
+    const match = mapItems.find((item) => {
+      const key = item.sourceMeta?.placeKey || `${item.type}:${item.sourceId || item.id}`;
+      return key === row.placeKey;
+    });
+    return match?.source?.id || match?.sourceId || match?.id || "";
+  };
 
   const syncMapItemStatus = (mapItemId, status, reportCount) => {
     if (!mapItemId) return;
@@ -85,17 +118,20 @@ export default function PlaceReportAdminPage() {
         navigate("/map");
         return;
       }
+      const mapItemId = resolveMapItemId(row);
       if (action === "hide") {
-        const record = adminSetStatus(row.placeKey, PLACE_MODERATION_STATUS.HIDDEN);
-        syncMapItemStatus(row.mapItemId, record.moderationStatus, record.reportCount);
+        const record = await adminSetStatus(row.placeKey, PLACE_MODERATION_STATUS.HIDDEN);
+        syncMapItemStatus(mapItemId, record.moderationStatus, record.reportCount);
         showAppToast("장소를 숨김 처리했습니다.");
       }
       if (action === "delete") {
-        adminSetStatus(row.placeKey, PLACE_MODERATION_STATUS.DELETED);
-        if (row.mapItemId) removeMapItem(row.mapItemId);
+        await adminDeletePlace(row.placeKey);
+        if (mapItemId) removeMapItem(mapItemId);
         showAppToast("장소를 삭제 처리했습니다.");
       }
-      refresh();
+      await refresh();
+    } catch (error) {
+      showAppToast(error?.message || "처리에 실패했습니다.");
     } finally {
       setBusyKey("");
     }
@@ -128,13 +164,33 @@ export default function PlaceReportAdminPage() {
       ) : (
         <>
           <section className="place-moderation-admin__summary" aria-label="검수 현황">
-            <span>전체 {summary.total}</span>
-            <span>검수 대기 {summary.pending}</span>
-            <span>숨김 {summary.hidden}</span>
-            <span>삭제 후보 {summary.deleteCandidate}</span>
+            <span>전체 {summary.total}개</span>
+            <span>검수대기 {summary.pending}개</span>
+            <span>숨김 {summary.hidden}개</span>
+            <span>삭제후보 {summary.deleteCandidate}개</span>
           </section>
 
-          {rows.length === 0 ? (
+          <div className="place-moderation-admin__toolbar">
+            <label className="place-moderation-admin__sort-label" htmlFor="place-report-sort">
+              정렬
+            </label>
+            <select
+              id="place-report-sort"
+              className="place-moderation-admin__sort"
+              value={sort}
+              onChange={(event) => setSort(event.target.value)}
+            >
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {loading ? (
+            <p className="place-moderation-admin__status">목록 불러오는 중…</p>
+          ) : rows.length === 0 ? (
             <p className="place-moderation-admin__status">신고·검수 대상 장소가 없습니다.</p>
           ) : (
             <ul className="place-moderation-admin__list">

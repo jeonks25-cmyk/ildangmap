@@ -5,6 +5,7 @@ import {
   PLACE_REPORT_THRESHOLDS,
   PLACE_VERIFY_REVIEW_MIN_WRONG,
 } from "../constants/placeModeration";
+import { mapServerModerationStatus, normalizeServerModeration } from "./placeModerationApi";
 
 const MODERATION_STORAGE_KEY = "ildangmap_place_moderation_v1";
 const LEGACY_REPORTS_KEY = "ildangmap_place_reports_v1";
@@ -86,6 +87,40 @@ export function needsVerifyReview(correctCount, wrongCount) {
   return wrong >= PLACE_VERIFY_REVIEW_MIN_WRONG && wrong > correct;
 }
 
+/** localStorage 캐시 기록 (서버 응답 동기화용) */
+export function cacheModerationRecord(placeKey, record) {
+  if (!placeKey || !record) return null;
+  const store = readStore();
+  const prev = { ...emptyRecord(), ...(store.places[placeKey] || {}) };
+  store.places[placeKey] = {
+    ...prev,
+    ...record,
+    verifyVotes: { ...(prev.verifyVotes || {}), ...(record.verifyVotes || {}) },
+    updatedAt: record.updatedAt || new Date().toISOString(),
+  };
+  writeStore(store);
+  return store.places[placeKey];
+}
+
+/** 서버 moderation 응답 → 캐시 */
+export function cacheServerModeration(placeKey, payload, userId = null, meta = {}) {
+  const record = normalizeServerModeration(placeKey, payload, userId);
+  return cacheModerationRecord(placeKey, {
+    ...record,
+    title: meta.title || record.title,
+    mapItemId: meta.mapItemId || record.mapItemId,
+  });
+}
+
+/** GET /moderation/status-index 응답 → 캐시 일괄 반영 */
+export function cacheModerationStatusIndex(statusIndex = {}) {
+  if (!statusIndex || typeof statusIndex !== "object") return;
+  Object.entries(statusIndex).forEach(([placeKey, status]) => {
+    const moderationStatus = mapServerModerationStatus(status);
+    cacheModerationRecord(placeKey, { moderationStatus });
+  });
+}
+
 export function getPlaceModerationRecord(placeKey) {
   if (!placeKey) return emptyRecord();
   const store = readStore();
@@ -144,115 +179,11 @@ export function buildReportFeedbackMessage(reportCount, moderationStatus) {
   return lines.join("\n");
 }
 
-export function recordPlaceReport(placeKey, { reason = "", title = "", mapItemId = "", source = "place" } = {}) {
-  if (!placeKey) return { reportCount: 0, moderationStatus: PLACE_MODERATION_STATUS.PUBLIC };
-
-  const store = readStore();
-  const prev = { ...emptyRecord(), ...(store.places[placeKey] || {}) };
-  const reportCount = (Number(prev.reportCount) || 0) + 1;
-  const at = new Date().toISOString();
-  const nextStatus = prev.adminLocked
-    ? prev.moderationStatus
-    : resolveAutoModerationStatus(reportCount, prev.moderationStatus);
-
-  store.places[placeKey] = {
-    ...prev,
-    reportCount,
-    reports: [{ id: `r-${Date.now()}`, reason, at, source }, ...(Array.isArray(prev.reports) ? prev.reports : [])].slice(
-      0,
-      50
-    ),
-    moderationStatus: nextStatus,
-    title: title || prev.title,
-    mapItemId: mapItemId || prev.mapItemId,
-    lastReportAt: at,
-    updatedAt: at,
-  };
-  writeStore(store);
-
-  return { reportCount, moderationStatus: nextStatus, record: store.places[placeKey] };
-}
-
-export function recordPlaceVerifyVote(placeKey, userId, vote, { title = "", mapItemId = "" } = {}) {
-  if (!placeKey || !userId || (vote !== "correct" && vote !== "wrong")) {
-    return getPlaceModerationRecord(placeKey);
-  }
-
-  const store = readStore();
-  const prev = { ...emptyRecord(), ...(store.places[placeKey] || {}) };
-  const verifyVotes = { ...(prev.verifyVotes || {}) };
-  const previousVote = verifyVotes[userId] || null;
-
-  let correctCount = Number(prev.correctCount) || 0;
-  let wrongCount = Number(prev.wrongCount) || 0;
-
-  if (previousVote === "correct") correctCount = Math.max(0, correctCount - 1);
-  if (previousVote === "wrong") wrongCount = Math.max(0, wrongCount - 1);
-  if (vote === "correct") correctCount += 1;
-  if (vote === "wrong") wrongCount += 1;
-
-  verifyVotes[userId] = vote;
-
-  let moderationStatus = prev.moderationStatus;
-  if (!prev.adminLocked && needsVerifyReview(correctCount, wrongCount)) {
-    if (
-      moderationStatus === PLACE_MODERATION_STATUS.PUBLIC &&
-      (Number(prev.reportCount) || 0) < PLACE_REPORT_THRESHOLDS.PENDING_REVIEW
-    ) {
-      moderationStatus = PLACE_MODERATION_STATUS.PENDING_REVIEW;
-    }
-  }
-
-  store.places[placeKey] = {
-    ...prev,
-    correctCount,
-    wrongCount,
-    verifyVotes,
-    moderationStatus,
-    title: title || prev.title,
-    mapItemId: mapItemId || prev.mapItemId,
-    updatedAt: new Date().toISOString(),
-  };
-  writeStore(store);
-  return store.places[placeKey];
-}
-
 export function getUserVerifyVote(placeKey, userId) {
   if (!placeKey || !userId) return null;
   const votes = getPlaceModerationRecord(placeKey).verifyVotes || {};
   const vote = votes[userId];
   return vote === "correct" || vote === "wrong" ? vote : null;
-}
-
-export function adminSetPlaceModerationStatus(placeKey, status, { lock = true } = {}) {
-  if (!placeKey) return null;
-  const store = readStore();
-  const prev = { ...emptyRecord(), ...(store.places[placeKey] || {}) };
-  store.places[placeKey] = {
-    ...prev,
-    moderationStatus: status,
-    adminLocked: lock,
-    updatedAt: new Date().toISOString(),
-  };
-  writeStore(store);
-  return store.places[placeKey];
-}
-
-export function listPlaceModerationForAdmin() {
-  const store = readStore();
-  return Object.entries(store.places)
-    .map(([placeKey, record]) => ({
-      placeKey,
-      ...record,
-      statusLabel: formatModerationStatusLabel(record.moderationStatus),
-      latestReason: record.reports?.[0]?.reason || "—",
-    }))
-    .filter((row) => (Number(row.reportCount) || 0) > 0 || row.moderationStatus !== PLACE_MODERATION_STATUS.PUBLIC)
-    .sort((a, b) => {
-      const countDiff = (Number(b.reportCount) || 0) - (Number(a.reportCount) || 0);
-      if (countDiff !== 0) return countDiff;
-      return String(b.lastReportAt || "").localeCompare(String(a.lastReportAt || ""));
-    });
 }
 
 export function syncMapItemModerationMeta(item) {

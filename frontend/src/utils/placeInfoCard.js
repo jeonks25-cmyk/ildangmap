@@ -3,10 +3,7 @@ import { PLACE_REPORT_REASONS } from "../constants/placeModeration";
 import { usePlaceModerationStore } from "../store/usePlaceModerationStore";
 import { getMapItemKey } from "./mapItemModel";
 import { isPlaceOverlayEligible } from "./placeDistance";
-import {
-  buildReportFeedbackMessage,
-  recordPlaceReport,
-} from "./placeModeration";
+import { buildReportFeedbackMessage } from "./placeModeration";
 
 export { PLACE_REPORT_REASONS as PLACE_INFO_REPORT_REASONS };
 export { needsPlaceReview, getPlaceReportCount } from "./placeModeration";
@@ -51,15 +48,14 @@ export function getPlaceInfoKey(place) {
   return getMapItemKey(place);
 }
 
-export function submitPlaceReport(placeKey, reason, meta = {}) {
-  const result = recordPlaceReport(placeKey, { reason, ...meta });
+export async function submitPlaceReport(placeKey, reason, meta = {}) {
+  const result = await usePlaceModerationStore.getState().submitReport(placeKey, reason, meta);
   appendChangeHistory(placeKey, {
     at: new Date().toISOString(),
     by: "신고",
     action: "report",
     detail: reason,
   });
-  usePlaceModerationStore.setState((state) => ({ revision: state.revision + 1 }));
   return result;
 }
 

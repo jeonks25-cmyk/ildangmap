@@ -83,12 +83,16 @@ export default function PlaceInfoCardMenu({ place, address = "", onEdit, onToast
   );
 
   const handleReport = useCallback(
-    (reason) => {
+    async (reason) => {
       const mapItemId = place?.source?.id || place?.sourceId || place?.id || "";
-      const result = submitPlaceReport(placeKey, reason, { title, mapItemId, source: "menu" });
-      setReportOpen(false);
-      setReviewFlag(needsPlaceReview(placeKey));
-      toast(buildReportFeedbackMessage(result.reportCount, result.moderationStatus));
+      try {
+        const result = await submitPlaceReport(placeKey, reason, { title, mapItemId, source: "menu" });
+        setReportOpen(false);
+        setReviewFlag(needsPlaceReview(placeKey));
+        toast(buildReportFeedbackMessage(result.reportCount, result.moderationStatus));
+      } catch (error) {
+        toast(error?.message || "신고 접수에 실패했습니다.");
+      }
     },
     [place, placeKey, title, toast],
   );

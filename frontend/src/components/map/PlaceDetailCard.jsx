@@ -136,21 +136,25 @@ export default function PlaceDetailCard({ place, onToast, onEdit, onUpdatePlace,
   const editingPost = posts.find((p) => p.id === editingId);
   const mapItemId = place.source?.id || place.sourceId || place.id;
 
-  const handleReport = (post, reason) => {
+  const handleReport = async (post, reason) => {
     if (!requireAuth()) return;
-    const result = submitPlaceReport(placeKey, reason, {
-      title,
-      mapItemId,
-      source: post ? `board:${post.id}` : "place",
-    });
-    toast(buildReportFeedbackMessage(result.reportCount, result.moderationStatus));
-    onUpdatePlace?.(place, {
-      sourceMeta: {
-        ...(place.sourceMeta || {}),
-        reportCount: result.reportCount,
-        moderationStatus: result.moderationStatus,
-      },
-    });
+    try {
+      const result = await submitPlaceReport(placeKey, reason, {
+        title,
+        mapItemId,
+        source: post ? `board:${post.id}` : "place",
+      });
+      toast(buildReportFeedbackMessage(result.reportCount, result.moderationStatus));
+      onUpdatePlace?.(place, {
+        sourceMeta: {
+          ...(place.sourceMeta || {}),
+          reportCount: result.reportCount,
+          moderationStatus: result.moderationStatus,
+        },
+      });
+    } catch (error) {
+      toast(error?.message || "신고 접수에 실패했습니다.");
+    }
   };
 
   const openWrite = () => {

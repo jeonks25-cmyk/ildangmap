@@ -57,6 +57,29 @@
   font-weight: 700;
 }
 
+.place-moderation-admin__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.place-moderation-admin__sort-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #44403c;
+}
+
+.place-moderation-admin__sort {
+  flex: 1;
+  max-width: 220px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid #d6d3d1;
+  background: #fff;
+  font-size: 13px;
+}
+
 .place-moderation-admin__card,
 .place-moderation-admin__item {
   background: #fff;

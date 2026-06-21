@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import { getMapItemKey } from "../../utils/mapItemModel";
 import { usePlaceModerationStore } from "../../store/usePlaceModerationStore";
 import { useRequireAuth } from "../../hooks/useRequireAuth";
@@ -11,6 +11,7 @@ export default function PlaceVerifyBar({ place, onModerationChange }) {
   const revision = usePlaceModerationStore((s) => s.revision);
   const getRecord = usePlaceModerationStore((s) => s.getRecord);
   const submitVerifyVote = usePlaceModerationStore((s) => s.submitVerifyVote);
+  const syncFromServer = usePlaceModerationStore((s) => s.syncFromServer);
   const record = getRecord(placeKey);
   void revision;
 
@@ -20,11 +21,19 @@ export default function PlaceVerifyBar({ place, onModerationChange }) {
   const title = getPlaceRowTitle(place);
   const mapItemId = place?.source?.id || place?.sourceId || place?.id || "";
 
+  useEffect(() => {
+    syncFromServer(placeKey, { title, mapItemId });
+  }, [mapItemId, placeKey, syncFromServer, title]);
+
   const handleVote = useCallback(
-    (vote) => {
+    async (vote) => {
       if (!requireAuth()) return;
-      const next = submitVerifyVote(placeKey, vote, { title, mapItemId });
-      onModerationChange?.(place, next);
+      try {
+        const next = await submitVerifyVote(placeKey, vote, { title, mapItemId });
+        onModerationChange?.(place, next);
+      } catch (_) {
+        /* toast handled by parent if needed */
+      }
     },
     [mapItemId, onModerationChange, place, placeKey, requireAuth, submitVerifyVote, title],
   );

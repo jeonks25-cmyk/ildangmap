@@ -415,6 +415,7 @@ export default function MapPage() {
   const setLayersVisible = useMapLayerStore((state) => state.setLayersVisible);
   const customLifeItems = useMapItemStore((state) => state.items);
   const moderationRevision = usePlaceModerationStore((state) => state.revision);
+  const syncModerationStatusIndex = usePlaceModerationStore((state) => state.syncStatusIndex);
   const addMapItemDraft = useMapItemStore((state) => state.addMapItemDraft);
   const updateMapItem = useMapItemStore((state) => state.updateMapItem);
   const experienceRecords = useFieldExperienceStore((state) => state.records);
@@ -426,6 +427,10 @@ export default function MapPage() {
   const markerMode = "ops";
   const overlayDensity = useMemo(() => resolveMapOverlayDensity(mapLevel), [mapLevel]);
   const showAppToast = useUiStore((state) => state.showAppToast);
+
+  useEffect(() => {
+    syncModerationStatusIndex();
+  }, [syncModerationStatusIndex]);
 
   const applicantsSheetResolved = useMemo(
     () =>
