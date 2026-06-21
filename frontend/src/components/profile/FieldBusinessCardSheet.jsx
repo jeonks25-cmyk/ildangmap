@@ -62,10 +62,6 @@ export default function FieldBusinessCardSheet({
             {person.memo ? <p className="person-detail-head__memo">{person.memo}</p> : null}
           </header>
 
-          {isUnregistered ? (
-            <span className="field-card-sheet__unreg-badge">일당맵 미가입</span>
-          ) : null}
-
           <PersonAvailabilityCalendar
             ownerId={ownerId}
             personName={p.name}
