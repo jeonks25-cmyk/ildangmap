@@ -38,7 +38,7 @@ import useJobMapClusterer from "../hooks/useJobMapClusterer";
 import MapFloatingChrome from "../components/map/MapFloatingChrome";
 import MapSelectionOverlaySection from "../components/map/MapSelectionOverlaySection";
 import MapTopBar from "../components/map/MapTopBar";
-import MapNoticeBanner from "../components/map/MapNoticeBanner";
+import NoticeTicker from "../components/common/NoticeTicker";
 import MapLayerChips, { MAP_LAYER_MVP_CATEGORIES } from "../components/map/MapLayerChips";
 import MapPlaceOverlay from "../components/map/MapPlaceOverlay";
 import MapPlaceTools from "../components/map/MapPlaceTools";
@@ -1907,7 +1907,7 @@ export default function MapPage() {
             onSearchFocus={handleOpenSearchPanel}
             onOpenNotifications={handleOpenNotificationCenter}
             unreadCount={unreadCount}
-            noticeRow={<MapNoticeBanner />}
+            noticeRow={<NoticeTicker />}
             categoryRowRef={mapChipAnchorRef}
             categoryRow={
               <MapLayerChips
