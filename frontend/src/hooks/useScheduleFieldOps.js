@@ -609,7 +609,17 @@ export function useScheduleFieldOps(selectedDateKey) {
           selectedDateKey: startKey,
           fallbackLocation,
         });
-        const persisted = await createJobPost(job);
+        let persisted;
+        try {
+          persisted = await createJobPost(job);
+        } catch (postError) {
+          console.warn("[useScheduleFieldOps] createJobPost failed, saving schedule locally", postError);
+          persisted = {
+            ...(job || {}),
+            id: job?.id || Date.now(),
+            createdAt: job?.createdAt || new Date().toISOString(),
+          };
+        }
         const scheduleDate = scheduleDateKeyFromWorkDate((persisted || job)?.workDate) || startKey;
         const saved = persisted || job;
         const endDate = scheduleDateKeyFromWorkDate(saved?.workEndDate || saved?.endDate) || endKey;
