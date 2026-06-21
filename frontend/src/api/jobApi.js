@@ -6,14 +6,10 @@ import {
 } from "./contracts/jobContracts";
 import { isMockApiEnabled, runApiRequest } from "./client";
 import { migrateJob } from "../utils/jobModel";
-import { initialJobs, loadStoredJobs, saveStoredJobs } from "../utils/jobsStorage";
+import { loadStoredJobs, saveStoredJobs } from "../utils/jobsStorage";
 
 function normalizeJobRecord(job) {
   return migrateJob(job);
-}
-
-function getSeedJobs() {
-  return initialJobs.map(normalizeJobRecord);
 }
 
 export async function getJobs() {
@@ -25,7 +21,7 @@ export async function getJobs() {
       if (Array.isArray(stored) && stored.length > 0) {
         return stored.map(normalizeJobRecord);
       }
-      return getSeedJobs();
+      return [];
     },
   });
 

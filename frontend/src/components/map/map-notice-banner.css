@@ -1,0 +1,51 @@
+.map-notice-banner {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 var(--app-page-pad-x, 14px);
+  border: none;
+  border-radius: 0;
+  background: #e8f7ee;
+  color: #1e8e5a;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  text-align: left;
+  cursor: default;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  box-sizing: border-box;
+}
+
+.map-notice-banner.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.map-notice-banner--link {
+  cursor: pointer;
+}
+
+.map-notice-banner--link:active {
+  background: #d9f0e4;
+}
+
+.map-notice-banner__text {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.map-page-head__row--notice {
+  padding: 0;
+}
+
+.map-page-head--search .map-page-head__row--notice + .map-page-head__row--categories {
+  padding-top: 4px;
+}

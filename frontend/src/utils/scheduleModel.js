@@ -1,10 +1,8 @@
 import { buildFieldJobTitle, getJobCraft, migrateJob } from "./jobModel";
 import { initialJobs } from "./jobsStorage";
 import { buildDemoWorkerAssignments, normalizeWorkerAssignments } from "./workerAssignmentModel";
-import { isBetaSeedMode } from "./betaSeed";
-import { BETA_SCHEDULES } from "./betaTestSeed";
 
-export const SCHEDULES_STORAGE_KEY = "calendar_schedules_v1";
+export const SCHEDULES_STORAGE_KEY = "calendar_schedules_v2";
 export const SCHEDULE_SETTLEMENT_STATUS = {
   WAITING: "waiting",
   SETTLED: "settled",
@@ -665,28 +663,14 @@ export function migrateSchedule(schedule) {
 }
 
 export function loadStoredSchedules() {
-  const fallback = (isBetaSeedMode() ? BETA_SCHEDULES : initialSchedules).map(migrateSchedule);
   try {
     const raw = localStorage.getItem(SCHEDULES_STORAGE_KEY);
-    if (!raw) return fallback;
+    if (!raw) return [];
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return fallback;
-    const seedById = new Map(fallback.map((item) => [item?.id, item]));
-    const stored = parsed
-      .filter(Boolean)
-      .map((item) => {
-        const seed = item?.id ? seedById.get(item.id) : null;
-        if (seed?.id) seedById.delete(seed.id);
-        return migrateSchedule({
-          ...(seed || {}),
-          ...item,
-        });
-      });
-    const existingIds = new Set(stored.map((item) => item?.id).filter(Boolean));
-    const missingDefaults = fallback.filter((item) => item?.id && !existingIds.has(item.id));
-    return [...stored, ...missingDefaults];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(Boolean).map((item) => migrateSchedule(item));
   } catch (_) {
-    return fallback;
+    return [];
   }
 }
 

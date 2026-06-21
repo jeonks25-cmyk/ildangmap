@@ -23,7 +23,7 @@ import { loadStoredJobs, mergeJobsWithSeedData, saveStoredJobs } from "../utils/
 import { createSafeJsonStorage, pickPersistedStoreState, resolveUpdater, runAsyncStoreAction, writeJsonStorage } from "./storeUtils";
 import { useUserStore } from "./useUserStore";
 
-const STORE_KEY = "ildangmap_job_store_v2";
+const STORE_KEY = "ildangmap_job_store_v3";
 const SEARCH_RECENT_STORAGE_KEY = "map_search_recent_v1";
 
 function toDateKey(date) {

@@ -100,44 +100,18 @@ export function buildDemoBriefingPostRowsForBriefingId(briefingId, now = new Dat
   ];
 }
 
-export function mergeStoredJobBriefingPostsWithDemo(jobId, storedPosts, now = new Date()) {
+export function mergeStoredJobBriefingPostsWithDemo(_jobId, storedPosts) {
   const stored = Array.isArray(storedPosts) ? storedPosts.filter(Boolean) : [];
-  const demo = buildDemoBriefingPostRowsForJob(jobId, now);
-  if (!demo.length) {
-    return stored
-      .slice()
-      .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
-      .map(wirePost);
-  }
-  const byId = new Map();
-  for (const p of demo) {
-    if (p && p.id) byId.set(String(p.id), p);
-  }
-  for (const p of stored) {
-    if (p && p.id) byId.set(String(p.id), p);
-  }
-  return Array.from(byId.values())
+  return stored
+    .slice()
     .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
     .map(wirePost);
 }
 
-export function mergeStoredScheduleBriefingPostsWithDemo(briefingId, storedPosts, now = new Date()) {
+export function mergeStoredScheduleBriefingPostsWithDemo(_briefingId, storedPosts) {
   const stored = Array.isArray(storedPosts) ? storedPosts.filter(Boolean) : [];
-  const demo = buildDemoBriefingPostRowsForBriefingId(briefingId, now);
-  if (!demo.length) {
-    return stored
-      .slice()
-      .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
-      .map(wirePost);
-  }
-  const byId = new Map();
-  for (const p of demo) {
-    if (p && p.id) byId.set(String(p.id), p);
-  }
-  for (const p of stored) {
-    if (p && p.id) byId.set(String(p.id), p);
-  }
-  return Array.from(byId.values())
+  return stored
+    .slice()
     .sort((a, b) => String(b.createdAt || "").localeCompare(String(a.createdAt || "")))
     .map(wirePost);
 }

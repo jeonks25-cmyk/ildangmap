@@ -19,7 +19,7 @@ import { isNetworkError } from "../api/client";
 import { createSafeJsonStorage, pickPersistedStoreState, resolveUpdater, runAsyncStoreAction, writeJsonStorage } from "./storeUtils";
 import { useContactsStore } from "./useContactsStore";
 
-const STORE_KEY = "ildangmap_settlement_store_v1";
+const STORE_KEY = "ildangmap_settlement_store_v2";
 
 function normalizeSchedules(scheduleList) {
   return (Array.isArray(scheduleList) ? scheduleList : []).map((schedule) => migrateSchedule(schedule)).filter(Boolean);

@@ -1,11 +1,7 @@
 import { useEffect } from "react";
-import { useFieldScheduleStore } from "../store/useFieldScheduleStore";
 import { useJobStore } from "../store/useJobStore";
 import { useSettlementStore } from "../store/useSettlementStore";
 import { useUserStore } from "../store/useUserStore";
-import { useContactsStore } from "../store/useContactsStore";
-import { isBetaSeedMode } from "../utils/betaSeed";
-import { BETA_DEFAULT_GROUP, BETA_GROUP_MEMBER_IDS } from "../utils/betaTestSeed";
 
 let jobsBootstrapRequested = false;
 let userMeBootstrapRequested = false;
@@ -60,21 +56,6 @@ export default function useAppBootstrap() {
         bootstrapCurrentUser();
       }
     }, AUTH_READY_FALLBACK_MS);
-
-    useFieldScheduleStore.getState().ensureSeeded();
-
-    if (isBetaSeedMode()) {
-      const { groups } = useContactsStore.getState();
-      if (!groups.some((g) => g.id === BETA_DEFAULT_GROUP.id)) {
-        useContactsStore.setState({
-          groups: [BETA_DEFAULT_GROUP, ...groups],
-          memberIdsByGroup: {
-            ...useContactsStore.getState().memberIdsByGroup,
-            [BETA_DEFAULT_GROUP.id]: BETA_GROUP_MEMBER_IDS,
-          },
-        });
-      }
-    }
 
     if (!jobsBootstrapRequested) {
       jobsBootstrapRequested = true;

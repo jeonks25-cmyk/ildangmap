@@ -115,7 +115,7 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
   const handleSavePost = (text) => {
     if (composeMode === "edit" && editingId) {
       setPosts((prev) => sortBoardPosts(prev.map((p) => (p.id === editingId ? { ...p, text } : p))));
-      toast("글을 수정했습니다 (목업)");
+      toast("글을 수정했습니다");
       return;
     }
     const newPost = {
@@ -127,14 +127,14 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
       isMine: true,
     };
     setPosts((prev) => sortBoardPosts([newPost, ...prev]));
-    toast("글을 등록했습니다 (목업)");
+    toast("글을 등록했습니다");
   };
 
   const handleDeletePost = (post) => {
     if (!post.isMine) return;
     setPosts((prev) => prev.filter((p) => p.id !== post.id));
     setDetailPost(null);
-    toast("글을 삭제했습니다 (목업)");
+    toast("글을 삭제했습니다");
   };
 
   return (
@@ -194,7 +194,10 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
             {posts.length ? (
               posts.map((post) => <BoardPostRow key={post.id} post={post} onOpen={setDetailPost} />)
             ) : (
-              <p className="site-board__empty">아직 글이 없습니다. 짧은 현장 정보를 남겨 주세요.</p>
+              <div className="site-board__empty">
+                <p className="site-board__empty-title">아직 등록된 글이 없습니다.</p>
+                <p className="site-board__empty-hint">첫 번째 현장 정보를 남겨보세요.</p>
+              </div>
             )}
           </div>
         </section>
@@ -215,7 +218,7 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
         onLike={() => {}}
         onEdit={openEditPost}
         onDelete={handleDeletePost}
-        onReport={(p, reason) => toast(`신고 접수: ${reason} (목업)`)}
+        onReport={(p, reason) => toast(`신고 접수: ${reason}`)}
       />
 
       <SiteBoardComposeSheet

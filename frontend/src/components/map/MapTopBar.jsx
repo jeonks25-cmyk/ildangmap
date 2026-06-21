@@ -50,6 +50,7 @@ function MapTopBar({
   unreadCount = 0,
   categoryRow = null,
   categoryRowRef = null,
+  noticeRow = null,
 }) {
   if (titleOnly) {
     return (
@@ -95,6 +96,7 @@ function MapTopBar({
           </form>
           <NotifyButton onOpenNotifications={onOpenNotifications} unreadCount={unreadCount} />
         </div>
+        {noticeRow ? <div className="map-page-head__row map-page-head__row--notice">{noticeRow}</div> : null}
         {categoryRow ? (
           <div className="map-page-head__row map-page-head__row--categories" ref={categoryRowRef}>
             {categoryRow}

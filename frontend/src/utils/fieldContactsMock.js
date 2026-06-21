@@ -1,7 +1,5 @@
 import { CRAFT_LABEL } from "./jobModel";
 import { formatRegionsLabel, normalizeActivityRegions } from "../constants/activityRegions";
-import { isBetaSeedMode } from "./betaSeed";
-import { BETA_FIELD_CONTACTS } from "./betaTestSeed";
 
 /**
  * 현장 작업자 프로필 (직함 고정 없음 — 활동 기반)
@@ -146,7 +144,7 @@ const FIELD_CONTACTS_FULL = [
   },
 ];
 
-export const FIELD_CONTACTS_MOCK = isBetaSeedMode() ? BETA_FIELD_CONTACTS : FIELD_CONTACTS_FULL;
+export const FIELD_CONTACTS_MOCK = [];
 
 function parseStringList(value, fallback = []) {
   if (Array.isArray(value)) return value.filter(Boolean).map(String);

@@ -22,7 +22,6 @@ import { isExpiredJob } from "../utils/jobTimeUtils";
 import { MAP_OPS_FILTER } from "../constants/mapOpsFilter";
 import { isAfternoonJoinJob, isOyajiShortageJob, isOyajiUrgentJob } from "../utils/oyajiSiteModel";
 import { buildLifeMapItems } from "../utils/mapItemModel";
-import { LIFE_MAP_MOCK_ITEMS } from "../utils/lifeMapMock";
 
 /**
  * Map viewport / canvas pipeline (jobs + bounds + estimate markers).
@@ -295,10 +294,7 @@ export default function useMapViewportData({
     [filteredEstimateJobs, mapBounds]
   );
 
-  const lifeItemsInBounds = useMemo(
-    () => filterJobsInMapBounds(LIFE_MAP_MOCK_ITEMS, mapBounds),
-    [mapBounds]
-  );
+  const lifeItemsInBounds = useMemo(() => [], []);
 
   const mapItemsInBounds = useMemo(
     () =>

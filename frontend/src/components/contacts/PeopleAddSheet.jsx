@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { FIELD_CONTACTS_MOCK } from "../../utils/fieldContactsMock";
 import { useContactsStore } from "../../store/useContactsStore";
 import { useUiStore } from "../../store/useUiStore";
 import { useUserStore } from "../../store/useUserStore";
@@ -24,7 +23,7 @@ function formatPhoneHint(phone) {
  * 인원 추가 — 일당맵 가입자 검색(자동완성) + 연락처 초대.
  */
 export default function PeopleAddSheet({ open, onClose, onAdded }) {
-  const addedContacts = useContactsStore((s) => s.addedContacts);
+  const contacts = useContactsStore((s) => s.getContacts());
   const addContact = useContactsStore((s) => s.addContact);
   const showAppToast = useUiStore((s) => s.showAppToast);
   const myUserId = useUserStore((s) => s.session?.userId ?? s.profile?.userId ?? 1);
@@ -68,12 +67,12 @@ export default function PeopleAddSheet({ open, onClose, onAdded }) {
 
   const existingPhones = useMemo(() => {
     const set = new Set();
-    [...FIELD_CONTACTS_MOCK, ...addedContacts].forEach((c) => {
+    contacts.forEach((c) => {
       const d = phoneDigits(c.phone);
       if (d) set.add(d);
     });
     return set;
-  }, [addedContacts]);
+  }, [contacts]);
 
   const results = useMemo(
     () => filterUserDirectory(directory, debouncedQuery, { existingPhones, skipIds: addedKeys }),

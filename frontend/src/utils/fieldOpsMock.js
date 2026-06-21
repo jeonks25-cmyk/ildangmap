@@ -100,17 +100,12 @@ export function getPersonById(personId) {
   return MOCK_FIELD_PEOPLE.find((p) => p.id === personId) || null;
 }
 
-export function getFieldParticipants(fieldId) {
-  const ids = FIELD_PARTICIPANT_IDS[Number(fieldId)] || ["p-kim", "p-lee"];
-  return ids.map((id) => getPersonById(id)).filter(Boolean);
+export function getFieldParticipants() {
+  return [];
 }
 
-export function getShareTargetGroups(fieldId) {
-  const participants = getFieldParticipants(fieldId).filter((p) => p.role !== "오야지");
-  const recent = MOCK_FIELD_PEOPLE.filter((p) => p.tags.includes("recent") && !participants.find((x) => x.id === p.id));
-  const favorites = MOCK_FIELD_PEOPLE.filter((p) => p.tags.includes("favorite"));
-  const all = MOCK_FIELD_PEOPLE.filter((p) => p.role !== "오야지");
-  return { participants, recent, favorites, all };
+export function getShareTargetGroups() {
+  return { participants: [], recent: [], favorites: [], all: [] };
 }
 
 export function buildDefaultBusinessCardFromProfile(profile, authUser) {

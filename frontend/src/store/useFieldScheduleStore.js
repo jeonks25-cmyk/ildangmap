@@ -1,39 +1,19 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { FIELD_CONTACTS_MOCK } from "../utils/fieldContactsMock";
 import {
   createPersonalEvent,
   DAY_STATUS,
   scheduleDateKeyFromWorkDate,
-  toDateKey,
 } from "../utils/fieldScheduleModel";
 import { getScheduleDateKeys } from "../utils/scheduleModel";
 import { createSafeJsonStorage, pickPersistedStoreState } from "./storeUtils";
 
-const STORE_KEY = "ildangmap_field_schedule_v1";
+const STORE_KEY = "ildangmap_field_schedule_v2";
 const DEFAULT_OWNER = "me";
 const EMPTY_PERSONAL_EVENTS = [];
 
 export function selectPersonalEventsForOwner(state, ownerId = DEFAULT_OWNER) {
   return state.personalEventsByOwner[ownerId] ?? EMPTY_PERSONAL_EVENTS;
-}
-
-function hashOwnerDay(ownerId, dateKey) {
-  const seed = `${ownerId}:${dateKey}`;
-  let h = 0;
-  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) % 9973;
-  return h;
-}
-
-function seedAvailabilityMap(ownerId, start = new Date(), days = 42) {
-  const map = {};
-  const cursor = new Date(start);
-  for (let i = 0; i < days; i += 1) {
-    const key = toDateKey(cursor);
-    map[key] = hashOwnerDay(ownerId, key) % 5 === 0 ? DAY_STATUS.unavailable : DAY_STATUS.available;
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return map;
 }
 
 function bumpRevision(revisions, ownerId) {
@@ -59,48 +39,7 @@ export const useFieldScheduleStore = create(
 
       ensureSeeded: () => {
         if (get().seeded) return;
-        const availabilityByOwner = { ...get().availabilityByOwner };
-        const personalEventsByOwner = { ...get().personalEventsByOwner };
-        const revisionsByOwner = { ...get().revisionsByOwner };
-
-        if (!availabilityByOwner[DEFAULT_OWNER]) {
-          availabilityByOwner[DEFAULT_OWNER] = seedAvailabilityMap(DEFAULT_OWNER);
-        }
-
-        if (!(personalEventsByOwner[DEFAULT_OWNER] || []).length) {
-          personalEventsByOwner[DEFAULT_OWNER] = [
-            createPersonalEvent({ title: "치과", dateKey: toDateKey(new Date()), color: "blue", startTime: "10:00", endTime: "11:00" }),
-            createPersonalEvent({
-              title: "가족여행",
-              dateKey: (() => {
-                const d = new Date();
-                d.setDate(d.getDate() + 3);
-                return toDateKey(d);
-              })(),
-              color: "purple",
-              startTime: "00:00",
-              endTime: "23:59",
-              memo: "제주",
-            }),
-          ].filter(Boolean);
-        }
-
-        FIELD_CONTACTS_MOCK.forEach((raw) => {
-          const ownerId = String(raw.id);
-          if (!availabilityByOwner[ownerId]) {
-            availabilityByOwner[ownerId] =
-              raw.availability && typeof raw.availability === "object"
-                ? { ...raw.availability }
-                : seedAvailabilityMap(ownerId);
-          }
-        });
-
-        set({
-          availabilityByOwner,
-          personalEventsByOwner,
-          revisionsByOwner,
-          seeded: true,
-        });
+        set({ seeded: true });
       },
 
       getOwnerRevision: (ownerId) => get().revisionsByOwner[ownerId] || 0,
