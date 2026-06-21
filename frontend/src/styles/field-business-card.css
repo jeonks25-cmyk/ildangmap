@@ -247,59 +247,6 @@
   gap: 14px;
 }
 
-.field-card-sheet__unreg-badge {
-  align-self: flex-start;
-  padding: 4px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(202, 138, 4, 0.4);
-  background: rgba(250, 204, 21, 0.16);
-  color: #a16207;
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.field-card-sheet__next-avail {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid rgba(120, 113, 108, 0.16);
-  background: #fff;
-}
-
-.field-card-sheet__next-avail-label {
-  font-size: 14px;
-  font-weight: 700;
-  color: #6b6259;
-}
-
-.field-card-sheet__next-avail-date {
-  font-size: 19px;
-  font-weight: 900;
-  color: #2a2520;
-}
-
-.field-card-sheet__next-avail--available {
-  border-color: rgba(34, 160, 96, 0.35);
-  background: rgba(34, 160, 96, 0.08);
-}
-
-.field-card-sheet__next-avail--busy {
-  border-color: rgba(214, 158, 46, 0.35);
-  background: rgba(214, 158, 46, 0.1);
-}
-
-.field-card-sheet__next-avail--none {
-  border-color: rgba(120, 113, 108, 0.2);
-  background: rgba(120, 113, 108, 0.06);
-}
-
-.field-card-sheet__next-avail--none .field-card-sheet__next-avail-date {
-  color: #8a817a;
-}
-
 .field-card-sheet__actions {
   position: sticky;
   bottom: 0;
