@@ -11,6 +11,10 @@ server:
 spring:
   application:
     name: ildangmap-backend
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 8MB
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/ildangmap?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true}
     username: ${DB_USERNAME:root}
@@ -73,6 +77,13 @@ app:
   cors-allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001,https://ildangmap.vercel.app}
   # 카카오 로그인 성공·실패 후 SPA 콜백 (프론트 /auth/callback)
   post-login-redirect-path: ${APP_POST_LOGIN_REDIRECT_PATH:/auth/callback}
+  # 베타 피드백 관리자 (users.is_admin 미사용)
+  admin-user-ids: ${APP_ADMIN_USER_IDS:}
+  feedback:
+    storage:
+      type: ${APP_FEEDBACK_STORAGE_TYPE:local}
+      local:
+        base-dir: ${APP_FEEDBACK_STORAGE_DIR:uploads/feedback}
 
 # --- 카카오 개발자 콘솔 (앱 > 플랫폼 Web 도메인 localhost 등록) ---
 # Redirect URI (Spring OAuth2): http://localhost:8080/login/oauth2/code/kakao

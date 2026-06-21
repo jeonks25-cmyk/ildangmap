@@ -1,0 +1,68 @@
+{
+  "viewport": {
+    "w": 390,
+    "h": 664
+  },
+  "blockers": [
+    {
+      "selector": ".map-geo-stage__overlays",
+      "className": "map-geo-stage__overlays",
+      "position": "absolute",
+      "inset": "0px 0px 0px 0px",
+      "size": "390x434",
+      "pointerEvents": "none",
+      "zIndex": "10",
+      "coversViewport": false,
+      "fullScreenCandidate": false,
+      "blocksMapIfAuto": false
+    },
+    {
+      "selector": ".geo-map-chrome",
+      "className": "geo-map-chrome geo-map-chrome--minimal",
+      "position": "absolute",
+      "inset": "433.6px 0px 0px 0px",
+      "size": "390x0",
+      "pointerEvents": "none",
+      "zIndex": "12",
+      "coversViewport": false,
+      "fullScreenCandidate": false,
+      "blocksMapIfAuto": false
+    },
+    {
+      "selector": ".map-floating-action-layer",
+      "className": "map-floating-action-layer",
+      "position": "absolute",
+      "inset": "433.6px 0px 0px 0px",
+      "size": "390x0",
+      "pointerEvents": "none",
+      "zIndex": "52",
+      "coversViewport": false,
+      "fullScreenCandidate": false,
+      "blocksMapIfAuto": false
+    },
+    {
+      "selector": ".map-geo-stage__map-surface",
+      "className": "map-geo-stage__map-surface",
+      "position": "absolute",
+      "inset": "0px 0px 0px 0px",
+      "size": "390x434",
+      "pointerEvents": "auto",
+      "zIndex": "0",
+      "coversViewport": false,
+      "fullScreenCandidate": false,
+      "blocksMapIfAuto": false
+    },
+    {
+      "selector": ".map-geo-stage__canvas",
+      "className": "map-geo-stage__canvas",
+      "position": "relative",
+      "inset": "0px 0px 0px 0px",
+      "size": "390x434",
+      "pointerEvents": "auto",
+      "zIndex": "0",
+      "coversViewport": false,
+      "fullScreenCandidate": false,
+      "blocksMapIfAuto": false
+    }
+  ]
+}

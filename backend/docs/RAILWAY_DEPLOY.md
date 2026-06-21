@@ -41,7 +41,20 @@ APP_CORS_ALLOWED_ORIGINS=https://ildangmap.vercel.app
 KAKAO_CLIENT_ID=<카카오 REST API 키>
 KAKAO_CLIENT_SECRET=<카카오 Client Secret>
 JWT_SECRET=<랜덤 32자 이상>
+APP_ADMIN_USER_IDS=1,2
+APP_FEEDBACK_STORAGE_DIR=/data/uploads/feedback
 ```
+
+## 3-1. 피드백 이미지 Volume (Railway)
+
+베타 피드백 스크린샷은 DB BLOB이 아닌 **Volume 파일**로 저장합니다.
+
+1. Backend 서비스 → **+ New** → **Volume**
+2. Mount Path: `/data`
+3. 환경변수: `APP_FEEDBACK_STORAGE_DIR=/data/uploads/feedback`
+4. 재배포 후 `/data/uploads/feedback` 디렉터리에 `feedback/YYYY/MM/*.jpg` 형태로 저장됨
+
+> 향후 S3·Cloudinary 전환 시 `APP_FEEDBACK_STORAGE_TYPE` 및 `FeedbackStorageService` 구현체만 교체합니다.
 
 ## 4. 공개 URL
 

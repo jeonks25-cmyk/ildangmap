@@ -1,0 +1,471 @@
+{
+  "audit": {
+    "viewport": {
+      "w": 390,
+      "h": 664
+    },
+    "blockers": [
+      {
+        "selector": ".map-geo-stage__overlays",
+        "className": "map-geo-stage__overlays",
+        "position": "absolute",
+        "inset": "0px 0px 0px 0px",
+        "size": "390x434",
+        "pointerEvents": "none",
+        "zIndex": "10",
+        "coversViewport": false,
+        "fullScreenCandidate": false,
+        "blocksMapIfAuto": false
+      },
+      {
+        "selector": ".geo-map-chrome",
+        "className": "geo-map-chrome geo-map-chrome--minimal",
+        "position": "absolute",
+        "inset": "433.6px 0px 0px 0px",
+        "size": "390x0",
+        "pointerEvents": "none",
+        "zIndex": "12",
+        "coversViewport": false,
+        "fullScreenCandidate": false,
+        "blocksMapIfAuto": false
+      },
+      {
+        "selector": ".map-floating-action-layer",
+        "className": "map-floating-action-layer",
+        "position": "absolute",
+        "inset": "433.6px 0px 0px 0px",
+        "size": "390x0",
+        "pointerEvents": "none",
+        "zIndex": "52",
+        "coversViewport": false,
+        "fullScreenCandidate": false,
+        "blocksMapIfAuto": false
+      },
+      {
+        "selector": ".map-geo-stage__map-surface",
+        "className": "map-geo-stage__map-surface",
+        "position": "absolute",
+        "inset": "0px 0px 0px 0px",
+        "size": "390x434",
+        "pointerEvents": "auto",
+        "zIndex": "0",
+        "coversViewport": false,
+        "fullScreenCandidate": false,
+        "blocksMapIfAuto": false
+      },
+      {
+        "selector": ".map-geo-stage__canvas",
+        "className": "map-geo-stage__canvas",
+        "position": "relative",
+        "inset": "0px 0px 0px 0px",
+        "size": "390x434",
+        "pointerEvents": "auto",
+        "zIndex": "0",
+        "coversViewport": false,
+        "fullScreenCandidate": false,
+        "blocksMapIfAuto": false
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "label": "1-map-only",
+      "pointerNote": "HTML5 dragstart/drag/dragend는 Kakao Maps 미사용. pan 판정: getCenter 변화 또는 kakao.maps drag/dragend.",
+      "syntheticDrag": {
+        "tilePanePointerEvents": "auto",
+        "tilePaneSize": "390x434",
+        "eventCounts": {
+          "pointerdown": 2,
+          "mousedown": 2,
+          "pointermove": 32,
+          "mousemove": 32,
+          "pointerup": 2,
+          "mouseup": 2
+        },
+        "beforeCenter": {
+          "lat": 36.35039586114128,
+          "lng": 127.3844776514404
+        },
+        "afterCenter": {
+          "lat": 36.35039586114128,
+          "lng": 127.3844776514404
+        },
+        "centerMoved": false
+      },
+      "playwrightMouse": {
+        "tilePanePointerEvents": "auto",
+        "tileBox": {
+          "w": 390.3999938964844,
+          "h": 433.6000061035156
+        },
+        "hitAtDragStart": {
+          "tag": "DIV",
+          "cls": "",
+          "onTilePane": true
+        },
+        "kakaoMapEvents": [
+          "dragstart",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "drag",
+          "center_changed",
+          "dragend"
+        ],
+        "kakaoDragOk": true,
+        "before": {
+          "lat": 36.35039586114128,
+          "lng": 127.3844776514404,
+          "level": 7
+        },
+        "after": {
+          "lat": 36.32554841347074,
+          "lng": 127.35299426015656,
+          "level": 7
+        },
+        "centerMoved": true,
+        "cdpCenterMoved": false,
+        "cdpTouchCenterMoved": true
+      },
+      "dragHtml5": {
+        "dragstart": 0,
+        "drag": 0,
+        "dragend": 0
+      },
+      "pointerEvents": {
+        "pointerdown": 2,
+        "pointermove": 32,
+        "pointerup": 2
+      },
+      "mouseEvents": {
+        "mousedown": 2,
+        "mousemove": 32,
+        "mouseup": 2
+      },
+      "panOk": true
+    },
+    {
+      "label": "2-list-open",
+      "pointerNote": "HTML5 dragstart/drag/dragend는 Kakao Maps 미사용. pan 판정: getCenter 변화 또는 kakao.maps drag/dragend.",
+      "syntheticDrag": {
+        "tilePanePointerEvents": "auto",
+        "tilePaneSize": "390x434",
+        "eventCounts": {
+          "pointerdown": 2,
+          "mousedown": 2,
+          "pointermove": 32,
+          "mousemove": 32,
+          "pointerup": 2,
+          "mouseup": 2
+        },
+        "beforeCenter": {
+          "lat": 36.32554841347074,
+          "lng": 127.35299426015656
+        },
+        "afterCenter": {
+          "lat": 36.32554841347074,
+          "lng": 127.35299426015656
+        },
+        "centerMoved": false
+      },
+      "playwrightMouse": {
+        "tilePanePointerEvents": "auto",
+        "tileBox": {
+          "w": 390.3999938964844,
+          "h": 433.6000061035156
+        },
+        "hitAtDragStart": {
+          "tag": "DIV",
+          "cls": "",
+          "onTilePane": true
+        },
+        "kakaoMapEvents": [
+          "dragstart",
+          "dragstart",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "dragend",
+          "dragend"
+        ],
+        "kakaoDragOk": true,
+        "before": {
+          "lat": 36.32554841347074,
+          "lng": 127.35299426015656,
+          "level": 7
+        },
+        "after": {
+          "lat": 36.30069246534038,
+          "lng": 127.32153085326195,
+          "level": 7
+        },
+        "centerMoved": true,
+        "cdpCenterMoved": false,
+        "cdpTouchCenterMoved": true
+      },
+      "dragHtml5": {
+        "dragstart": 0,
+        "drag": 0,
+        "dragend": 0
+      },
+      "pointerEvents": {
+        "pointerdown": 2,
+        "pointermove": 32,
+        "pointerup": 2
+      },
+      "mouseEvents": {
+        "mousedown": 2,
+        "mousemove": 32,
+        "mouseup": 2
+      },
+      "panOk": true
+    },
+    {
+      "label": "3-detail-open",
+      "pointerNote": "HTML5 dragstart/drag/dragend는 Kakao Maps 미사용. pan 판정: getCenter 변화 또는 kakao.maps drag/dragend.",
+      "syntheticDrag": {
+        "tilePanePointerEvents": "auto",
+        "tilePaneSize": "390x434",
+        "eventCounts": {
+          "pointerdown": 2,
+          "mousedown": 2,
+          "pointermove": 32,
+          "mousemove": 32,
+          "pointerup": 2,
+          "mouseup": 2
+        },
+        "beforeCenter": {
+          "lat": 36.30069246534038,
+          "lng": 127.32153085326195
+        },
+        "afterCenter": {
+          "lat": 36.30069246534038,
+          "lng": 127.32153085326195
+        },
+        "centerMoved": false
+      },
+      "playwrightMouse": {
+        "tilePanePointerEvents": "auto",
+        "tileBox": {
+          "w": 390.3999938964844,
+          "h": 433.6000061035156
+        },
+        "hitAtDragStart": {
+          "tag": "DIV",
+          "cls": "",
+          "onTilePane": true
+        },
+        "kakaoMapEvents": [
+          "dragstart",
+          "dragstart",
+          "dragstart",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "drag",
+          "drag",
+          "drag",
+          "center_changed",
+          "center_changed",
+          "center_changed",
+          "dragend",
+          "dragend",
+          "dragend"
+        ],
+        "kakaoDragOk": true,
+        "before": {
+          "lat": 36.30069246534038,
+          "lng": 127.32153085326195,
+          "level": 7
+        },
+        "after": {
+          "lat": 36.275828039187644,
+          "lng": 127.29008740697513,
+          "level": 7
+        },
+        "centerMoved": true,
+        "cdpCenterMoved": false,
+        "cdpTouchCenterMoved": true
+      },
+      "dragHtml5": {
+        "dragstart": 0,
+        "drag": 0,
+        "dragend": 0
+      },
+      "pointerEvents": {
+        "pointerdown": 2,
+        "pointermove": 32,
+        "pointerup": 2
+      },
+      "mouseEvents": {
+        "mousedown": 2,
+        "mousemove": 32,
+        "mouseup": 2
+      },
+      "panOk": true
+    }
+  ]
+}
