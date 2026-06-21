@@ -90,15 +90,16 @@ export const WORKER_STAGE_META = {
 };
 
 /** 공정(필터용) */
-export const CRAFT_KEYS = ["film", "tile", "wallpaper", "paint", "electric", "facility"];
+export const CRAFT_KEYS = ["film", "wallpaper", "tile", "electric", "facility", "paint", "other"];
 
 export const CRAFT_LABEL = {
   film: "필름",
-  tile: "타일",
   wallpaper: "도배",
-  paint: "페인트",
+  tile: "타일",
   electric: "전기",
   facility: "설비",
+  paint: "페인트",
+  other: "기타",
 };
 
 export const CRAFT_EMOJI = {

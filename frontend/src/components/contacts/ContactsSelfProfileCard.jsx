@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useUserProfile } from "../../context/UserProfileContext";
 import { getDisplayNickname } from "../../utils/displayNickname";
 import { buildProfileDisplayLines } from "../../models/profileModel";
-import { CRAFT_LABEL } from "../../utils/jobModel";
 
 /** 인원 탭 — 내 프로필 요약 (설정과 동일 데이터) */
 const ContactsSelfProfileCard = memo(function ContactsSelfProfileCard({ authUser }) {
@@ -11,7 +10,6 @@ const ContactsSelfProfileCard = memo(function ContactsSelfProfileCard({ authUser
   const { profile, profileMeta } = useUserProfile();
   const displayName = getDisplayNickname(profile, authUser);
   const lines = buildProfileDisplayLines(profile, profileMeta);
-  const craftLabel = CRAFT_LABEL[profile?.craft] || profile?.craft || "";
 
   return (
     <button
@@ -26,9 +24,7 @@ const ContactsSelfProfileCard = memo(function ContactsSelfProfileCard({ authUser
       <span className="contacts-self-profile__body">
         <strong className="contacts-self-profile__name">{displayName || "내 프로필"}</strong>
         <span className="contacts-self-profile__meta">
-          {[craftLabel && profile?.role ? `${craftLabel} · ${profile.role}` : craftLabel, ...lines.slice(0, 2)]
-            .filter(Boolean)
-            .join(" · ") || "활동 정보를 등록해 주세요"}
+          {lines.slice(0, 2).join(" · ") || "활동 정보를 등록해 주세요"}
         </span>
         {profileMeta?.intro ? <span className="contacts-self-profile__intro">{profileMeta.intro}</span> : null}
       </span>

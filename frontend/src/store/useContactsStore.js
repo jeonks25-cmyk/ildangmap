@@ -3,15 +3,17 @@ import { persist } from "zustand/middleware";
 import { FIELD_CONTACTS_MOCK, normalizeFieldContact } from "../utils/fieldContactsMock";
 import { createSafeJsonStorage, pickPersistedStoreState } from "./storeUtils";
 import { applyCoworkFromEndedSchedules, deriveCoworkStats, listCoworkHistoryForContact } from "../utils/coworkHistoryModel";
-import { normalizeActivityRegion } from "../constants/activityRegions";
+import { formatRegionsLabel, normalizeActivityRegions } from "../constants/activityRegions";
 
 const STORE_KEY = "ildangmap_contacts_store_v1";
 
 function applyContactOverride(raw, overrides = {}) {
   if (!overrides || typeof overrides !== "object") return raw;
   const next = { ...raw, ...overrides, id: raw.id };
-  if (overrides.homeRegion != null || overrides.region != null) {
-    next.homeRegion = normalizeActivityRegion(overrides.homeRegion || overrides.region, raw.homeRegion || raw.region);
+  if (overrides.homeRegions != null || overrides.homeRegion != null || overrides.region != null) {
+    const regions = normalizeActivityRegions(overrides.homeRegions ?? overrides.homeRegion ?? overrides.region);
+    next.homeRegions = regions;
+    next.homeRegion = formatRegionsLabel(regions, { emptyLabel: "" });
   }
   if (overrides.basePay != null) {
     const pay = Number(overrides.basePay);
@@ -132,8 +134,10 @@ export const useContactsStore = create(
         const id = String(contactId);
         if (!id) return;
         const clean = { ...patch };
-        if (clean.homeRegion != null || clean.region != null) {
-          clean.homeRegion = normalizeActivityRegion(clean.homeRegion || clean.region);
+        if (clean.homeRegions != null || clean.homeRegion != null || clean.region != null) {
+          const regions = normalizeActivityRegions(clean.homeRegions ?? clean.homeRegion ?? clean.region);
+          clean.homeRegions = regions;
+          clean.homeRegion = formatRegionsLabel(regions, { emptyLabel: "" });
           delete clean.region;
         }
         if (clean.phone != null) clean.phone = String(clean.phone).trim();

@@ -4,17 +4,16 @@ import ProfileNicknameSection, {
   canSubmitNicknameChange,
   resolveNicknameChangeError,
 } from "../components/settings/ProfileNicknameSection";
+import ActivityRegionsSheet from "../components/shared/ActivityRegionsSheet";
 import { useAuth } from "../context/AuthContext";
 import { useUserProfile } from "../context/UserProfileContext";
 import { useUserStore } from "../store/useUserStore";
 import { useUiStore } from "../store/useUiStore";
+import { formatRegionsLabel, normalizeActivityRegions } from "../constants/activityRegions";
 import { getDisplayNickname } from "../utils/displayNickname";
-import { ACTIVITY_REGIONS } from "../constants/activityRegions";
 import { CRAFT_KEYS, CRAFT_LABEL } from "../utils/jobModel";
 import { profilePatchFromForm } from "../models/profileModel";
 import "../styles/settings-tab-mobile.css";
-
-const ROLE_OPTIONS = ["조공", "준기공", "기공", "오야지"];
 
 function parseBirthYearInput(value) {
   const digits = String(value || "").replace(/[^\d]/g, "").slice(0, 4);
@@ -47,9 +46,8 @@ export default function ProfileEditPage() {
 
   const [nicknameDraft, setNicknameDraft] = useState(currentNickname);
   const [birthYearText, setBirthYearText] = useState(profile?.birthYear ? String(profile.birthYear) : "");
-  const [region, setRegion] = useState(profile?.region || "대전 서구");
+  const [regions, setRegions] = useState(() => normalizeActivityRegions(profile?.regions ?? profile?.region));
   const [craft, setCraft] = useState(profile?.craft || "film");
-  const [role, setRole] = useState(profile?.role || "기공");
   const [desiredPayText, setDesiredPayText] = useState(
     profile?.desiredPay != null ? String(profile.desiredPay) : ""
   );
@@ -65,9 +63,8 @@ export default function ProfileEditPage() {
   useEffect(() => {
     setNicknameDraft(currentNickname);
     setBirthYearText(profile?.birthYear ? String(profile.birthYear) : "");
-    setRegion(profile?.region || "대전 서구");
+    setRegions(normalizeActivityRegions(profile?.regions ?? profile?.region));
     setCraft(profile?.craft || "film");
-    setRole(profile?.role || "기공");
     setDesiredPayText(profile?.desiredPay != null ? String(profile.desiredPay) : "");
     setExperienceYearsText(profile?.experienceYears != null ? String(profile.experienceYears) : "");
     setPhone(profile?.phone || "");
@@ -80,6 +77,8 @@ export default function ProfileEditPage() {
     canChangeNickname: profile?.canChangeNickname !== false,
     available: nicknameAvailable,
   });
+
+  const regionLabel = useMemo(() => formatRegionsLabel(regions), [regions]);
 
   const onSave = useCallback(async () => {
     if (!isAuthenticated) {
@@ -122,16 +121,15 @@ export default function ProfileEditPage() {
       saveLocalProfileDetails({
         ...profilePatchFromForm({
           nickname: trimmedNick,
-          region,
+          regions,
           craft,
-          role,
           experienceYearsText: exp.text,
           desiredPayText: pay.text,
           phone,
         }),
         birthYear: birth.number,
       });
-      setProfileMeta({ intro: String(intro || "").trim(), region, craft, trade: role });
+      setProfileMeta({ intro: String(intro || "").trim(), regions, craft });
 
       showAppToast("프로필을 저장했습니다.");
       navigate("/settings", { replace: true });
@@ -150,9 +148,8 @@ export default function ProfileEditPage() {
     desiredPayText,
     experienceYearsText,
     phone,
-    region,
+    regions,
     craft,
-    role,
     intro,
     changeDisplayNickname,
     saveLocalProfileDetails,
@@ -160,8 +157,6 @@ export default function ProfileEditPage() {
     showAppToast,
     navigate,
   ]);
-
-  const craftLabel = useMemo(() => CRAFT_LABEL[craft] || craft, [craft]);
 
   if (!isAuthenticated) {
     return (
@@ -183,7 +178,7 @@ export default function ProfileEditPage() {
   }
 
   return (
-    <div className="my-tab-page my-tab-page--profile-hub tab-page-shell">
+    <div className="my-tab-page my-tab-page--profile-hub tab-page-shell profile-edit-shell">
       <header className="profile-edit-header">
         <button type="button" className="profile-edit-header__back" onClick={() => navigate("/settings")} aria-label="뒤로">
           ←
@@ -191,7 +186,8 @@ export default function ProfileEditPage() {
         <h1 className="profile-edit-header__title">내 프로필</h1>
       </header>
 
-      <div className="tab-page-shell__body profile-edit-page">
+      <div className="profile-edit-scroll">
+        <div className="profile-edit-page">
         <ProfileNicknameSection
           currentNickname={currentNickname}
           canChangeNickname={profile?.canChangeNickname !== false}
@@ -219,14 +215,14 @@ export default function ProfileEditPage() {
         <section className="settings-prefs profile-edit-section">
           <h2 className="settings-prefs__label">활동지역</h2>
           <button type="button" className="settings-prefs__region" onClick={() => setRegionSheetOpen(true)}>
-            <span>{region}</span>
+            <span>{regionLabel}</span>
             <span aria-hidden="true">›</span>
           </button>
-          <p className="settings-prefs__hint">시·군·구 단위로 선택합니다.</p>
+          <p className="settings-prefs__hint">시 단위 · 여러 곳 선택 가능</p>
         </section>
 
         <section className="settings-prefs profile-edit-section">
-          <h2 className="settings-prefs__label">직종</h2>
+          <h2 className="settings-prefs__label">공종</h2>
           <div className="settings-prefs__chips" role="list">
             {CRAFT_KEYS.map((key) => (
               <button
@@ -240,22 +236,6 @@ export default function ProfileEditPage() {
               </button>
             ))}
           </div>
-          <div className="settings-prefs__chips profile-edit-role-chips" role="list">
-            {ROLE_OPTIONS.map((item) => (
-              <button
-                key={item}
-                type="button"
-                role="listitem"
-                className={`settings-prefs__chip${role === item ? " is-active" : ""}`}
-                onClick={() => setRole(item)}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-          <p className="settings-prefs__hint">
-            {craftLabel} · {role}
-          </p>
         </section>
 
         <section className="settings-prefs profile-edit-section">
@@ -269,18 +249,6 @@ export default function ProfileEditPage() {
             placeholder="예: 8"
             maxLength={2}
             aria-label="경력"
-          />
-        </section>
-
-        <section className="settings-prefs profile-edit-section">
-          <h2 className="settings-prefs__label">연락처</h2>
-          <input
-            type="tel"
-            className="settings-nickname__input"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="010-0000-0000"
-            aria-label="연락처"
           />
         </section>
 
@@ -299,7 +267,19 @@ export default function ProfileEditPage() {
             />
             <span className="profile-edit-pay-row__unit">만원</span>
           </div>
-          <p className="settings-prefs__hint">인원 목록과 내 프로필에 표시됩니다.</p>
+          <p className="settings-prefs__hint">예: 20 → 희망일당 20만원</p>
+        </section>
+
+        <section className="settings-prefs profile-edit-section">
+          <h2 className="settings-prefs__label">연락처</h2>
+          <input
+            type="tel"
+            className="settings-nickname__input"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="010-0000-0000"
+            aria-label="연락처"
+          />
         </section>
 
         <section className="settings-prefs profile-edit-section">
@@ -310,55 +290,30 @@ export default function ProfileEditPage() {
             onChange={(e) => setIntro(e.target.value)}
             placeholder="현장 경험, 가능 공정, 연락 가능 시간 등"
             maxLength={200}
-            rows={4}
+            rows={3}
           />
         </section>
-
-        <div className="profile-edit-save-wrap">
-          <button
-            type="button"
-            className="settings-nickname__save"
-            onClick={onSave}
-            disabled={saving || !nicknameOk}
-          >
-            {saving ? "저장 중…" : "저장"}
-          </button>
         </div>
       </div>
 
-      {regionSheetOpen ? (
-        <div className="settings-region-sheet-backdrop" role="presentation" onClick={() => setRegionSheetOpen(false)}>
-          <div
-            className="settings-region-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="활동지역 선택"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="settings-region-sheet__head">
-              <strong>활동지역</strong>
-              <button type="button" className="settings-sheet__close" onClick={() => setRegionSheetOpen(false)} aria-label="닫기">
-                ×
-              </button>
-            </div>
-            <div className="settings-region-sheet__list">
-              {ACTIVITY_REGIONS.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={`settings-region-sheet__item${region === item ? " is-active" : ""}`}
-                  onClick={() => {
-                    setRegion(item);
-                    setRegionSheetOpen(false);
-                  }}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <footer className="profile-edit-save-bar">
+        <button
+          type="button"
+          className="profile-edit-save-bar__btn"
+          onClick={onSave}
+          disabled={saving || !nicknameOk}
+          aria-busy={saving}
+        >
+          {saving ? "저장 중…" : "저장"}
+        </button>
+      </footer>
+
+      <ActivityRegionsSheet
+        open={regionSheetOpen}
+        value={regions}
+        onChange={setRegions}
+        onClose={() => setRegionSheetOpen(false)}
+      />
     </div>
   );
 }

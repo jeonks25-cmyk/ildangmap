@@ -1,4 +1,5 @@
 import { CRAFT_LABEL } from "./jobModel";
+import { formatRegionsLabel, normalizeActivityRegions } from "../constants/activityRegions";
 import { isBetaSeedMode } from "./betaSeed";
 import { BETA_FIELD_CONTACTS } from "./betaTestSeed";
 
@@ -183,6 +184,8 @@ export function normalizeFieldContact(raw, overrides = {}) {
   );
   const availability =
     raw.availability && typeof raw.availability === "object" ? { ...raw.availability } : undefined;
+  const homeRegions = normalizeActivityRegions(raw.homeRegions ?? raw.homeRegion ?? raw.region);
+  const homeRegion = formatRegionsLabel(homeRegions, { emptyLabel: String(raw.homeRegion || raw.region || "").trim() });
 
   return {
     id: String(raw.id),
@@ -195,7 +198,8 @@ export function normalizeFieldContact(raw, overrides = {}) {
     gender: String(raw.gender || "").trim() || "—",
     trade,
     tradeLabel: CRAFT_LABEL[trade] || trade,
-    homeRegion: String(raw.homeRegion || raw.region || "").trim(),
+    homeRegions,
+    homeRegion,
     experienceYears: Number.isFinite(Number(raw.experienceYears)) ? Number(raw.experienceYears) : null,
     basePay: resolveBasePay(raw),
     workRegions,
@@ -297,7 +301,7 @@ export function getContactDisplayName(contact) {
 export function formatContactDesiredPay(contact) {
   const pay = Number(contact?.basePay);
   if (!Number.isFinite(pay) || pay <= 0) return "";
-  return `희망 ${pay}만`;
+  return `희망일당 ${pay}만원`;
 }
 
 export function formatContactListMetaLine(contact) {
