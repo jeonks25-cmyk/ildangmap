@@ -88,14 +88,6 @@ export const MOCK_FIELD_PEOPLE = [
   },
 ];
 
-const FIELD_PARTICIPANT_IDS = {
-  1: ["p-kim", "p-lee"],
-  2: ["p-lee", "p-park"],
-  3: ["p-kim", "p-lee", "p-choi", "p-park", "p-oyaji"],
-  4: ["p-park"],
-  5: ["p-kim", "p-choi"],
-};
-
 export function getPersonById(personId) {
   return MOCK_FIELD_PEOPLE.find((p) => p.id === personId) || null;
 }
