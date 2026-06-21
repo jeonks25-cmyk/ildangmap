@@ -58,8 +58,46 @@
   cursor: pointer;
 }
 
-.schedule-share-sheet-preview {
+.schedule-share-sheet-panel__lead {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.schedule-share-sheet-preview-wrap {
+  margin-bottom: 10px;
+}
+
+.schedule-share-sheet-preview-wrap__label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: -0.02em;
+}
+
+.schedule-share-sheet-memo-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  user-select: none;
+}
+
+.schedule-share-sheet-memo-opt input {
+  width: 18px;
+  height: 18px;
+  accent-color: #1e8e5a;
+}
+
+.schedule-share-sheet-preview {
+  margin: 0;
   padding: 12px;
   border-radius: 12px;
   background: #f8fafc;

@@ -60,16 +60,33 @@ export default function ProfileEditPage() {
   const [saving, setSaving] = useState(false);
   const [nicknameAvailable, setNicknameAvailable] = useState(null);
 
+  const storedRegionsKey = useMemo(
+    () => normalizeActivityRegions(profile?.regions ?? profile?.region).join("\u0000"),
+    [profile?.regions, profile?.region]
+  );
+
+  // profile 객체 참조만 바뀌는 /me·extras 동기화로 편집 중 선택값이 덮이지 않도록 필드별로만 반영
   useEffect(() => {
     setNicknameDraft(currentNickname);
-    setBirthYearText(profile?.birthYear ? String(profile.birthYear) : "");
+  }, [currentNickname]);
+
+  useEffect(() => {
     setRegions(normalizeActivityRegions(profile?.regions ?? profile?.region));
+    // storedRegionsKey가 profile.regions·region을 직렬화 — /me 동기화 객체 참조 변경은 무시
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storedRegionsKey]);
+
+  useEffect(() => {
+    setBirthYearText(profile?.birthYear ? String(profile.birthYear) : "");
     setCraft(profile?.craft || "film");
     setDesiredPayText(profile?.desiredPay != null ? String(profile.desiredPay) : "");
     setExperienceYearsText(profile?.experienceYears != null ? String(profile.experienceYears) : "");
     setPhone(profile?.phone || "");
+  }, [profile?.birthYear, profile?.craft, profile?.desiredPay, profile?.experienceYears, profile?.phone]);
+
+  useEffect(() => {
     setIntro(profileMeta?.intro || "");
-  }, [currentNickname, profile, profileMeta?.intro]);
+  }, [profileMeta?.intro]);
 
   const nicknameOk = canSubmitNicknameChange({
     draft: nicknameDraft,
@@ -129,7 +146,13 @@ export default function ProfileEditPage() {
         }),
         birthYear: birth.number,
       });
-      setProfileMeta({ intro: String(intro || "").trim(), regions, craft });
+      const normalizedRegions = normalizeActivityRegions(regions);
+      setProfileMeta({
+        intro: String(intro || "").trim(),
+        regions: normalizedRegions,
+        region: normalizedRegions[0] || "",
+        craft,
+      });
 
       showAppToast("프로필을 저장했습니다.");
       navigate("/settings", { replace: true });

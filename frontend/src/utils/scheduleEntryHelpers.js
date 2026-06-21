@@ -45,7 +45,6 @@ export function resolveEntryParticipantNames(entry) {
     .map((w) => String(w.name || w.displayName || "").trim())
     .filter(Boolean);
   if (fromWorkers.length) return fromWorkers;
-  if (schedule?.assignedWorker) return [String(schedule.assignedWorker).trim()];
   return [];
 }
 

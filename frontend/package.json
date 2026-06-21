@@ -23,6 +23,7 @@
     "smoke:apply-job": "node scripts/smoke-apply-job.mjs",
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "icons:generate": "node scripts/generate-app-icons.mjs",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -43,5 +44,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "sharp": "^0.35.2",
+    "to-ico": "^1.1.5"
   }
 }

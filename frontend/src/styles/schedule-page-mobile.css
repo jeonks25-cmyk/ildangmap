@@ -257,9 +257,6 @@
 }
 
 .schedule-oyaji-list__item {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
   border-top: 1px solid #f3f4f6;
 }
 
@@ -272,7 +269,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  flex: 1;
+  width: 100%;
   min-width: 0;
   padding: 10px 0;
   border: none;
@@ -284,20 +281,6 @@
 .schedule-oyaji-list__items li:first-child .schedule-oyaji-list__row {
   border-top: none;
   padding-top: 2px;
-}
-
-.schedule-oyaji-list__share {
-  flex: 0 0 auto;
-  align-self: center;
-  min-height: 36px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 999px;
-  background: #fee500;
-  color: #191919;
-  font-size: 13px;
-  font-weight: 900;
-  cursor: pointer;
 }
 
 .schedule-oyaji-list__name {
@@ -3837,24 +3820,6 @@
   margin-bottom: 10px;
 }
 
-.schedule-entry-composer__head-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.schedule-entry-composer__share {
-  min-height: 36px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 999px;
-  background: #fee500;
-  color: #191919;
-  font-size: 13px;
-  font-weight: 900;
-  cursor: pointer;
-}
-
 .schedule-entry-composer__head h2 {
   margin: 0;
   font-size: 18px;
@@ -4150,6 +4115,13 @@
 }
 
 .schedule-detail-sheet-panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.schedule-detail-sheet-panel__actions-secondary {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
@@ -4163,13 +4135,36 @@
   color: #111827;
   font-size: 14px;
   font-weight: 800;
+  cursor: pointer;
 }
 
 .schedule-detail-sheet-panel__btn--primary {
-  grid-column: 1 / -1;
+  width: 100%;
   border: none;
   background: #111827;
   color: #fff;
+  font-size: 15px;
+}
+
+.schedule-detail-sheet-panel__btn--secondary {
+  border-color: #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.schedule-detail-sheet-panel__btn--secondary-full {
+  grid-column: 1 / -1;
+}
+
+.schedule-detail-sheet-panel__btn--danger {
+  width: 100%;
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .schedule-detail-sheet-panel__btn--danger-outline {

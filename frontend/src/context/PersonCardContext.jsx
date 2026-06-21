@@ -9,6 +9,7 @@ import { useUserStore } from "../store/useUserStore";
 import { loadStoredJobs } from "../utils/jobsStorage";
 import { getDisplayNickname } from "../utils/displayNickname";
 import { buildInviteSharePayload, buildSmsHref } from "../utils/inviteLink";
+import { formatRegionsLabel, getPrimaryRegion, normalizeActivityRegions } from "../constants/activityRegions";
 import {
   CONTACT_QUICK_MODE,
   quickActionToastMessage,
@@ -98,10 +99,13 @@ export function PersonCardProvider({ children }) {
   const removedContactIds = useContactsStore((s) => s.removedContactIds);
   const coworkHistory = useContactsStore((s) => s.coworkHistory);
   const myUserId = useUserStore((s) => s.session?.userId ?? s.profile?.userId ?? 1);
+  const myProfileId = useUserStore((s) => String(s.profile?.id || s.session?.user?.id || ""));
   const profile = useUserStore((s) => s.profile);
   const sessionUser = useUserStore((s) => s.session?.user);
   const myDisplayName = useMemo(() => getDisplayNickname(profile, sessionUser), [profile, sessionUser]);
   const updateContactFields = useContactsStore((s) => s.updateContactFields);
+  const saveLocalProfileDetails = useUserStore((s) => s.saveLocalProfileDetails);
+  const setProfileMeta = useUserStore((s) => s.setProfileMeta);
   const setMemo = useContactsStore((s) => s.setMemo);
   const deleteContact = useContactsStore((s) => s.deleteContact);
   const [card, setCard] = useState(null);
@@ -237,11 +241,36 @@ export function PersonCardProvider({ children }) {
       if (!contact?.id) return;
       updateContactFields(contact.id, patch);
       setMemo(contact.id, patch.memo);
+
+      const contactUserId = contactStableUserId(contact);
+      const myId = Number(myProfileId);
+      const isSelf =
+        (Number.isFinite(myId) && myId > 0 && contactUserId === myId) ||
+        (contact.userId != null && String(contact.userId) === myProfileId);
+
+      if (isSelf) {
+        const regions = normalizeActivityRegions(patch.homeRegions ?? patch.homeRegion ?? patch.region);
+        saveLocalProfileDetails({
+          regions,
+          region: getPrimaryRegion(regions),
+          residence: formatRegionsLabel(regions, { emptyLabel: "" }),
+          craft: patch.trade,
+          experienceYears: patch.experienceYears,
+          desiredPay: patch.basePay,
+          phone: patch.phone,
+        });
+        setProfileMeta({
+          regions,
+          region: getPrimaryRegion(regions),
+          craft: patch.trade,
+        });
+      }
+
       setEditOpen(false);
       setCard(null);
       useUiStore.getState().showAppToast("인원 정보를 저장했습니다");
     },
-    [editContact, card, updateContactFields, setMemo]
+    [editContact, card, updateContactFields, setMemo, myProfileId, saveLocalProfileDetails, setProfileMeta]
   );
 
   const handleDeleteContact = useCallback(() => {

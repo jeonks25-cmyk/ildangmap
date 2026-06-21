@@ -13,7 +13,7 @@ export default function BetaFeedbackPage() {
 
   const handleSubmitted = () => {
     setSubmitted(true);
-    showAppToast("베타 의견을 보냈습니다. 감사합니다!");
+    showAppToast("Discord로 전송했습니다. 감사합니다!");
   };
 
   return (
@@ -24,9 +24,10 @@ export default function BetaFeedbackPage() {
         </button>
         <div>
           <p className="beta-feedback-page__eyebrow">베타 테스트</p>
-          <h1 className="beta-feedback-page__title">의견 보내기</h1>
+          <h1 className="beta-feedback-page__title">버그·의견 보내기</h1>
           <p className="beta-feedback-page__lead">
-            현장에서 겪은 불편함이나 개선 아이디어를 알려주세요. 비슷한 의견은 자동으로 묶여 우선순위 파악에 도움이 됩니다.
+            버그나 개선 아이디어를 보내주시면 Discord 채널로 실시간 알림이 전달됩니다. 스크린샷을 함께
+            보내주시면 더 빠르게 확인할 수 있습니다.
           </p>
         </div>
       </header>
@@ -42,8 +43,8 @@ export default function BetaFeedbackPage() {
         </section>
       ) : submitted ? (
         <section className="beta-feedback-page__card beta-feedback-page__card--success">
-          <h2>접수 완료</h2>
-          <p>소중한 의견 감사합니다. 베타 기간 동안 빠르게 반영하겠습니다.</p>
+          <h2>전송 완료</h2>
+          <p>Discord 채널로 알림을 보냈습니다. 빠르게 확인하겠습니다.</p>
           <button type="button" className="beta-feedback-form__submit" onClick={() => navigate("/settings")}>
             설정으로 돌아가기
           </button>

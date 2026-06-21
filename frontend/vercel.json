@@ -9,6 +9,10 @@
       "destination": "https://backend-production-22ec.up.railway.app/users/me/nickname"
     },
     {
+      "source": "/api/feedback/discord",
+      "destination": "/api/feedback/discord"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://backend-production-22ec.up.railway.app/api/:path*"
     },

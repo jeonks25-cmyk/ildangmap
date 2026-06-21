@@ -1,16 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Ildangmap icon v3">
-  <rect width="1024" height="1024" fill="#1E8E5A"/>
-  <!-- ~10% outer safe area (상·좌·우 여백) -->
-  <rect x="102" y="102" width="820" height="820" rx="182" fill="#25966B"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Ildangmap adaptive foreground v3">
   <g transform="translate(512 512)">
-    <!-- Pin background — ~17% 축소, 꼬리 단축; pivot = 핀 머리 중심 -->
     <g transform="translate(0 -82) scale(0.83) translate(0 82)">
       <path
         fill="#FFFFFF"
         d="M0-262c-108 0-196 88-196 196 0 120 196 292 196 292s196-184 196-292c0-108-88-196-196-196z"
       />
     </g>
-    <!-- Hammer hero — 크기 유지 -->
     <circle cy="-78" r="102" fill="#FBBF24"/>
     <g transform="translate(0 -78)" fill="#FFFFFF">
       <rect x="-62" y="-12" width="80" height="24" rx="5"/>

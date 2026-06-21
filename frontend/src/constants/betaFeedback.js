@@ -1,5 +1,10 @@
 /** 베타 피드백 폼 상수 */
 
+export const BETA_FEEDBACK_REPORT_TYPES = [
+  { value: "BUG", label: "버그 신고", hint: "오류·동작 안 함·화면 깨짐" },
+  { value: "FEEDBACK", label: "의견", hint: "개선 아이디어·불편함" },
+];
+
 export const BETA_FEEDBACK_CATEGORIES = [
   { value: "MAP", label: "지도·장소" },
   { value: "SCHEDULE", label: "일정·캘린더" },

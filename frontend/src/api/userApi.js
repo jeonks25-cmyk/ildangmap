@@ -8,6 +8,7 @@ import { myProfileMock } from "../utils/myProfileMock";
 import { favoriteWorkersMock, oyajiTrustProfileMock } from "../utils/oyajiMock";
 import { isMockApiEnabled, runApiRequest, getApiBaseUrl } from "./client";
 import { authDiag } from "../utils/authDiag";
+import { getPrimaryRegion, normalizeActivityRegions } from "../constants/activityRegions";
 
 const USER_MODE_STORAGE_KEY = "user_mode_v1";
 const USER_PREFS_STORAGE_KEY = "user_map_prefs_v1";
@@ -98,13 +99,25 @@ function pickMockKakaoUser() {
 }
 
 function buildWorkerProfileMeta(me) {
+  const savedProfile = readJsonStorage(USER_PROFILE_STORAGE_KEY, {});
+  const persistedStore = readJsonStorage("ildangmap_user_store_v1", null);
+  const savedMeta =
+    persistedStore?.state?.profileMeta && typeof persistedStore.state.profileMeta === "object"
+      ? persistedStore.state.profileMeta
+      : {};
+  const regions = normalizeActivityRegions(
+    savedProfile.regions ?? savedProfile.region ?? me?.region ?? myProfileMock.regions
+  );
+  const region = getPrimaryRegion(regions);
   return {
     ...myProfileMock,
-    name: me?.name || myProfileMock.name,
+    name: me?.name || savedProfile.name || myProfileMock.name,
     trade: me?.role || myProfileMock.trade,
-    craft: me?.trade || myProfileMock.craft,
-    region: me?.region || myProfileMock.region,
-    profileImage: me?.profileImage || myProfileMock.profileImage,
+    craft: me?.trade || savedProfile.craft || myProfileMock.craft,
+    region,
+    regions,
+    profileImage: me?.profileImage || savedProfile.profileImage || myProfileMock.profileImage,
+    intro: String(savedMeta.intro ?? "").trim() || myProfileMock.intro,
   };
 }
 

@@ -5,7 +5,7 @@
   /* 플로팅 탭바 + 하단 여백 (FAB 위치 계산용) */
     --daangn-tabbar-base-h: 56px;
     --geo-tabbar-float-h: 56px;
-    --geo-map-topbar-stack-h: 124px;
+    --geo-map-topbar-stack-h: 162px;
     --geo-map-hud-offset: calc(max(6px, env(safe-area-inset-top, 0px)) + var(--geo-map-topbar-stack-h) + 8px);
   }
 }

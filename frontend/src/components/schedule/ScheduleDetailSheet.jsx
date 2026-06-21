@@ -87,8 +87,12 @@ export default function ScheduleDetailSheet({
           <dd>{entry.time}</dd>
           <dt>등록</dt>
           <dd>{creatorLabel}</dd>
-          <dt>참여자</dt>
-          <dd>{participants.length ? participants.join(", ") : "없음"}</dd>
+          {participants.length > 0 ? (
+            <>
+              <dt>참여자</dt>
+              <dd>{participants.join(", ")}</dd>
+            </>
+          ) : null}
           {memo ? (
             <>
               <dt>메모</dt>
@@ -113,18 +117,34 @@ export default function ScheduleDetailSheet({
           </div>
         ) : (
           <div className="schedule-detail-sheet-panel__actions">
-            <button type="button" className="schedule-detail-sheet-panel__btn schedule-detail-sheet-panel__btn--primary" onClick={() => onEdit?.(entry)}>
-              수정
-            </button>
-            <button type="button" className="schedule-detail-sheet-panel__btn" onClick={() => onShare?.(entry)}>
-              공유
-            </button>
-            <button type="button" className="schedule-detail-sheet-panel__btn" onClick={() => onCopy?.(entry)}>
-              복사
-            </button>
             <button
               type="button"
-              className="schedule-detail-sheet-panel__btn schedule-detail-sheet-panel__btn--danger-outline"
+              className="schedule-detail-sheet-panel__btn schedule-detail-sheet-panel__btn--primary"
+              onClick={() => onEdit?.(entry)}
+            >
+              수정
+            </button>
+            <div className="schedule-detail-sheet-panel__actions-secondary">
+              {entry.kind === "site" ? (
+                <button
+                  type="button"
+                  className="schedule-detail-sheet-panel__btn schedule-detail-sheet-panel__btn--secondary"
+                  onClick={() => onShare?.(entry)}
+                >
+                  공유
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className={`schedule-detail-sheet-panel__btn schedule-detail-sheet-panel__btn--secondary${entry.kind === "site" ? "" : " schedule-detail-sheet-panel__btn--secondary-full"}`}
+                onClick={() => onCopy?.(entry)}
+              >
+                복사
+              </button>
+            </div>
+            <button
+              type="button"
+              className="schedule-detail-sheet-panel__btn schedule-detail-sheet-panel__btn--danger"
               onClick={() => setConfirmDelete(true)}
             >
               삭제

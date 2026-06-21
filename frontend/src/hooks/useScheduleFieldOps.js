@@ -624,6 +624,7 @@ export function useScheduleFieldOps(selectedDateKey) {
         const saved = persisted || job;
         const endDate = scheduleDateKeyFromWorkDate(saved?.workEndDate || saved?.endDate) || endKey;
         const createdSchedule = addScheduleFromJobMatch(saved, {
+          title: String(title || "").trim(),
           workDate: scheduleDate,
           endDate,
           workDateEnd: endDate,

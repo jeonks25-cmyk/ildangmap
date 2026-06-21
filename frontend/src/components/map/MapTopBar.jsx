@@ -96,6 +96,7 @@ function MapTopBar({
           </form>
           <NotifyButton onOpenNotifications={onOpenNotifications} unreadCount={unreadCount} />
         </div>
+        {/* 순서: 검색 → 공지 → 필터탭 */}
         {noticeRow ? <div className="map-page-head__row map-page-head__row--notice">{noticeRow}</div> : null}
         {categoryRow ? (
           <div className="map-page-head__row map-page-head__row--categories" ref={categoryRowRef}>

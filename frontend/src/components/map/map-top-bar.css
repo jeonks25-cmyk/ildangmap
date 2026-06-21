@@ -1,4 +1,4 @@
-/* 지도 상단바 2줄 — Row1: 브랜드·검색·알림 / Row2: 카테고리칩 */
+/* 지도 상단바 — Row1: 브랜드·검색·알림 / Row2: 공지 / Row3: 카테고리칩 */
 
 .map-page-head.map-page-head--market {
   background: #ffffff;
@@ -28,6 +28,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.map-page-head--geo-stack .map-page-head__row--notice {
+  flex: 0 0 auto;
+  width: 100%;
 }
 
 .map-page-head--geo-stack .map-page-head__row--categories {

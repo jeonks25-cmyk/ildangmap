@@ -261,7 +261,7 @@ export default function PlaceDetailCard({ place, onToast, onEdit, onUpdatePlace,
           {summaryLine ? <p className="place-detail-card__summary">{summaryLine}</p> : null}
           {description ? <p className="place-detail-card__desc">{description}</p> : null}
 
-          <PlaceVerifyBar place={place} onModerationChange={handleModerationSync} />
+          <PlaceVerifyBar place={place} onModerationChange={handleModerationSync} onToast={toast} />
 
           {!showInfoMenu ? (
             <button

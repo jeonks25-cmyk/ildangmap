@@ -8,6 +8,30 @@ export const SCHEDULE_SHARE_INCLUDE_LINK = false;
 
 export const SCHEDULE_SHARE_PATH_PREFIX = "/schedule/share";
 
+const INTERNAL_SHARE_PHRASES = [
+  "연결된 현장 일정",
+  "현장 필름 조공 현장",
+  "현장 도배 조공 현장",
+  "현장 타일 조공 현장",
+];
+
+const SENSITIVE_LINE_PATTERNS = [
+  /공용\s*현관/u,
+  /세대\s*비번/u,
+  /세대비번/u,
+  /세대\s*비밀/u,
+  /출입\s*비밀/u,
+  /출입비번/u,
+  /출입\s*비번/u,
+  /비밀번호/u,
+  /access\s*password/i,
+  /door\s*code/i,
+  /현관\s*[:：]/u,
+  /세대\s*[:：]/u,
+];
+
+const UNIT_IN_TEXT_RE = /(\d+\s*동\s*\d+\s*호|\d+\s*동|[Bb]\d+\s*-\s*\d+|\d+\s*호)/u;
+
 export function buildScheduleShareUrl(scheduleId) {
   if (scheduleId == null || String(scheduleId).trim() === "") return null;
   return `${getPublicAppOrigin()}${SCHEDULE_SHARE_PATH_PREFIX}/${encodeURIComponent(String(scheduleId))}`;
@@ -19,7 +43,7 @@ function parseDateKey(dateKey) {
   return new Date(y, m - 1, d);
 }
 
-/** 📅 6월 4일(수) */
+/** 📅 6월 22일(월) */
 export function formatShareDateLabel(dateKey, endDateKey) {
   const start = parseDateKey(dateKey);
   if (!start) return "—";
@@ -43,142 +67,183 @@ function formatShareTimeLabel(startTime, endTime, fallback) {
   return raw || "—";
 }
 
-function extractFieldScheduleMemo(schedule) {
-  const chunks = [];
-  if (schedule?.specialNote) chunks.push(String(schedule.specialNote).trim());
-  if (schedule?.workDetails) chunks.push(String(schedule.workDetails).trim());
-  if (Array.isArray(schedule?.summaryLines)) {
-    schedule.summaryLines.forEach((line) => {
-      const t = String(line || "").trim();
-      if (t) chunks.push(t);
-    });
+export function isSiteScheduleShareable(input) {
+  if (!input) return false;
+  if (input.kind === "personal" || input.personalEvent) return false;
+  if (input.entryType === "personal") return false;
+  return true;
+}
+
+function isInternalSharePhrase(text) {
+  const normalized = String(text || "").trim();
+  if (!normalized) return true;
+  return INTERNAL_SHARE_PHRASES.some((phrase) => normalized === phrase || normalized.includes(phrase));
+}
+
+function isSensitiveShareLine(line) {
+  const text = String(line || "").trim();
+  if (!text) return true;
+  return SENSITIVE_LINE_PATTERNS.some((pattern) => pattern.test(text));
+}
+
+/** 공유 메시지에서 비밀번호·내부 문구 제거 */
+export function sanitizeShareText(text) {
+  return String(text || "")
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !isSensitiveShareLine(line) && !isInternalSharePhrase(line))
+    .join("\n")
+    .trim();
+}
+
+function normalizeUnitText(value) {
+  return String(value || "")
+    .replace(/(\d+)\s*동\s*(\d+)\s*호/u, "$1동 $2호")
+    .replace(/(\d+)동(\d+)호/u, "$1동 $2호")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** 현장명 · 동호수 분리 */
+export function splitSiteNameAndUnit(title, address = "") {
+  const rawTitle = String(title || "").trim();
+  const rawAddress = String(address || "").trim();
+  let unitLine = "";
+  let siteName = rawTitle;
+
+  const titleUnitMatch = rawTitle.match(/(\d+\s*동\s*\d+\s*호|\d+\s*동|[Bb]\d+\s*-\s*\d+)/u);
+  if (titleUnitMatch) {
+    unitLine = normalizeUnitText(titleUnitMatch[0]);
+    siteName = rawTitle
+      .replace(titleUnitMatch[0], "")
+      .replace(/[,，·]\s*$/, "")
+      .replace(/\s+/g, " ")
+      .trim();
   }
-  return [...new Set(chunks)].join(" · ");
-}
 
-function resolveCrewLine(input, craft) {
-  const craftLabel = CRAFT_LABEL[craft] || craft || "기공";
-  const count = Number(input?.crewCount);
-  if (Number.isFinite(count) && count > 0) return `${craftLabel} ${count}명`;
-  const assignments = Array.isArray(input?.workerAssignments) ? input.workerAssignments : [];
-  if (assignments.length) return `${craftLabel} ${assignments.length}명`;
-  const invites = Array.isArray(input?.scheduleInvites) ? input.scheduleInvites : [];
-  if (invites.length) return `${craftLabel} ${invites.length}명`;
-  return "";
-}
-
-function resolveScheduleTitle(input) {
-  const craftLabel = CRAFT_LABEL[input?.craft] || "";
-  const site = String(input?.title || input?.siteLabel || "현장").trim();
-  if (craftLabel && site && !site.includes(craftLabel)) return `${site} ${craftLabel}공사`;
-  return site || "현장 일정";
-}
-
-/** field schedule · personal event · composer form · day entry 통합 */
-export function normalizeScheduleShareInput(input, { inquiryContact = "" } = {}) {
-  if (!input) {
-    return {
-      id: "",
-      scheduleName: "일정",
-      siteName: "—",
-      dateLabel: "—",
-      timeLabel: "—",
-      crewLine: "",
-      inquiryContact: String(inquiryContact || "").trim(),
-      memo: "",
-      address: "",
-    };
+  if (!unitLine && rawAddress) {
+    const addressUnitMatch = rawAddress.match(/(\d+\s*동\s*\d+\s*호|\d+\s*동|[Bb]\d+\s*-\s*\d+)/u);
+    if (addressUnitMatch) unitLine = normalizeUnitText(addressUnitMatch[0]);
   }
 
-  if (input.kind === "personal" || input.personalEvent) {
-    const ev = input.personalEvent || input;
-    return {
-      id: ev.id,
-      scheduleName: String(ev.title || input.title || "개인 일정").trim(),
-      siteName: "—",
-      dateLabel: formatShareDateLabel(ev.dateKey || input.dateKey, input.endDateKey || ev.endDateKey),
-      timeLabel: formatShareTimeLabel(ev.startTime || input.startTime, ev.endTime || input.endTime, input.time),
-      crewLine: "",
-      inquiryContact: String(inquiryContact || "").trim(),
-      memo: String(ev.memo || input.memo || "").trim(),
-      address: "",
-    };
+  if (!siteName) {
+    siteName = rawAddress.replace(UNIT_IN_TEXT_RE, "").replace(/[,，·]\s*$/, "").trim();
+  }
+  if (!siteName) siteName = rawTitle || "현장";
+
+  siteName = sanitizeShareText(siteName) || "현장";
+  return { siteName, unitLine };
+}
+
+function resolveCraftWorkLine(craft) {
+  const craftLabel = CRAFT_LABEL[craft] || "";
+  if (!craftLabel) return "";
+  return `${craftLabel} 작업`;
+}
+
+const CRAFT_TAIL_RE = /\s+(?:필름|도배|타일|전기|설비|페인트|조공|기공)(?:\s*\d+\s*명?|\s*공사|\s*현장)?\s*$/u;
+
+function extractShareableMemo(input, includeMemo) {
+  if (!includeMemo) return "";
+  const chunks = [
+    input?.calendarMemo,
+    input?.memo,
+    input?.specialNote,
+    input?.workDetails,
+    ...(Array.isArray(input?.summaryLines) ? input.summaryLines : []),
+  ]
+    .map((value) => sanitizeShareText(String(value || "")))
+    .filter(Boolean);
+  return [...new Set(chunks)].join("\n").trim();
+}
+
+function cleanSiteTitle(title, siteLabel) {
+  const raw = String(title || siteLabel || "").trim();
+  if (!raw || isInternalSharePhrase(raw)) return "";
+  return sanitizeShareText(raw.replace(CRAFT_TAIL_RE, "").trim()) || "";
+}
+
+function resolveShareTitle(source) {
+  const candidates = [source?.title, source?.siteLabel, source?.fieldTitle].map((value) =>
+    cleanSiteTitle(String(value || "").trim())
+  );
+  return candidates.find((value) => value && value !== "현장") || candidates.find(Boolean) || "";
+}
+
+/** field schedule · composer form · day entry 통합 (현장 일정만) */
+export function normalizeScheduleShareInput(input, { inquiryContact = "", includeMemo = false } = {}) {
+  if (!input || !isSiteScheduleShareable(input)) {
+    return null;
   }
 
   if (input.kind === "site" && input.schedule) {
-    return normalizeScheduleShareInput(input.schedule, { inquiryContact });
+    return normalizeScheduleShareInput(
+      {
+        ...input.schedule,
+        memo: input.memo,
+        calendarMemo: input.schedule.calendarMemo || input.memo,
+      },
+      { inquiryContact, includeMemo }
+    );
   }
 
-  if (input.workDate != null || input.workTime != null || input.craft != null) {
-    const siteTitle = String(input.title || input.siteLabel || "현장").trim();
-    const endKey = input.workDateEnd || input.endDate;
-    return {
+  let source = input;
+  if (input.title && (input.workDateStart || input.dateKey) && input.entryType !== "personal") {
+    source = {
       id: input.id,
-      scheduleName: resolveScheduleTitle(input),
-      siteName: siteTitle,
-      dateLabel: formatShareDateLabel(input.workDate, endKey) || formatSchedulePeriodLabel(input),
-      timeLabel: formatShareTimeLabel(null, null, input.workTime),
-      crewLine: resolveCrewLine(input, input.craft),
-      inquiryContact: String(inquiryContact || input.inquiryContact || "").trim(),
-      memo: extractFieldScheduleMemo(input),
-      address: String(input.fullAddress || input.shortRegion || "").trim(),
+      title: input.title,
+      craft: input.craft,
+      workDate: input.workDateStart || input.dateKey,
+      workDateEnd: input.workDateEnd || input.endDateKey,
+      workTime: `${input.startTime || ""}~${input.endTime || ""}`,
+      calendarMemo: input.memo,
+      memo: input.memo,
     };
   }
 
-  if (input.title && (input.workDateStart || input.dateKey)) {
-    const isSite = input.entryType !== "personal";
-    const siteTitle = String(input.title || "").trim();
-    return {
-      id: input.id,
-      scheduleName: isSite ? resolveScheduleTitle({ title: siteTitle, craft: input.craft }) : siteTitle,
-      siteName: isSite ? siteTitle : "—",
-      dateLabel: formatShareDateLabel(input.workDateStart || input.dateKey, input.workDateEnd || input.endDateKey),
-      timeLabel: formatShareTimeLabel(input.startTime, input.endTime),
-      crewLine: isSite ? resolveCrewLine(input, input.craft) : "",
-      inquiryContact: String(inquiryContact || "").trim(),
-      memo: String(input.memo || "").trim(),
-      address: "",
-    };
-  }
+  const title = resolveShareTitle(source);
+  const address = String(source.fullAddress || source.shortRegion || source.address || "").trim();
+  const { siteName, unitLine } = splitSiteNameAndUnit(title, address);
+  const endKey = source.workDateEnd || source.endDate || source.endDateKey;
+  const craftWorkLine = resolveCraftWorkLine(source.craft);
 
   return {
-    id: input.id,
-    scheduleName: String(input.scheduleName || input.title || "일정").trim(),
-    siteName: String(input.siteName || input.title || "—").trim() || "—",
-    dateLabel: String(input.dateLabel || "—").trim() || "—",
-    timeLabel: formatShareTimeLabel(null, null, input.timeLabel || input.time),
-    crewLine: String(input.crewLine || "").trim(),
-    inquiryContact: String(inquiryContact || input.inquiryContact || "").trim(),
-    memo: String(input.memo || "").trim(),
-    address: String(input.address || "").trim(),
+    id: source.id,
+    siteName,
+    unitLine,
+    dateLabel: formatShareDateLabel(source.workDate || source.workDateStart || source.dateKey, endKey) || formatSchedulePeriodLabel(source),
+    timeLabel: formatShareTimeLabel(source.startTime, source.endTime, source.workTime || source.time),
+    craftWorkLine,
+    inquiryContact: String(inquiryContact || source.inquiryContact || "").trim(),
+    memo: extractShareableMemo(source, includeMemo),
   };
 }
 
-export function buildScheduleShareMessage(fields, { includeLink = SCHEDULE_SHARE_INCLUDE_LINK, inquiryContact = "" } = {}) {
-  const data = normalizeScheduleShareInput(fields, { inquiryContact });
+export function buildScheduleShareMessage(fields, { includeLink = SCHEDULE_SHARE_INCLUDE_LINK, inquiryContact = "", includeMemo = false } = {}) {
+  const data = normalizeScheduleShareInput(fields, { inquiryContact, includeMemo });
+  if (!data) return null;
+
   const url = includeLink && data.id ? buildScheduleShareUrl(data.id) : null;
+  const lines = ["[일당맵 현장 일정]", "", `📍 ${data.siteName || "현장"}`];
 
-  const lines = [
-    "[일당맵]",
-    "",
-    data.scheduleName || "현장 일정",
-    "",
-    `📅 ${data.dateLabel || "—"}`,
-    `⏰ ${data.timeLabel || "—"}`,
-    "",
-    `📍 ${data.address || data.siteName || "—"}`,
-    "",
-  ];
-
-  if (data.crewLine) {
-    lines.push(data.crewLine, "");
+  if (data.unitLine) {
+    lines.push(`🏢 ${data.unitLine}`);
   }
+
+  lines.push("", `📅 ${data.dateLabel || "—"}`, `⏰ ${data.timeLabel || "—"}`, "");
+
+  if (data.craftWorkLine) {
+    lines.push(`👷 ${data.craftWorkLine}`, "");
+  }
+
   if (data.memo) {
-    lines.push(data.memo, "");
+    lines.push("메모", data.memo, "");
   }
+
   if (data.inquiryContact) {
     lines.push(`문의: ${data.inquiryContact}`);
   }
+
   if (url) {
     lines.push("", url);
   }
@@ -188,7 +253,7 @@ export function buildScheduleShareMessage(fields, { includeLink = SCHEDULE_SHARE
   return {
     ...data,
     url,
-    title: data.scheduleName || "현장 일정",
+    title: "[일당맵 현장 일정]",
     fullText,
   };
 }
@@ -196,6 +261,7 @@ export function buildScheduleShareMessage(fields, { includeLink = SCHEDULE_SHARE
 /** Web Share API · SMS · 클립보드용 */
 export function buildScheduleSharePayload(input, options = {}) {
   const message = buildScheduleShareMessage(input, options);
+  if (!message) return null;
   return {
     title: message.title,
     text: message.fullText,
@@ -206,7 +272,7 @@ export function buildScheduleSharePayload(input, options = {}) {
 
 export async function shareScheduleViaSystem(payload) {
   const body = payload?.fullText || payload?.text || "";
-  const title = "[일당맵]";
+  const title = payload?.title || "[일당맵 현장 일정]";
 
   if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
     try {

@@ -1,5 +1,7 @@
 import { buildApiUrl } from "./authApi";
 import { getApiBaseUrl, isMockApiEnabled, mockRequest } from "./client";
+import { SETTINGS_APP_VERSION } from "../constants/settingsMenuMock";
+import { filesToDiscordPayload } from "../utils/feedbackImages";
 
 function unwrapEnvelope(payload) {
   if (payload && typeof payload === "object" && Object.prototype.hasOwnProperty.call(payload, "data")) {
@@ -18,6 +20,56 @@ async function parseJsonResponse(response) {
   return unwrapEnvelope(payload);
 }
 
+function resolveDiscordFeedbackUrl() {
+  const base = getApiBaseUrl();
+  const path = "/api/feedback/discord";
+  return base ? `${base}${path}` : path;
+}
+
+/**
+ * 버그·의견 → Discord Webhook (Vercel `/api/feedback/discord`)
+ */
+export async function submitBetaFeedback({
+  reportType = "FEEDBACK",
+  content,
+  username,
+  appVersion = SETTINGS_APP_VERSION,
+  categoryLabel,
+  pageUrl,
+  images,
+}) {
+  const trimmed = String(content || "").trim();
+  if (!trimmed) {
+    throw new Error("내용을 입력해 주세요.");
+  }
+
+  if (isMockApiEnabled()) {
+    return mockRequest({
+      submittedAt: new Date().toISOString(),
+      reportType: reportType === "BUG" ? "BUG" : "FEEDBACK",
+      channel: "discord-mock",
+    });
+  }
+
+  const imagePayload = await filesToDiscordPayload(images);
+
+  const response = await fetch(resolveDiscordFeedbackUrl(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      reportType: reportType === "BUG" ? "BUG" : "FEEDBACK",
+      content: trimmed,
+      username: String(username || "익명").trim() || "익명",
+      appVersion,
+      categoryLabel: categoryLabel || undefined,
+      pageUrl: pageUrl || (typeof window !== "undefined" ? window.location.href : undefined),
+      images: imagePayload,
+    }),
+  });
+
+  return parseJsonResponse(response);
+}
+
 export async function fetchFeedbackAdminAccess() {
   if (isMockApiEnabled()) {
     return mockRequest({ admin: true });
@@ -29,53 +81,15 @@ export async function fetchFeedbackAdminAccess() {
   return parseJsonResponse(response);
 }
 
-export async function submitBetaFeedback({ category, severity, inconvenient, featureRequest, otherComment, images }) {
-  if (isMockApiEnabled()) {
-    return mockRequest({ id: Date.now(), status: "NEW", createdAt: new Date().toISOString() });
-  }
-
-  const formData = new FormData();
-  formData.append("category", category);
-  formData.append("severity", severity);
-  if (inconvenient) formData.append("inconvenient", inconvenient);
-  if (featureRequest) formData.append("featureRequest", featureRequest);
-  if (otherComment) formData.append("otherComment", otherComment);
-  (images || []).forEach((file) => formData.append("images", file));
-
-  const response = await fetch(buildApiUrl("/api/feedback"), {
-    method: "POST",
-    credentials: "include",
-    body: formData,
-  });
-  return parseJsonResponse(response);
-}
-
 export async function fetchBetaFeedbackAdminList({ status, severity, page = 0, size = 20 } = {}) {
   if (isMockApiEnabled()) {
     return mockRequest({
-      items: [
-        {
-          id: 1,
-          userId: 2,
-          displayNickname: "베타테스터",
-          userType: "OYAJI",
-          category: "MAP",
-          severity: "CRITICAL",
-          status: "NEW",
-          inconvenient: "지도가 느려요",
-          featureRequest: null,
-          otherComment: null,
-          similarCount: 3,
-          similarityGroupKey: "MAP:abc",
-          createdAt: new Date().toISOString(),
-          attachments: [],
-        },
-      ],
+      items: [],
       page: 0,
       size: 20,
-      totalElements: 1,
-      totalPages: 1,
-      topSimilarGroups: [{ similarityGroupKey: "MAP:abc", count: 3 }],
+      totalElements: 0,
+      totalPages: 0,
+      topSimilarGroups: [],
     });
   }
 

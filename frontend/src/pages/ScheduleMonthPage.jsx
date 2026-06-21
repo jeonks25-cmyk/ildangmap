@@ -150,14 +150,6 @@ export default function ScheduleMonthPage() {
                         <span className="schedule-oyaji-list__memo">{entry.memo}</span>
                       ) : null}
                     </button>
-                    <button
-                      type="button"
-                      className="schedule-oyaji-list__share"
-                      aria-label={`${entry.title} 공유하기`}
-                      onClick={() => setShareEntry(entry)}
-                    >
-                      공유
-                    </button>
                   </li>
                 );
               })}

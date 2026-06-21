@@ -21,8 +21,8 @@ export const PROFILE_MENU_ITEM = {
 
 export const BETA_FEEDBACK_MENU_ITEM = {
   id: "beta-feedback",
-  label: "베타 의견 보내기",
-  icon: "🧪",
+  label: "버그·의견 보내기",
+  icon: "💬",
   action: "route",
   path: "/settings/beta-feedback",
 };

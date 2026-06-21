@@ -1,7 +1,8 @@
-import React, { useEffect, useId, useMemo } from "react";
+import React, { useEffect, useId, useMemo, useState } from "react";
 import {
   buildScheduleSharePayload,
   copyScheduleSharePayload,
+  isSiteScheduleShareable,
   openScheduleShareSms,
   shareScheduleViaSystem,
 } from "../../utils/scheduleShare";
@@ -10,21 +11,27 @@ import { getDisplayNickname } from "../../utils/displayNickname";
 import "./schedule-share-sheet.css";
 
 /**
- * 일정 공유 바텀시트 — 카카오(Web Share) · 문자 · 복사.
+ * 현장 일정 공유 바텀시트 — 미리보기 · 카카오(Web Share) · 문자 · 복사.
  */
 export default function ScheduleShareSheet({ open, scheduleInput, onClose, onToast }) {
   const titleId = useId();
+  const memoOptionId = useId();
+  const [includeMemo, setIncludeMemo] = useState(false);
   const profile = useUserStore((s) => s.profile);
   const sessionUser = useUserStore((s) => s.session?.user);
   const inquiryContact = useMemo(() => getDisplayNickname(profile, sessionUser), [profile, sessionUser]);
+  const shareable = isSiteScheduleShareable(scheduleInput);
 
-  const payload = useMemo(
-    () => (scheduleInput ? buildScheduleSharePayload(scheduleInput, { inquiryContact }) : null),
-    [scheduleInput, inquiryContact]
-  );
+  const payload = useMemo(() => {
+    if (!scheduleInput || !shareable) return null;
+    return buildScheduleSharePayload(scheduleInput, { inquiryContact, includeMemo });
+  }, [scheduleInput, shareable, inquiryContact, includeMemo]);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open) {
+      setIncludeMemo(false);
+      return undefined;
+    }
     const onKey = (e) => {
       if (e.key === "Escape") onClose?.();
     };
@@ -37,7 +44,7 @@ export default function ScheduleShareSheet({ open, scheduleInput, onClose, onToa
     };
   }, [open, onClose]);
 
-  if (!open || !payload) return null;
+  if (!open || !shareable || !payload) return null;
 
   const handleKakao = async () => {
     const result = await shareScheduleViaSystem(payload);
@@ -71,16 +78,29 @@ export default function ScheduleShareSheet({ open, scheduleInput, onClose, onToa
       <div className="schedule-share-sheet-panel" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="schedule-share-sheet-panel__head">
           <h2 id={titleId} className="schedule-share-sheet-panel__title">
-            일정 공유
+            현장 일정 공유
           </h2>
           <button type="button" className="schedule-share-sheet-panel__close" onClick={onClose} aria-label="닫기">
             ×
           </button>
         </div>
 
-        <pre className="schedule-share-sheet-preview" aria-label="공유 미리보기">
-          {payload.fullText}
-        </pre>
+        <p className="schedule-share-sheet-panel__lead">같이 일할 사람에게 현장 일정을 전달합니다.</p>
+
+        <section className="schedule-share-sheet-preview-wrap" aria-label="공유 미리보기">
+          <h3 className="schedule-share-sheet-preview-wrap__label">미리보기</h3>
+          <pre className="schedule-share-sheet-preview">{payload.fullText}</pre>
+        </section>
+
+        <label className="schedule-share-sheet-memo-opt" htmlFor={memoOptionId}>
+          <input
+            id={memoOptionId}
+            type="checkbox"
+            checked={includeMemo}
+            onChange={(e) => setIncludeMemo(e.target.checked)}
+          />
+          <span>메모 포함</span>
+        </label>
 
         <ul className="schedule-share-sheet-menu" role="menu">
           <li role="none">
@@ -95,7 +115,7 @@ export default function ScheduleShareSheet({ open, scheduleInput, onClose, onToa
           </li>
           <li role="none">
             <button type="button" className="schedule-share-sheet-menu__btn schedule-share-sheet-menu__btn--copy" role="menuitem" onClick={handleCopy}>
-              링크 복사
+              내용 복사
             </button>
           </li>
         </ul>

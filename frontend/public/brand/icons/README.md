@@ -16,8 +16,12 @@ E안(공구 + 핀) · **시안 3 Bold** 프로덕션 적용 완료
 
 ## SVG 원본
 
-- `app-icon-v3-bold.svg` (1024)
-- Adaptive: `adaptive/background.svg`, `adaptive/foreground-v1-classic.svg`
+- `app-icon-v3-bold.svg` (1024) — 핀 ~83% 축소·꼬리 단축, 망치 크기 유지
+- Adaptive: `adaptive/background.svg`, `adaptive/foreground-v3-bold.svg`
+
+## Android 크기 미리보기
+
+- `brand/icons/previews/android-{48,72,96}.png` — `node scripts/generate-app-icons.mjs` 로 생성
 
 ## 색상
 

@@ -186,6 +186,19 @@ function CRAFT_LABEL_FALLBACK(craft) {
 /** @deprecated 베타: 데모 시드 제거 — 빈 배열 유지 */
 export const initialSchedules = [];
 
+const LEGACY_PLACEHOLDER_ASSIGNED_WORKERS = new Set(["김준호", "담당자"]);
+
+/** assignedWorker — mock 기본값 제거, 참여자 없으면 빈 문자열 */
+export function normalizeAssignedWorker(schedule = {}) {
+  const raw = typeof schedule.assignedWorker === "string" ? schedule.assignedWorker.trim() : "";
+  if (!raw) return "";
+  const hasParticipants =
+    (Array.isArray(schedule.scheduleInvites) && schedule.scheduleInvites.filter(Boolean).length > 0) ||
+    (Array.isArray(schedule.workerAssignments) && schedule.workerAssignments.filter(Boolean).length > 0);
+  if (!hasParticipants && LEGACY_PLACEHOLDER_ASSIGNED_WORKERS.has(raw)) return "";
+  return raw;
+}
+
 export function isSharedFieldSchedule(s) {
   if (!s || !String(s.briefingId || "").trim()) return false;
   const src = String(s.source || "");
@@ -272,7 +285,7 @@ export function migrateSchedule(schedule) {
     canRecruitUrgent: Boolean(schedule.canRecruitUrgent),
     source: schedule.source || "mock",
     sourceJobMatchReady: schedule.sourceJobMatchReady !== false,
-    assignedWorker: schedule.assignedWorker || "김준호",
+    assignedWorker: normalizeAssignedWorker(schedule),
     settlementStatus,
     basePayAmount: getScheduleBasePayAmount(schedule),
     shiftType,
@@ -354,7 +367,10 @@ export function createScheduleFromJobMatch(job, overrides = {}) {
       normalizedJob.workEndDate ||
       overrides.endDate ||
       "",
-    title: overrides.title || buildFieldJobTitle(normalizedJob),
+    title:
+      overrides.title ||
+      String(normalizedJob.title || "").trim() ||
+      buildFieldJobTitle(normalizedJob),
     craft: overrides.craft || normalizedJob.craft,
     pay: overrides.pay || normalizedJob.pay,
     workTime: overrides.workTime || normalizedJob.workTime || "08:00~17:00",
@@ -373,10 +389,16 @@ export function createScheduleFromJobMatch(job, overrides = {}) {
       : Array.isArray(normalizedJob.prepChecklist)
         ? normalizedJob.prepChecklist.filter(Boolean)
         : [],
-    summaryLines: overrides.summaryLines || [normalizedJob.memo || "연결된 현장 일정"],
+    summaryLines: Array.isArray(overrides.summaryLines)
+      ? overrides.summaryLines.filter(Boolean)
+      : normalizedJob.memo
+        ? [String(normalizedJob.memo).trim()].filter(Boolean)
+        : [],
     status: overrides.status || "confirmed",
     canRecruitUrgent: overrides.canRecruitUrgent ?? true,
-    assignedWorker: overrides.assignedWorker || "김준호",
+    assignedWorker: normalizeAssignedWorker(overrides),
+    scheduleInvites: Array.isArray(overrides.scheduleInvites) ? overrides.scheduleInvites.filter(Boolean) : [],
+    workerAssignments: Array.isArray(overrides.workerAssignments) ? overrides.workerAssignments.filter(Boolean) : [],
     settlementStatus: overrides.settlementStatus || "waiting",
     basePayAmount: overrides.basePayAmount,
     shiftType: overrides.shiftType || getDefaultShiftType(normalizedJob),

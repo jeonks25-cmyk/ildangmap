@@ -179,6 +179,30 @@ export function buildReportFeedbackMessage(reportCount, moderationStatus) {
   return lines.join("\n");
 }
 
+export function buildVerifyCorrectFeedbackMessage(record = {}) {
+  const correct = Number(record.correctCount) || 0;
+  const wrong = Number(record.wrongCount) || 0;
+  return ["✅ 정보가 맞다고 표시했습니다.", "", `현재: 맞음 ${correct} · 틀림 ${wrong}`].join("\n");
+}
+
+export function buildVerifyWrongFeedbackMessage(record = {}) {
+  const correct = Number(record.correctCount) || 0;
+  const wrong = Number(record.wrongCount) || 0;
+  const status = record.moderationStatus || PLACE_MODERATION_STATUS.PUBLIC;
+  const lines = [
+    "🚨 정보 틀림으로 표시했습니다.",
+    "",
+    "틀림 3회 이상·맞음보다 많으면 검수 대상이 됩니다.",
+    `현재: 맞음 ${correct} · 틀림 ${wrong}`,
+  ];
+  if (status === PLACE_MODERATION_STATUS.PENDING_REVIEW) {
+    lines.push("이 장소는 검수 대기 상태입니다.");
+  } else if (status === PLACE_MODERATION_STATUS.HIDDEN) {
+    lines.push("신고 5회 이상으로 지도에서 숨김 처리되었습니다.");
+  }
+  return lines.join("\n");
+}
+
 export function getUserVerifyVote(placeKey, userId) {
   if (!placeKey || !userId) return null;
   const votes = getPlaceModerationRecord(placeKey).verifyVotes || {};

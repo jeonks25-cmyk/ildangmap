@@ -146,6 +146,28 @@ function createDefaultProfileMeta() {
   };
 }
 
+/** extras API mock/원격 응답 — 로컬에 저장한 지역·소개·공종을 덮어쓰지 않음 */
+function mergeProfileMetaWithLocal(state, remoteMeta) {
+  const local =
+    state.profileMeta && typeof state.profileMeta === "object" ? state.profileMeta : createDefaultProfileMeta();
+  const remote =
+    remoteMeta && typeof remoteMeta === "object" ? remoteMeta : createDefaultProfileMeta();
+  const profile = state.profile && typeof state.profile === "object" ? state.profile : {};
+  const regions = normalizeActivityRegions(
+    profile.regions ?? local.regions ?? remote.regions ?? remote.region
+  );
+  const region = getPrimaryRegion(regions);
+  const intro = String(local.intro ?? "").trim() ? local.intro : remote.intro;
+  const craft = profile.craft ?? local.craft ?? remote.craft;
+  return {
+    ...remote,
+    regions,
+    region,
+    craft,
+    intro,
+  };
+}
+
 function createDefaultOyajiTrustProfile() {
   return {
     verificationBadges: [],
@@ -704,8 +726,10 @@ export const useUserStore = create(
               oyajiTrustProfile: oyajiTrustProfile || createDefaultOyajiTrustProfile(),
             };
           },
-          onSuccess: (_, payload) => ({
-            ...payload,
+          onSuccess: (state, payload) => ({
+            profileMeta: mergeProfileMetaWithLocal(state, payload.profileMeta),
+            favoriteWorkers: payload.favoriteWorkers,
+            oyajiTrustProfile: payload.oyajiTrustProfile,
             extrasLoaded: true,
           }),
           onError: (state, error) => {

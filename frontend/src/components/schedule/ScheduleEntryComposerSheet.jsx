@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { SCHEDULE_COLOR_OPTIONS } from "../../constants/scheduleColors";
 import { SCHEDULE_DEFAULT_END_TIME, SCHEDULE_DEFAULT_START_TIME } from "../../constants/scheduleDefaults";
 import SchedulePasteImportPanel from "./SchedulePasteImportPanel";
-import ScheduleShareSheet from "./ScheduleShareSheet";
 import ScheduleParticipantPicker from "./ScheduleParticipantPicker";
 import { useUiStore } from "../../store/useUiStore";
 import { toDateKey } from "../../utils/fieldScheduleModel";
@@ -31,7 +30,6 @@ export default function ScheduleEntryComposerSheet({
   const [color, setColor] = useState("blue");
   const [memo, setMemo] = useState("");
   const [saving, setSaving] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
   const [participantIds, setParticipantIds] = useState([]);
   const showAppToast = useUiStore((s) => s.showAppToast);
 
@@ -48,7 +46,6 @@ export default function ScheduleEntryComposerSheet({
     setColor(seed.color || "blue");
     setMemo(seed.memo || "");
     setSaving(false);
-    setShareOpen(false);
     setParticipantIds(Array.isArray(seed.participantIds) ? seed.participantIds.map(String) : []);
   }, [open, initial, dateKey]);
 
@@ -66,19 +63,6 @@ export default function ScheduleEntryComposerSheet({
   }, []);
 
   const endDate = workDateEnd || workDateStart;
-  const shareInput = useMemo(
-    () => ({
-      id: initial?.id,
-      entryType,
-      title: title.trim(),
-      workDateStart,
-      workDateEnd: endDate,
-      startTime,
-      endTime,
-      memo: memo.trim(),
-    }),
-    [initial?.id, entryType, title, workDateStart, endDate, startTime, endTime, memo]
-  );
 
   if (!open) return null;
 
@@ -147,20 +131,9 @@ export default function ScheduleEntryComposerSheet({
       >
         <header className="schedule-entry-composer__head">
           <h2>{isEdit ? "일정 수정" : "일정 추가"}</h2>
-          <div className="schedule-entry-composer__head-actions">
-            {isEdit ? (
-              <button
-                type="button"
-                className="schedule-entry-composer__share"
-                onClick={() => setShareOpen(true)}
-              >
-                공유하기
-              </button>
-            ) : null}
-            <button type="button" className="schedule-entry-composer__close" onClick={onClose} aria-label="닫기">
-              ×
-            </button>
-          </div>
+          <button type="button" className="schedule-entry-composer__close" onClick={onClose} aria-label="닫기">
+            ×
+          </button>
         </header>
 
         {!isEdit ? (
@@ -302,12 +275,6 @@ export default function ScheduleEntryComposerSheet({
           </button>
         </div>
       </form>
-      <ScheduleShareSheet
-        open={shareOpen}
-        scheduleInput={shareInput}
-        onClose={() => setShareOpen(false)}
-        onToast={showAppToast}
-      />
     </div>
   );
 }
