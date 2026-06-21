@@ -147,6 +147,11 @@ export const useContactsStore = create(
           const year = Number(String(clean.birthYear).replace(/[^\d]/g, ""));
           clean.birthYear = Number.isFinite(year) && year > 1900 ? year : null;
         }
+        if (clean.trade != null) clean.trade = String(clean.trade).trim() || "film";
+        if (clean.experienceYears != null) {
+          const years = Number(String(clean.experienceYears).replace(/[^\d]/g, ""));
+          clean.experienceYears = Number.isFinite(years) && years >= 0 ? years : null;
+        }
 
         set((state) => {
           const isAdded = state.addedContacts.some((c) => c.id === id);

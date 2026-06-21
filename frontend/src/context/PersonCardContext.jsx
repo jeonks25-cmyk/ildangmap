@@ -206,38 +206,50 @@ export function PersonCardProvider({ children }) {
     await handleCopyInvite();
   }, [buildInvitePayloadForContact, card, handleCopyInvite]);
 
+  const editContact = useMemo(() => {
+    if (!card) return null;
+    if (card.contact) return card.contact;
+    const pid = card.person?.id;
+    if (pid == null) return null;
+    const contacts = buildContactsList(
+      favoriteById,
+      memoById,
+      addedContacts,
+      contactOverridesById,
+      removedContactIds
+    );
+    return contacts.find((c) => String(c.id) === String(pid)) || null;
+  }, [card, favoriteById, memoById, addedContacts, contactOverridesById, removedContactIds]);
+
   const handleEdit = useCallback(() => {
-    if (!card?.contact) {
+    if (!editContact?.id) {
       useUiStore.getState().showAppToast("수정할 연락처가 없습니다");
       return;
     }
     setEditOpen(true);
-  }, [card]);
+  }, [editContact]);
 
   const handleSaveEdit = useCallback(
     (patch) => {
-      const contact = card?.contact;
+      const contact = editContact || card?.contact;
       if (!contact?.id) return;
-      updateContactFields(contact.id, {
-        phone: patch.phone,
-        homeRegion: patch.homeRegion,
-      });
+      updateContactFields(contact.id, patch);
       setMemo(contact.id, patch.memo);
       setEditOpen(false);
       setCard(null);
       useUiStore.getState().showAppToast("인원 정보를 저장했습니다");
     },
-    [card, updateContactFields, setMemo]
+    [editContact, card, updateContactFields, setMemo]
   );
 
   const handleDeleteContact = useCallback(() => {
-    const contact = card?.contact;
+    const contact = editContact || card?.contact;
     if (!contact?.id) return;
     deleteContact(contact.id);
     setEditOpen(false);
     setCard(null);
     useUiStore.getState().showAppToast("목록에서 삭제했습니다");
-  }, [card, deleteContact]);
+  }, [editContact, card, deleteContact]);
 
   const isUnregistered = isUnregisteredContact(card?.contact);
 
@@ -276,8 +288,8 @@ export function PersonCardProvider({ children }) {
         onCopyInvite={handleCopyInvite}
       />
       <ContactEditSheet
-        open={editOpen && Boolean(card?.contact)}
-        contact={card?.contact}
+        open={editOpen && Boolean(editContact)}
+        contact={editContact}
         onClose={() => setEditOpen(false)}
         onSave={handleSaveEdit}
         onDelete={handleDeleteContact}

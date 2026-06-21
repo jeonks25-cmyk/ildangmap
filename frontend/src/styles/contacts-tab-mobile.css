@@ -616,7 +616,10 @@
 .contact-edit-sheet {
   position: fixed;
   inset: 0;
-  z-index: calc(var(--z-modal-backdrop, 900) + 2);
+  z-index: 1350;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
 
 .contact-edit-sheet__backdrop {
@@ -750,6 +753,33 @@
   color: #b91c1c;
   font-size: 15px;
   font-weight: 900;
+}
+
+.contact-edit-sheet__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.contact-edit-sheet__chip {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  color: #374151;
+}
+
+.contact-edit-sheet__chip.is-active {
+  border-color: var(--ildang-brand, #c45a16);
+  background: var(--ildang-brand-soft, #fff4e8);
+  color: var(--ildang-brand-dark, #9a4312);
+}
+
+.contact-edit-sheet__region-backdrop {
+  z-index: 1360;
 }
 
 /* ─── sheets ─── */

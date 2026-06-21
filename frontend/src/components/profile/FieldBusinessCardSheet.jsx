@@ -55,7 +55,15 @@ export default function FieldBusinessCardSheet({
           <header className="person-detail-head">
             <div className="person-detail-head__row">
               <h2 className="person-detail-head__name">{headline}</h2>
-              <button type="button" className="person-detail-head__edit" onClick={() => onEdit?.()} aria-label="정보 수정">
+              <button
+                type="button"
+                className="person-detail-head__edit"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit?.();
+                }}
+                aria-label="정보 수정"
+              >
                 수정
               </button>
             </div>

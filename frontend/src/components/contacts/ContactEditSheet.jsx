@@ -2,17 +2,34 @@ import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { ACTIVITY_REGIONS } from "../../constants/activityRegions";
 import { getContactDisplayName } from "../../utils/fieldContactsMock";
+import { CRAFT_KEYS, CRAFT_LABEL } from "../../utils/jobModel";
+
+function digitsOnly(value, maxLen) {
+  return String(value || "").replace(/[^\d]/g, "").slice(0, maxLen);
+}
 
 export default function ContactEditSheet({ open, contact, onClose, onSave, onDelete }) {
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [homeRegion, setHomeRegion] = useState("대전 서구");
+  const [trade, setTrade] = useState("film");
+  const [experienceYearsText, setExperienceYearsText] = useState("");
+  const [basePayText, setBasePayText] = useState("");
   const [memo, setMemo] = useState("");
   const [regionSheetOpen, setRegionSheetOpen] = useState(false);
 
   useEffect(() => {
     if (!open || !contact) return;
+    setName(String(contact.nickname || contact.name || ""));
     setPhone(String(contact.phone || ""));
     setHomeRegion(String(contact.homeRegion || "대전 서구"));
+    setTrade(String(contact.trade || "film"));
+    setExperienceYearsText(
+      contact.experienceYears != null && Number.isFinite(Number(contact.experienceYears))
+        ? String(contact.experienceYears)
+        : ""
+    );
+    setBasePayText(contact.basePay != null && Number.isFinite(Number(contact.basePay)) ? String(contact.basePay) : "");
     setMemo(String(contact.memo || ""));
     setRegionSheetOpen(false);
   }, [open, contact]);
@@ -22,9 +39,18 @@ export default function ContactEditSheet({ open, contact, onClose, onSave, onDel
   const displayName = getContactDisplayName(contact);
 
   const handleSave = () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return;
+    const experienceYears = experienceYearsText ? Number(experienceYearsText) : null;
+    const basePay = basePayText ? Number(basePayText) : null;
     onSave?.({
+      name: trimmedName,
+      nickname: trimmedName,
       phone: phone.trim(),
       homeRegion,
+      trade,
+      experienceYears: Number.isFinite(experienceYears) && experienceYears >= 0 ? experienceYears : null,
+      basePay: Number.isFinite(basePay) && basePay > 0 ? basePay : null,
       memo: memo.trim(),
     });
   };
@@ -49,7 +75,17 @@ export default function ContactEditSheet({ open, contact, onClose, onSave, onDel
           </header>
 
           <div className="contact-edit-sheet__body">
-            <p className="contact-edit-sheet__name">{displayName}</p>
+            <label className="contact-edit-sheet__field">
+              <span className="contact-edit-sheet__label">이름</span>
+              <input
+                type="text"
+                className="contact-edit-sheet__input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="활동명 또는 이름"
+                maxLength={20}
+              />
+            </label>
 
             <label className="contact-edit-sheet__field">
               <span className="contact-edit-sheet__label">연락처</span>
@@ -70,6 +106,47 @@ export default function ContactEditSheet({ open, contact, onClose, onSave, onDel
               </button>
             </div>
 
+            <div className="contact-edit-sheet__field">
+              <span className="contact-edit-sheet__label">직종</span>
+              <div className="contact-edit-sheet__chips" role="list">
+                {CRAFT_KEYS.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="listitem"
+                    className={`contact-edit-sheet__chip${trade === key ? " is-active" : ""}`}
+                    onClick={() => setTrade(key)}
+                  >
+                    {CRAFT_LABEL[key] || key}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <label className="contact-edit-sheet__field">
+              <span className="contact-edit-sheet__label">경력 (년)</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="contact-edit-sheet__input"
+                value={experienceYearsText}
+                onChange={(e) => setExperienceYearsText(digitsOnly(e.target.value, 2))}
+                placeholder="예: 8"
+              />
+            </label>
+
+            <label className="contact-edit-sheet__field">
+              <span className="contact-edit-sheet__label">희망 일당 (만원)</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                className="contact-edit-sheet__input"
+                value={basePayText}
+                onChange={(e) => setBasePayText(digitsOnly(e.target.value, 3))}
+                placeholder="숫자만 입력"
+              />
+            </label>
+
             <label className="contact-edit-sheet__field">
               <span className="contact-edit-sheet__label">메모</span>
               <textarea
@@ -84,7 +161,7 @@ export default function ContactEditSheet({ open, contact, onClose, onSave, onDel
           </div>
 
           <div className="contact-edit-sheet__actions">
-            <button type="button" className="contact-edit-sheet__save" onClick={handleSave}>
+            <button type="button" className="contact-edit-sheet__save" onClick={handleSave} disabled={!name.trim()}>
               저장
             </button>
             <button type="button" className="contact-edit-sheet__delete" onClick={handleDelete}>
@@ -95,7 +172,11 @@ export default function ContactEditSheet({ open, contact, onClose, onSave, onDel
       </div>
 
       {regionSheetOpen ? (
-        <div className="settings-region-sheet-backdrop" role="presentation" onClick={() => setRegionSheetOpen(false)}>
+        <div
+          className="contact-edit-sheet__region-backdrop settings-region-sheet-backdrop"
+          role="presentation"
+          onClick={() => setRegionSheetOpen(false)}
+        >
           <div
             className="settings-region-sheet"
             role="dialog"
