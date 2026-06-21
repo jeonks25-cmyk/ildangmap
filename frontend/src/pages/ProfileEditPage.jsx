@@ -160,7 +160,6 @@ export default function ProfileEditPage() {
     isAuthenticated,
     nicknameDraft,
     currentNickname,
-    profile,
     nicknameAvailable,
     birthYearText,
     desiredPayText,
