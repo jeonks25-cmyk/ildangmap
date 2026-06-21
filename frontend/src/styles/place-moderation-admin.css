@@ -1,0 +1,182 @@
+.place-moderation-admin {
+  min-height: 100%;
+  padding: 16px var(--app-page-pad-x, 14px) 32px;
+  background: #f8faf9;
+}
+
+.place-moderation-admin__header {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.place-moderation-admin__back {
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.place-moderation-admin__eyebrow {
+  margin: 0 0 4px;
+  color: #1e8e5a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.place-moderation-admin__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.place-moderation-admin__lead {
+  margin: 8px 0 0;
+  color: #57534e;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.place-moderation-admin__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.place-moderation-admin__summary span {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #e8f7ee;
+  color: #1e8e5a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.place-moderation-admin__card,
+.place-moderation-admin__item {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 1px 0 rgba(17, 24, 39, 0.06);
+}
+
+.place-moderation-admin__card {
+  padding: 16px;
+}
+
+.place-moderation-admin__status {
+  color: #78716c;
+  font-size: 14px;
+}
+
+.place-moderation-admin__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.place-moderation-admin__item {
+  padding: 14px;
+}
+
+.place-moderation-admin__item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.place-moderation-admin__item-head strong {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.place-moderation-admin__badge {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #f5f5f4;
+  color: #57534e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.place-moderation-admin__item.status-pending_review .place-moderation-admin__badge {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.place-moderation-admin__item.status-hidden .place-moderation-admin__badge,
+.place-moderation-admin__item.status-delete_candidate .place-moderation-admin__badge {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.place-moderation-admin__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin: 0 0 12px;
+}
+
+.place-moderation-admin__meta div {
+  min-width: 0;
+}
+
+.place-moderation-admin__meta dt {
+  margin: 0;
+  color: #78716c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.place-moderation-admin__meta dd {
+  margin: 2px 0 0;
+  color: #1c1917;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.place-moderation-admin__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.place-moderation-admin__action,
+.place-moderation-admin__primary {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid #e7e5e4;
+  background: #fff;
+  color: #1c1917;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.place-moderation-admin__action--danger {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.place-moderation-admin__primary {
+  margin-top: 12px;
+  width: 100%;
+  background: #1e8e5a;
+  border-color: #1e8e5a;
+  color: #fff;
+}
+
+.place-moderation-admin__action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

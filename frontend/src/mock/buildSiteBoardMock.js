@@ -1,4 +1,5 @@
 import { generateAutoNickname } from "../utils/displayNickname";
+import { BOARD_POST_REPORT_REASONS } from "../constants/placeModeration";
 
 function normalizePost(row, siteKey, index, myNick) {
   if (!row || typeof row !== "object") return null;
@@ -9,13 +10,14 @@ function normalizePost(row, siteKey, index, myNick) {
     id: row.id || `p-${siteKey}-${index}`,
     author,
     text,
-    helpfulCount: Number(row.helpfulCount) || 0,
-    helpfulByMe: Boolean(row.helpfulByMe),
+    correctCount: Number(row.correctCount) || 0,
+    wrongCount: Number(row.wrongCount) || 0,
+    myVerifyVote: row.myVerifyVote || null,
     isMine: author === myNick,
   };
 }
 
-/** 장소 comments → 현장 자유게시판 (실제 데이터만, 샘플 없음) */
+/** 장소 comments → 현장 자유게시판 (실제 데이터만) */
 export function buildSiteBoardMock(item, { currentUserNickname = "", currentUserId = "" } = {}) {
   const source = item?.source || {};
   const siteKey = item?.id || source.id || item?.title || "site";
@@ -40,10 +42,24 @@ export function buildSiteBoardMock(item, { currentUserNickname = "", currentUser
     address,
     currentUser: myNick,
     posts,
-    reportReasons: ["정보가 틀림", "광고성", "욕설"],
+    reportReasons: BOARD_POST_REPORT_REASONS,
   };
 }
 
 export function sortBoardPosts(posts) {
-  return [...posts].sort((a, b) => (b.helpfulCount || 0) - (a.helpfulCount || 0));
+  return [...posts].sort((a, b) => {
+    const scoreA = (Number(a.correctCount) || 0) - (Number(a.wrongCount) || 0);
+    const scoreB = (Number(b.correctCount) || 0) - (Number(b.wrongCount) || 0);
+    return scoreB - scoreA;
+  });
+}
+
+export function postsToComments(posts) {
+  return (Array.isArray(posts) ? posts : []).map((post) => ({
+    id: post.id,
+    author: post.author,
+    text: post.text,
+    correctCount: post.correctCount || 0,
+    wrongCount: post.wrongCount || 0,
+  }));
 }

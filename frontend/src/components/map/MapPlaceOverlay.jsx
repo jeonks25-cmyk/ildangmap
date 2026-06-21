@@ -47,6 +47,7 @@ function MapPlaceOverlay({
   onSelectPlace,
   onToast,
   onEditPlace,
+  onUpdatePlace,
 }) {
   const handleBackClick = useCallback(() => {
     if (mode === "detail") {
@@ -155,7 +156,7 @@ function MapPlaceOverlay({
       scrollClassName="map-place-overlay-card__scroll--detail"
       ariaLabel="장소 상세"
     >
-      <PlaceDetailCard place={detailPlace} onToast={onToast} onEdit={onEditPlace} showInfoMenu={showInfoMenu} />
+      <PlaceDetailCard place={detailPlace} onToast={onToast} onEdit={onEditPlace} onUpdatePlace={onUpdatePlace} showInfoMenu={showInfoMenu} />
     </MapCardContainer>
   );
 }

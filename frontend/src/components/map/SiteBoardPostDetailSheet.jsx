@@ -1,34 +1,44 @@
 import React, { useEffect, useState } from "react";
 
-/** 게시글 상세 — 수정·삭제·신고·추천 (목록에서는 미노출) */
+/** 게시글 상세 — 수정·삭제·신고·정보 검증 */
 export default function SiteBoardPostDetailSheet({
   open,
   post,
   reportReasons = [],
   onClose,
-  onLike,
+  onVerify,
   onEdit,
   onDelete,
   onReport,
 }) {
-  const [liked, setLiked] = useState(post?.helpfulByMe);
-  const [likeCount, setLikeCount] = useState(post?.helpfulCount || 0);
+  const [myVote, setMyVote] = useState(post?.myVerifyVote || null);
+  const [correctCount, setCorrectCount] = useState(post?.correctCount || 0);
+  const [wrongCount, setWrongCount] = useState(post?.wrongCount || 0);
   const [reportOpen, setReportOpen] = useState(false);
 
   useEffect(() => {
     if (!post) return;
-    setLiked(post.helpfulByMe);
-    setLikeCount(post.helpfulCount || 0);
+    setMyVote(post.myVerifyVote || null);
+    setCorrectCount(post.correctCount || 0);
+    setWrongCount(post.wrongCount || 0);
     setReportOpen(false);
   }, [post]);
 
   if (!open || !post) return null;
 
-  const toggleLike = () => {
-    const next = !liked;
-    setLiked(next);
-    setLikeCount((c) => Math.max(0, c + (next ? 1 : -1)));
-    onLike?.(post, next);
+  const toggleVerify = (vote) => {
+    let nextCorrect = correctCount;
+    let nextWrong = wrongCount;
+    const prev = myVote;
+    if (prev === vote) return;
+    if (prev === "correct") nextCorrect = Math.max(0, nextCorrect - 1);
+    if (prev === "wrong") nextWrong = Math.max(0, nextWrong - 1);
+    if (vote === "correct") nextCorrect += 1;
+    if (vote === "wrong") nextWrong += 1;
+    setMyVote(vote);
+    setCorrectCount(nextCorrect);
+    setWrongCount(nextWrong);
+    onVerify?.(post, vote, { correctCount: nextCorrect, wrongCount: nextWrong, myVerifyVote: vote });
   };
 
   return (
@@ -42,10 +52,23 @@ export default function SiteBoardPostDetailSheet({
           </button>
         </header>
         <p className="site-board-detail__text">{post.text}</p>
-        <div className="site-board-detail__actions">
-          <button type="button" className={`site-board-detail__like${liked ? " is-active" : ""}`} onClick={toggleLike}>
-            👍 <strong>{likeCount}</strong>
+        <div className="site-board-detail__verify">
+          <button
+            type="button"
+            className={`site-board-detail__verify-btn${myVote === "correct" ? " is-active-correct" : ""}`}
+            onClick={() => toggleVerify("correct")}
+          >
+            ✅ 정보 맞음 {correctCount}
           </button>
+          <button
+            type="button"
+            className={`site-board-detail__verify-btn${myVote === "wrong" ? " is-active-wrong" : ""}`}
+            onClick={() => toggleVerify("wrong")}
+          >
+            🚨 정보 틀림 {wrongCount}
+          </button>
+        </div>
+        <div className="site-board-detail__actions">
           {post.isMine ? (
             <>
               <button type="button" className="site-board-detail__ghost" onClick={() => onEdit?.(post)}>

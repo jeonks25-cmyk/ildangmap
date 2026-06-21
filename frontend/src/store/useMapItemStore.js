@@ -72,6 +72,12 @@ export const useMapItemStore = create(
       listByScheduleDate: (dateKey) =>
         (Array.isArray(get().items) ? get().items : []).filter((item) => item?.scheduleDate === dateKey),
       clearMapItems: () => set(() => ({ items: [] })),
+      removeMapItem: (id) => {
+        const target = String(id);
+        set((state) => ({
+          items: (Array.isArray(state.items) ? state.items : []).filter((item) => String(item.id) !== target),
+        }));
+      },
     }),
     {
       name: STORE_KEY,

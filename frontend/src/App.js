@@ -23,6 +23,7 @@ const JobDetailPage = lazy(() => import("./pages/JobDetailPage"));
 
 const BetaFeedbackPage = lazy(() => import("./pages/BetaFeedbackPage"));
 const BetaFeedbackAdminPage = lazy(() => import("./pages/BetaFeedbackAdminPage"));
+const PlaceReportAdminPage = lazy(() => import("./pages/PlaceReportAdminPage"));
 const ProfileEditPage = lazy(() => import("./pages/ProfileEditPage"));
 const InviteLandingPage = lazy(() => import("./pages/InviteLandingPage"));
 const NewsFeedPage = lazy(() => import("./pages/NewsFeedPage"));
@@ -101,6 +102,14 @@ export default function App() {
             element={
               <LazyRoute>
                 <BetaFeedbackPage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="settings/place-reports/admin"
+            element={
+              <LazyRoute>
+                <PlaceReportAdminPage />
               </LazyRoute>
             }
           />

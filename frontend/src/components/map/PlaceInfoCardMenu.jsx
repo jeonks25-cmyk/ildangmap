@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  buildReportFeedbackMessage,
   copyPlaceAddress,
   getPlaceInfoKey,
   needsPlaceReview,
@@ -83,16 +84,13 @@ export default function PlaceInfoCardMenu({ place, address = "", onEdit, onToast
 
   const handleReport = useCallback(
     (reason) => {
-      const count = submitPlaceReport(placeKey, reason);
+      const mapItemId = place?.source?.id || place?.sourceId || place?.id || "";
+      const result = submitPlaceReport(placeKey, reason, { title, mapItemId, source: "menu" });
       setReportOpen(false);
-      setReviewFlag(count >= 3);
-      if (count >= 3) {
-        toast(`신고가 접수되었습니다. (누적 ${count}회 · 검토 필요)`);
-      } else {
-        toast(`신고가 접수되었습니다. (${reason})`);
-      }
+      setReviewFlag(needsPlaceReview(placeKey));
+      toast(buildReportFeedbackMessage(result.reportCount, result.moderationStatus));
     },
-    [placeKey, toast],
+    [place, placeKey, title, toast],
   );
 
   return (

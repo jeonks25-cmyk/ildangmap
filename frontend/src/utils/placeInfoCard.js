@@ -1,26 +1,19 @@
 import { MAP_ITEM_TYPE } from "../constants/mapItemTypes";
+import { PLACE_REPORT_REASONS } from "../constants/placeModeration";
+import { usePlaceModerationStore } from "../store/usePlaceModerationStore";
 import { getMapItemKey } from "./mapItemModel";
 import { isPlaceOverlayEligible } from "./placeDistance";
+import {
+  buildReportFeedbackMessage,
+  recordPlaceReport,
+} from "./placeModeration";
 
-export const PLACE_INFO_REPORT_REASONS = [
-  "잘못된 위치",
-  "잘못된 정보",
-  "광고/홍보",
-  "욕설/도배",
-  "기타",
-];
+export { PLACE_REPORT_REASONS as PLACE_INFO_REPORT_REASONS };
+export { needsPlaceReview, getPlaceReportCount } from "./placeModeration";
 
 export const PLACE_INFO_REVIEW_THRESHOLD = 3;
 
-const REPORTS_STORAGE_KEY = "ildangmap_place_reports_v1";
 const HISTORY_STORAGE_KEY = "ildangmap_place_history_v1";
-
-const PLACE_INFO_ACTION_LAYERS = new Set([
-  MAP_ITEM_TYPE.ESTIMATE,
-  MAP_ITEM_TYPE.ESTIMATE_REQUEST,
-  MAP_ITEM_TYPE.HELPER_REQUEST,
-  MAP_ITEM_TYPE.SOS,
-]);
 
 function readJson(key, fallback) {
   try {
@@ -43,6 +36,12 @@ function writeJson(key, value) {
 export function isPlaceInfoCard(item) {
   if (!item || !isPlaceOverlayEligible(item)) return false;
   const layer = item.layer || item.type;
+  const PLACE_INFO_ACTION_LAYERS = new Set([
+    MAP_ITEM_TYPE.ESTIMATE,
+    MAP_ITEM_TYPE.ESTIMATE_REQUEST,
+    MAP_ITEM_TYPE.HELPER_REQUEST,
+    MAP_ITEM_TYPE.SOS,
+  ]);
   if (PLACE_INFO_ACTION_LAYERS.has(layer)) return false;
   if (layer === MAP_ITEM_TYPE.FIELD && item?.source?.status != null) return false;
   return true;
@@ -52,33 +51,19 @@ export function getPlaceInfoKey(place) {
   return getMapItemKey(place);
 }
 
-export function getPlaceReportCounts() {
-  return readJson(REPORTS_STORAGE_KEY, {});
-}
-
-export function getPlaceReportCount(placeKey) {
-  const counts = getPlaceReportCounts();
-  return Number(counts[placeKey]) || 0;
-}
-
-export function needsPlaceReview(placeKey) {
-  return getPlaceReportCount(placeKey) >= PLACE_INFO_REVIEW_THRESHOLD;
-}
-
-export function submitPlaceReport(placeKey, reason) {
-  if (!placeKey) return 0;
-  const counts = getPlaceReportCounts();
-  const next = (Number(counts[placeKey]) || 0) + 1;
-  counts[placeKey] = next;
-  writeJson(REPORTS_STORAGE_KEY, counts);
+export function submitPlaceReport(placeKey, reason, meta = {}) {
+  const result = recordPlaceReport(placeKey, { reason, ...meta });
   appendChangeHistory(placeKey, {
     at: new Date().toISOString(),
     by: "신고",
     action: "report",
     detail: reason,
   });
-  return next;
+  usePlaceModerationStore.setState((state) => ({ revision: state.revision + 1 }));
+  return result;
 }
+
+export { buildReportFeedbackMessage };
 
 function readAllHistory() {
   return readJson(HISTORY_STORAGE_KEY, {});

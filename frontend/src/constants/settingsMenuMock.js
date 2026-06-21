@@ -35,6 +35,14 @@ export const ILDANG_NEWS_MENU_ITEM = {
   path: "/settings/news",
 };
 
+export const PLACE_REPORT_ADMIN_MENU_ITEM = {
+  id: "place-report-admin",
+  label: "장소 신고 검수",
+  icon: "🚨",
+  action: "route",
+  path: "/settings/place-reports/admin",
+};
+
 export const BETA_FEEDBACK_ADMIN_MENU_ITEM = {
   id: "beta-feedback-admin",
   label: "베타 피드백 관리",

@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { MAP_ITEM_TYPE_LABEL } from "../../constants/mapItemTypes";
-import { buildSiteBoardMock, sortBoardPosts } from "../../mock/buildSiteBoardMock";
+import { buildSiteBoardMock, postsToComments, sortBoardPosts } from "../../mock/buildSiteBoardMock";
 import { useRequireAuth } from "../../hooks/useRequireAuth";
 import { useUserStore } from "../../store/useUserStore";
 import { useUiStore } from "../../store/useUiStore";
@@ -8,14 +8,22 @@ import { buildMapNavigationOptions, hasMapNavigationOptions } from "../../utils/
 import MapDirectionsSheet from "./MapDirectionsSheet";
 import { getDisplayNickname } from "../../utils/displayNickname";
 import { getPlaceRowDescription, getPlaceRowTitle, getPlaceTypeIcon } from "../../utils/placeDistance";
-import { getPlaceInfoKey, needsPlaceReview } from "../../utils/placeInfoCard";
+import { buildReportFeedbackMessage, getPlaceInfoKey, needsPlaceReview, submitPlaceReport } from "../../utils/placeInfoCard";
 import SiteBoardComposeSheet from "./SiteBoardComposeSheet";
 import SiteBoardPostDetailSheet from "./SiteBoardPostDetailSheet";
+import PlaceVerifyBar from "./PlaceVerifyBar";
 import "./map-place-detail-card.css";
 import "./map-site-board.css";
 
+function formatVerifySummary(correctCount, wrongCount) {
+  const correct = Number(correctCount) || 0;
+  const wrong = Number(wrongCount) || 0;
+  if (!correct && !wrong) return null;
+  return `맞음 ${correct} · 틀림 ${wrong}`;
+}
+
 function BoardPostRow({ post, onOpen }) {
-  const likeLabel = post.helpfulCount > 0 ? `👍${post.helpfulCount}` : "👍0";
+  const verifyLabel = formatVerifySummary(post.correctCount, post.wrongCount);
   return (
     <button type="button" className="place-detail-card__board-row" onClick={() => onOpen?.(post)} aria-label={`${post.author} ${post.text}`}>
       <span className="place-detail-card__board-author">{post.author}</span>
@@ -23,10 +31,14 @@ function BoardPostRow({ post, onOpen }) {
         ·
       </span>
       <span className="place-detail-card__board-text">{post.text}</span>
-      <span className="place-detail-card__board-sep" aria-hidden>
-        ·
-      </span>
-      <span className="place-detail-card__board-like">{likeLabel}</span>
+      {verifyLabel ? (
+        <>
+          <span className="place-detail-card__board-sep" aria-hidden>
+            ·
+          </span>
+          <span className="place-detail-card__board-verify">{verifyLabel}</span>
+        </>
+      ) : null}
     </button>
   );
 }
@@ -34,22 +46,25 @@ function BoardPostRow({ post, onOpen }) {
 /**
  * 장소 상세 단일 카드 — 목록·마커·검색 등 모든 진입 경로 공통
  */
-export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu = false }) {
+export default function PlaceDetailCard({ place, onToast, onEdit, onUpdatePlace, showInfoMenu = false }) {
   const profile = useUserStore((s) => s.profile);
   const sessionUser = useUserStore((s) => s.session?.user);
   const requireAuth = useRequireAuth("post");
   const authPromptOpen = useUiStore((s) => s.authPromptOpen);
   const myNickname = useMemo(() => getDisplayNickname(profile, sessionUser), [profile, sessionUser]);
+  const myUserId = String(profile?.id || sessionUser?.id || myNickname || "guest");
+
+  const placeKey = useMemo(() => (place ? getPlaceInfoKey(place) : ""), [place]);
 
   const boardSeed = useMemo(
     () =>
       place
         ? buildSiteBoardMock(place, {
             currentUserNickname: myNickname,
-            currentUserId: profile?.id || sessionUser?.id || "",
+            currentUserId: myUserId,
           })
         : null,
-    [myNickname, place, profile?.id, sessionUser?.id],
+    [myNickname, myUserId, place],
   );
 
   const [posts, setPosts] = useState([]);
@@ -71,13 +86,36 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
     setDetailPost(null);
   }, [authPromptOpen]);
 
+  const persistComments = useCallback(
+    (nextPosts) => {
+      if (!onUpdatePlace || !place) return;
+      onUpdatePlace(place, { comments: postsToComments(nextPosts) });
+    },
+    [onUpdatePlace, place],
+  );
+
+  const handleModerationSync = useCallback(
+    (_place, record) => {
+      if (!record) return;
+      onUpdatePlace?.(_place, {
+        sourceMeta: {
+          ...(_place.sourceMeta || {}),
+          correctCount: record.correctCount,
+          wrongCount: record.wrongCount,
+          moderationStatus: record.moderationStatus,
+        },
+      });
+    },
+    [onUpdatePlace],
+  );
+
   if (!place || !boardSeed) return null;
 
   const category = MAP_ITEM_TYPE_LABEL[place.layer || place.type] || "장소";
   const description = getPlaceRowDescription(place);
   const address = String(place.address || place.meta || boardSeed.address || "").trim() || boardSeed.address;
   const title = getPlaceRowTitle(place);
-  const reviewNeeded = showInfoMenu && needsPlaceReview(getPlaceInfoKey(place));
+  const reviewNeeded = showInfoMenu && needsPlaceReview(placeKey);
 
   const savedMeta = place.source?.meta && typeof place.source.meta === "object" ? place.source.meta : {};
   const navigationOptions = buildMapNavigationOptions({
@@ -96,6 +134,24 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
   };
 
   const editingPost = posts.find((p) => p.id === editingId);
+  const mapItemId = place.source?.id || place.sourceId || place.id;
+
+  const handleReport = (post, reason) => {
+    if (!requireAuth()) return;
+    const result = submitPlaceReport(placeKey, reason, {
+      title,
+      mapItemId,
+      source: post ? `board:${post.id}` : "place",
+    });
+    toast(buildReportFeedbackMessage(result.reportCount, result.moderationStatus));
+    onUpdatePlace?.(place, {
+      sourceMeta: {
+        ...(place.sourceMeta || {}),
+        reportCount: result.reportCount,
+        moderationStatus: result.moderationStatus,
+      },
+    });
+  };
 
   const openWrite = () => {
     if (!requireAuth()) return;
@@ -114,7 +170,11 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
 
   const handleSavePost = (text) => {
     if (composeMode === "edit" && editingId) {
-      setPosts((prev) => sortBoardPosts(prev.map((p) => (p.id === editingId ? { ...p, text } : p))));
+      setPosts((prev) => {
+        const next = sortBoardPosts(prev.map((p) => (p.id === editingId ? { ...p, text } : p)));
+        persistComments(next);
+        return next;
+      });
       toast("글을 수정했습니다");
       return;
     }
@@ -122,19 +182,47 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
       id: `p-new-${Date.now()}`,
       author: boardSeed.currentUser,
       text,
-      helpfulCount: 0,
-      helpfulByMe: false,
+      correctCount: 0,
+      wrongCount: 0,
+      myVerifyVote: null,
       isMine: true,
     };
-    setPosts((prev) => sortBoardPosts([newPost, ...prev]));
+    setPosts((prev) => {
+      const next = sortBoardPosts([newPost, ...prev]);
+      persistComments(next);
+      return next;
+    });
     toast("글을 등록했습니다");
   };
 
   const handleDeletePost = (post) => {
     if (!post.isMine) return;
-    setPosts((prev) => prev.filter((p) => p.id !== post.id));
+    setPosts((prev) => {
+      const next = prev.filter((p) => p.id !== post.id);
+      persistComments(next);
+      return next;
+    });
     setDetailPost(null);
     toast("글을 삭제했습니다");
+  };
+
+  const handlePostVerify = (post, vote, counts) => {
+    setPosts((prev) => {
+      const next = sortBoardPosts(
+        prev.map((p) =>
+          p.id === post.id
+            ? {
+                ...p,
+                correctCount: counts.correctCount,
+                wrongCount: counts.wrongCount,
+                myVerifyVote: counts.myVerifyVote,
+              }
+            : p,
+        ),
+      );
+      persistComments(next);
+      return next;
+    });
   };
 
   return (
@@ -148,8 +236,8 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
               </span>
               <span className="place-detail-card__place-title-text">{title}</span>
               {reviewNeeded ? (
-                <span className="place-detail-card__review-badge" aria-label="검토 필요">
-                  검토 필요
+                <span className="place-detail-card__review-badge" aria-label="검수 필요">
+                  검수 필요
                 </span>
               ) : null}
             </h3>
@@ -168,6 +256,8 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
           <p className="place-detail-card__address">{address}</p>
           {summaryLine ? <p className="place-detail-card__summary">{summaryLine}</p> : null}
           {description ? <p className="place-detail-card__desc">{description}</p> : null}
+
+          <PlaceVerifyBar place={place} onModerationChange={handleModerationSync} />
 
           {!showInfoMenu ? (
             <button
@@ -215,10 +305,10 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
         post={detailPost}
         reportReasons={boardSeed.reportReasons}
         onClose={() => setDetailPost(null)}
-        onLike={() => {}}
+        onVerify={handlePostVerify}
         onEdit={openEditPost}
         onDelete={handleDeletePost}
-        onReport={(p, reason) => toast(`신고 접수: ${reason}`)}
+        onReport={handleReport}
       />
 
       <SiteBoardComposeSheet

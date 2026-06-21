@@ -1,3 +1,4 @@
+import { PLACE_MODERATION_STATUS } from "../constants/placeModeration";
 import { MAP_ITEM_TYPE, MAP_ITEM_TYPE_LABEL } from "../constants/mapItemTypes";
 import { applyOcrExtractionToDraft, createInitialJobPostDraft } from "./jobPostDraft";
 
@@ -154,11 +155,14 @@ export function normalizeMapItemDraft(input = {}) {
     reactions: input.reactions || {},
     comments: Array.isArray(input.comments) ? input.comments.filter(Boolean) : [],
     sourceMeta: {
-      createdBy: input.createdBy || "일당맵 사용자",
-      updatedAt: now,
-      trustScore: Number(input.trustScore || 0),
-      reportCount: Number(input.reportCount || 0),
-      verificationStatus: input.verificationStatus || "editable",
+      createdBy: input.createdBy || input.sourceMeta?.createdBy || "일당맵 사용자",
+      updatedAt: input.sourceMeta?.updatedAt || now,
+      trustScore: Number(input.sourceMeta?.trustScore ?? input.trustScore ?? 0),
+      reportCount: Number(input.sourceMeta?.reportCount ?? input.reportCount ?? 0),
+      verificationStatus: input.sourceMeta?.verificationStatus || input.verificationStatus || "editable",
+      moderationStatus: input.sourceMeta?.moderationStatus || input.moderationStatus || PLACE_MODERATION_STATUS.PUBLIC,
+      correctCount: Number(input.sourceMeta?.correctCount ?? input.correctCount ?? 0),
+      wrongCount: Number(input.sourceMeta?.wrongCount ?? input.wrongCount ?? 0),
     },
     source: input.source || { kind: "manual" },
   };

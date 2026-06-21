@@ -1,3 +1,4 @@
+import { PLACE_MODERATION_STATUS } from "../constants/placeModeration";
 import { MAP_ITEM_TYPE, MAP_ITEM_TYPE_LABEL } from "../constants/mapItemTypes";
 import { buildFieldJobTitle, getJobCraft, migrateJob, CRAFT_LABEL } from "./jobModel";
 import { getEstimateMarkerSubline } from "../overlays/estimateSpeechBubbleOverlay";
@@ -34,6 +35,9 @@ function buildSourceMeta(raw) {
     trustScore: Number(source.trustScore ?? raw?.trustScore ?? 0) || 0,
     reportCount: Number(source.reportCount ?? raw?.reportCount ?? 0) || 0,
     verificationStatus: source.verificationStatus || raw?.verificationStatus || "unverified",
+    moderationStatus: source.moderationStatus || raw?.moderationStatus || PLACE_MODERATION_STATUS.PUBLIC,
+    correctCount: Number(source.correctCount ?? raw?.correctCount ?? 0) || 0,
+    wrongCount: Number(source.wrongCount ?? raw?.wrongCount ?? 0) || 0,
   };
   return out;
 }

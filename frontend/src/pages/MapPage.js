@@ -65,6 +65,7 @@ import { useFieldExperienceStore } from "../store/useFieldExperienceStore";
 import { useFieldCheckInStore } from "../store/useFieldCheckInStore";
 import { useMapLayerStore } from "../store/useMapLayerStore";
 import { useMapItemStore } from "../store/useMapItemStore";
+import { usePlaceModerationStore } from "../store/usePlaceModerationStore";
 import { useUiStore } from "../store/useUiStore";
 import { deriveViewerJobState } from "../utils/jobModel";
 import {
@@ -83,6 +84,7 @@ import {
 } from "../constants/mapItemTypes";
 import { guardMemberAction } from "../hooks/useRequireAuth";
 import { createMapItemFromLifeInfo, filterMapItemsByLayers, findMapItemBySource, getMapItemKey } from "../utils/mapItemModel";
+import { isMapPlaceVisible } from "../utils/placeModeration";
 import { filterLifeInfoItemsByMapContext } from "../utils/mapItemVisibility";
 import { getDisplayNickname } from "../utils/displayNickname";
 import { appendChangeHistory, getPlaceInfoKey } from "../utils/placeInfoCard";
@@ -412,6 +414,7 @@ export default function MapPage() {
   const setLayerVisible = useMapLayerStore((state) => state.setLayerVisible);
   const setLayersVisible = useMapLayerStore((state) => state.setLayersVisible);
   const customLifeItems = useMapItemStore((state) => state.items);
+  const moderationRevision = usePlaceModerationStore((state) => state.revision);
   const addMapItemDraft = useMapItemStore((state) => state.addMapItemDraft);
   const updateMapItem = useMapItemStore((state) => state.updateMapItem);
   const experienceRecords = useFieldExperienceStore((state) => state.records);
@@ -476,15 +479,17 @@ export default function MapPage() {
     [mapItemsInBounds, selectedJobId]
   );
   const customMapItemsInBounds = useMemo(() => {
+    void moderationRevision;
     const items = customLifeItems.map(createMapItemFromLifeInfo).filter(Boolean);
-    if (!mapBounds) return items;
+    const visible = items.filter((item) => isMapPlaceVisible(getMapItemKey(item), item));
+    if (!mapBounds) return visible;
     const { minLat, maxLat, minLng, maxLng } = mapBounds;
-    return items.filter((item) => {
+    return visible.filter((item) => {
       const lat = Number(item?.lat);
       const lng = Number(item?.lng);
       return Number.isFinite(lat) && Number.isFinite(lng) && lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
     });
-  }, [customLifeItems, mapBounds]);
+  }, [customLifeItems, mapBounds, moderationRevision]);
   const visibleLifeInfoItems = useMemo(
     () => {
       const activeLifeLayers = new Set(
@@ -499,7 +504,12 @@ export default function MapPage() {
       const lifeItems = mapItemsInBounds.filter(
         (item) => item.type !== MAP_ITEM_TYPE.FIELD && item.type !== MAP_ITEM_TYPE.ESTIMATE
       );
-      const candidates = [...lifeItems, ...customMapItemsInBounds].filter((item) => {
+      const candidates = [...lifeItems, ...customMapItemsInBounds]
+        .filter((item) => {
+          void moderationRevision;
+          return isMapPlaceVisible(getMapItemKey(item), item);
+        })
+        .filter((item) => {
         const layer = item.layer || item.type;
         return activeLifeLayers.has(layer);
       });
@@ -508,7 +518,7 @@ export default function MapPage() {
         selectedFieldItem: selectedFieldMapItem,
       });
     },
-    [customMapItemsInBounds, mapItemsInBounds, mapLevel, selectedFieldMapItem, visibleLayers]
+    [customMapItemsInBounds, mapItemsInBounds, mapLevel, moderationRevision, selectedFieldMapItem, visibleLayers]
   );
   const activeFieldCheckIn = useMemo(
     () =>
@@ -790,6 +800,20 @@ export default function MapPage() {
       }
     },
     [isReady, kakao, map, openMapDraftPinPanel, profile, sessionUser, setDetailJobId],
+  );
+
+  const handleUpdatePlace = useCallback(
+    (place, patch = {}) => {
+      const editingId = place?.source?.id || place?.sourceId || place?.id;
+      if (!editingId || String(editingId).startsWith("field:")) return;
+      const updated = updateMapItem(editingId, patch);
+      if (!updated) return;
+      const item = createMapItemFromLifeInfo(updated);
+      if (item && placeOverlayDetail && getMapItemKey(placeOverlayDetail) === getMapItemKey(place)) {
+        setPlaceOverlayDetail(item);
+      }
+    },
+    [placeOverlayDetail, updateMapItem],
   );
 
   const onJobMarkerClick = useCallback(
@@ -2029,6 +2053,7 @@ export default function MapPage() {
             onSelectPlace={handlePlaceOverlaySelect}
             onToast={showAppToast}
             onEditPlace={handleEditPlace}
+            onUpdatePlace={handleUpdatePlace}
           />
         ) : null}
 
