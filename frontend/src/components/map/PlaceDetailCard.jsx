@@ -4,7 +4,8 @@ import { buildSiteBoardMock, sortBoardPosts } from "../../mock/buildSiteBoardMoc
 import { useRequireAuth } from "../../hooks/useRequireAuth";
 import { useUserStore } from "../../store/useUserStore";
 import { useUiStore } from "../../store/useUiStore";
-import { buildExternalMapLinks } from "../../utils/externalMapLinks";
+import { buildMapNavigationOptions, hasMapNavigationOptions } from "../../utils/mapNavigation";
+import MapDirectionsSheet from "./MapDirectionsSheet";
 import { getDisplayNickname } from "../../utils/displayNickname";
 import { getPlaceRowDescription, getPlaceRowTitle, getPlaceTypeIcon } from "../../utils/placeDistance";
 import { getPlaceInfoKey, needsPlaceReview } from "../../utils/placeInfoCard";
@@ -56,6 +57,7 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
   const [composeMode, setComposeMode] = useState("create");
   const [editingId, setEditingId] = useState(null);
   const [detailPost, setDetailPost] = useState(null);
+  const [directionsOpen, setDirectionsOpen] = useState(false);
 
   useEffect(() => {
     if (!boardSeed) return;
@@ -78,16 +80,16 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
   const reviewNeeded = showInfoMenu && needsPlaceReview(getPlaceInfoKey(place));
 
   const savedMeta = place.source?.meta && typeof place.source.meta === "object" ? place.source.meta : {};
-  const fallbackLinks = buildExternalMapLinks({
+  const navigationOptions = buildMapNavigationOptions({
     lat: place.lat,
     lng: place.lng,
     title,
     address: boardSeed.address,
+    savedLinks: savedMeta,
   });
-  const links = {
-    naver: savedMeta.naverMapLink || fallbackLinks.naver,
-    kakao: savedMeta.kakaoMapLink || fallbackLinks.kakao,
-  };
+  const canNavigate = hasMapNavigationOptions(navigationOptions);
+  const distanceLabel = place.distanceLabel || "—";
+  const summaryLine = [distanceLabel !== "—" ? distanceLabel : null, category].filter(Boolean).join(" · ");
 
   const toast = (message) => {
     if (onToast) onToast(message);
@@ -139,59 +141,34 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
     <>
       <div className="place-detail-card__scroll">
         <section className="place-detail-card__info" aria-label="장소 정보">
-          <h3 className="place-detail-card__place-title">
-            <span className="place-detail-card__place-icon" aria-hidden="true">
-              {getPlaceTypeIcon(place.layer || place.type)}
-            </span>
-            <span className="place-detail-card__place-title-text">{title}</span>
-            {reviewNeeded ? (
-              <span className="place-detail-card__review-badge" aria-label="검토 필요">
-                검토 필요
+          <div className="place-detail-card__head">
+            <h3 className="place-detail-card__place-title">
+              <span className="place-detail-card__place-icon" aria-hidden="true">
+                {getPlaceTypeIcon(place.layer || place.type)}
               </span>
-            ) : null}
-          </h3>
-          <dl className="place-detail-card__meta">
-            <div className="place-detail-card__meta-row">
-              <dt>주소</dt>
-              <dd>{address}</dd>
-            </div>
-            <div className="place-detail-card__meta-row">
-              <dt>거리</dt>
-              <dd className="place-detail-card__distance">{place.distanceLabel || "—"}</dd>
-            </div>
-            <div className="place-detail-card__meta-row">
-              <dt>카테고리</dt>
-              <dd>{category}</dd>
-            </div>
-            {description ? (
-              <div className="place-detail-card__meta-row">
-                <dt>설명</dt>
-                <dd>{description}</dd>
-              </div>
-            ) : null}
-          </dl>
-          <div className="place-detail-card__maps">
-            {links.naver ? (
-              <a
-                className="place-detail-card__map-btn place-detail-card__map-btn--naver"
-                href={links.naver}
-                target="_blank"
-                rel="noreferrer"
+              <span className="place-detail-card__place-title-text">{title}</span>
+              {reviewNeeded ? (
+                <span className="place-detail-card__review-badge" aria-label="검토 필요">
+                  검토 필요
+                </span>
+              ) : null}
+            </h3>
+            {canNavigate ? (
+              <button
+                type="button"
+                className="place-detail-card__nav-btn"
+                onClick={() => setDirectionsOpen(true)}
+                aria-haspopup="dialog"
               >
-                네이버지도
-              </a>
-            ) : null}
-            {links.kakao ? (
-              <a
-                className="place-detail-card__map-btn place-detail-card__map-btn--kakao"
-                href={links.kakao}
-                target="_blank"
-                rel="noreferrer"
-              >
-                카카오맵
-              </a>
+                길찾기
+              </button>
             ) : null}
           </div>
+
+          <p className="place-detail-card__address">{address}</p>
+          {summaryLine ? <p className="place-detail-card__summary">{summaryLine}</p> : null}
+          {description ? <p className="place-detail-card__desc">{description}</p> : null}
+
           {!showInfoMenu ? (
             <button
               type="button"
@@ -199,7 +176,6 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
               onClick={() => {
                 if (!requireAuth()) return;
                 onEdit?.(place);
-                toast("현장명·주소 수정 (목업)");
               }}
             >
               수정
@@ -223,6 +199,13 @@ export default function PlaceDetailCard({ place, onToast, onEdit, showInfoMenu =
           </div>
         </section>
       </div>
+
+      <MapDirectionsSheet
+        open={directionsOpen}
+        title="길찾기"
+        options={navigationOptions}
+        onClose={() => setDirectionsOpen(false)}
+      />
 
       <SiteBoardPostDetailSheet
         open={Boolean(detailPost)}
