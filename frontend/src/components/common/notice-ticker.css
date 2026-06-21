@@ -1,11 +1,10 @@
 .notice-marquee {
   width: 100%;
-  min-height: 34px;
+  min-height: 36px;
   margin: 0;
   padding: 0;
   background: #ffffff;
   border-top: 1px solid #f0f0f2;
-  border-bottom: 1px solid #f0f0f2;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -13,20 +12,22 @@
 .notice-marquee__viewport {
   width: 100%;
   overflow: hidden;
-  mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 12px), transparent 100%);
 }
 
 .notice-marquee__track {
   display: flex;
   align-items: center;
   width: max-content;
-  min-height: 34px;
+  min-height: 36px;
   will-change: transform;
+}
+
+.notice-marquee__track.is-animated {
   animation: notice-marquee-scroll linear infinite;
 }
 
-.notice-marquee__track:hover {
+.notice-marquee__track.is-animated:hover,
+.notice-marquee__track.is-animated:active {
   animation-play-state: paused;
 }
 
@@ -41,11 +42,12 @@
 
 .notice-marquee__item {
   flex: 0 0 auto;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   margin: 0;
-  padding: 7px 28px 7px 0;
+  padding: 8px var(--app-page-pad-x, 14px);
   border: none;
   background: transparent;
   color: #374151;
@@ -54,12 +56,10 @@
   letter-spacing: -0.02em;
   line-height: 1.2;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-}
-
-.notice-marquee__item:first-child {
-  padding-left: var(--app-page-pad-x, 14px);
 }
 
 .notice-marquee__item:active {
@@ -73,16 +73,35 @@
 }
 
 .notice-marquee__text {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
 }
 
-.map-page-head__row--notice {
-  padding: 0;
+/* MapTopBar: 검색(1) → 필터(2) → 공지(3) — DOM/CSS 순서 고정 */
+.map-page-head--geo-stack .map-page-head__row--primary {
+  order: 1;
+}
+
+.map-page-head--geo-stack .map-page-head__row--categories {
+  order: 2;
+}
+
+.map-page-head--geo-stack .map-page-head__row--notice {
+  order: 3;
+  flex: 0 0 auto;
   width: 100%;
 }
 
 .map-page-head__row--notice .notice-marquee {
   border-top: none;
+}
+
+.map-page-head--search .map-page-head__row--categories {
+  padding-bottom: 2px;
 }
 
 .map-page-head--search .map-page-head__row--categories + .map-page-head__row--notice {

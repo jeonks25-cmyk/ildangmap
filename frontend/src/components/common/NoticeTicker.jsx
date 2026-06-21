@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MAP_NOTICES,
@@ -37,16 +37,32 @@ function resolveNoticePath(notice) {
 }
 
 /**
- * 지도 상단 공지 — 필터탭 아래, 좌측 연속 Marquee · 터치 시 해당 공지 상세.
+ * 필터탭 바로 아래 — 한 줄씩 좌측 Marquee (약 8~12초/건).
  */
 export default function NoticeTicker({ items = MAP_NOTICES, secondsPerItem = NOTICE_MARQUEE_SECONDS_PER_ITEM }) {
   const navigate = useNavigate();
+  const viewportRef = useRef(null);
+  const [viewportWidth, setViewportWidth] = useState(0);
   const notices = useMemo(() => normalizeNotices(items), [items]);
+
+  useEffect(() => {
+    const node = viewportRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return undefined;
+
+    const observer = new ResizeObserver(([entry]) => {
+      setViewportWidth(Math.round(entry.contentRect.width));
+    });
+    observer.observe(node);
+    setViewportWidth(Math.round(node.getBoundingClientRect().width));
+
+    return () => observer.disconnect();
+  }, []);
 
   if (!notices.length) return null;
 
   const loopDurationSec = Math.max(8, notices.length * secondsPerItem);
-  const loopNotices = [...notices, ...notices];
+  const loopNotices = notices.length > 1 ? [...notices, ...notices] : notices;
+  const itemWidth = viewportWidth > 0 ? `${viewportWidth}px` : "100%";
 
   const handleOpen = (notice) => {
     navigate(resolveNoticePath(notice));
@@ -54,16 +70,17 @@ export default function NoticeTicker({ items = MAP_NOTICES, secondsPerItem = NOT
 
   return (
     <div className="notice-marquee" role="region" aria-label="공지">
-      <div className="notice-marquee__viewport" aria-live="polite">
+      <div className="notice-marquee__viewport" ref={viewportRef} aria-live="polite">
         <div
-          className="notice-marquee__track"
-          style={{ animationDuration: `${loopDurationSec}s` }}
+          className={`notice-marquee__track${notices.length > 1 ? " is-animated" : ""}`}
+          style={notices.length > 1 ? { animationDuration: `${loopDurationSec}s` } : undefined}
         >
           {loopNotices.map((notice, i) => (
             <button
               key={`${notice.key}-${i}`}
               type="button"
               className="notice-marquee__item"
+              style={{ flexBasis: itemWidth, width: itemWidth, maxWidth: itemWidth }}
               onClick={() => handleOpen(notice)}
               aria-label={`공지: ${notice.text}. 눌러서 자세히 보기`}
             >

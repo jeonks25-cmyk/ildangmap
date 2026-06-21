@@ -10,15 +10,12 @@ export const MAP_NOTICES = [
   {
     text: "잘못된 장소는 신고해주세요",
   },
-  {
-    text: "현장 정보는 자유게시판을 이용해주세요",
-  },
 ];
 
 /** @deprecated MAP_NOTICES 사용 */
 export const NOTICE_TICKER_ITEMS = MAP_NOTICES;
 
-/** 공지 1건당 약 8~12초 (marquee 속도) */
+/** 공지 1건당 약 10초 (8~12초 권장 범위) */
 export const NOTICE_MARQUEE_SECONDS_PER_ITEM = 10;
 
 export const NOTICE_TICKER_PATH = "/settings/news";

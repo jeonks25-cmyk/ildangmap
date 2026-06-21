@@ -16,6 +16,7 @@
 }
 
 .map-page-head--geo-stack .map-page-head__row--primary {
+  order: 1;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
@@ -31,11 +32,13 @@
 }
 
 .map-page-head--geo-stack .map-page-head__row--notice {
+  order: 3;
   flex: 0 0 auto;
   width: 100%;
 }
 
 .map-page-head--geo-stack .map-page-head__row--categories {
+  order: 2;
   padding: 0 0 8px;
 }
 

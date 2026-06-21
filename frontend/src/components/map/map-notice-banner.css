@@ -46,6 +46,6 @@
   padding: 0;
 }
 
-.map-page-head--search .map-page-head__row--notice + .map-page-head__row--categories {
-  padding-top: 4px;
+.map-page-head--search .map-page-head__row--categories + .map-page-head__row--notice {
+  padding-top: 0;
 }
