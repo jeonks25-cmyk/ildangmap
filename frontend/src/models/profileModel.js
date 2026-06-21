@@ -17,11 +17,14 @@ export function normalizeProfileFields(raw = {}) {
       ? Number(source.careerYears)
       : null;
   const desiredPay = Number.isFinite(Number(source.desiredPay)) && Number(source.desiredPay) > 0 ? Number(source.desiredPay) : null;
+  const birthYear =
+    Number.isFinite(Number(source.birthYear)) && Number(source.birthYear) > 1900 ? Number(source.birthYear) : null;
   const regions = normalizeActivityRegions(source.regions ?? source.region ?? source.residence);
   const region = getPrimaryRegion(regions);
 
   return {
     nickname: String(source.nickname || source.displayNickname || "").trim(),
+    birthYear,
     regions,
     region,
     craft: String(source.craft || "film").trim(),
@@ -56,6 +59,7 @@ export function profileToApiPayload(profile, profileMeta = {}) {
   const fields = normalizeProfileFields({ ...profile, intro: profileMeta?.intro });
   return {
     nickname: fields.nickname,
+    birthYear: fields.birthYear,
     regions: fields.regions,
     region: fields.region,
     craft: fields.craft,
