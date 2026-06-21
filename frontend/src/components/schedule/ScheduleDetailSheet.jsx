@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { getScheduleColorOption } from "../../constants/scheduleColors";
 import {
   entryKindLabel,
   formatEntryDateLabel,
   resolveEntryParticipantNames,
 } from "../../utils/scheduleEntryHelpers";
+import { resolveScheduleBriefingId } from "../../utils/scheduleFieldOpsStorage";
+import FieldScheduleNoticeBoard from "./FieldScheduleNoticeBoard";
+import "../../styles/field-schedule-detail.css";
 
 function formatDateKeyLabel(dateKey) {
   if (!dateKey) return "";
@@ -16,7 +19,7 @@ function formatDateKeyLabel(dateKey) {
 }
 
 /**
- * 일정 상세 바텀시트 — 조회 · 수정 · 공유 · 복사 · 삭제
+ * 일정 상세 바텀시트 — 조회 · 현장 게시판 · 수정 · 공유 · 복사 · 삭제
  */
 export default function ScheduleDetailSheet({
   open,
@@ -27,8 +30,13 @@ export default function ScheduleDetailSheet({
   onShare,
   onCopy,
   onDelete,
+  onToast,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const briefingId = useMemo(
+    () => (entry?.kind === "site" && entry?.schedule ? resolveScheduleBriefingId(entry.schedule) : ""),
+    [entry]
+  );
 
   if (!open || !entry) return null;
 
@@ -37,6 +45,7 @@ export default function ScheduleDetailSheet({
   const dateLabel = formatEntryDateLabel(entry);
   const siteName = entry.kind === "site" ? entry.address || entry.title : "";
   const memo = entry.memo || "";
+  const showSiteBoard = entry.kind === "site" && Boolean(briefingId);
 
   const handleClose = () => {
     setConfirmDelete(false);
@@ -100,6 +109,12 @@ export default function ScheduleDetailSheet({
             </>
           ) : null}
         </dl>
+
+        {showSiteBoard ? (
+          <div className="schedule-detail-sheet-panel__board">
+            <FieldScheduleNoticeBoard briefingId={briefingId} onToast={onToast} />
+          </div>
+        ) : null}
 
         {confirmDelete ? (
           <div className="schedule-detail-sheet-panel__confirm" role="alertdialog" aria-labelledby="schedule-delete-title">

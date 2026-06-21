@@ -253,6 +253,7 @@ export default function ScheduleMonthPage() {
         }}
         onCopy={ops.openEntryCopy}
         onDelete={ops.handleDeleteEntry}
+        onToast={ops.showAppToast}
       />
       <FloatingActionButton label="일정" aria-label="일정 추가" onClick={ops.openFieldScheduleComposer} />
     </div>

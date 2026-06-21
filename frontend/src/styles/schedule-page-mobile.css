@@ -4035,7 +4035,7 @@
 .schedule-detail-sheet-panel {
   position: relative;
   width: min(100%, 520px);
-  max-height: min(82vh, 640px);
+  max-height: min(88vh, 720px);
   overflow-y: auto;
   margin: 0 0 calc(var(--geo-tabbar-float-h, 56px) + env(safe-area-inset-bottom, 0px));
   padding: 8px 16px 16px;
@@ -4112,6 +4112,14 @@
 
 .schedule-detail-sheet-panel__memo {
   white-space: pre-wrap;
+}
+
+.schedule-detail-sheet-panel__board {
+  margin: 12px 0 4px;
+}
+
+.schedule-detail-sheet-panel__board .field-board {
+  margin: 0;
 }
 
 .schedule-detail-sheet-panel__actions {
