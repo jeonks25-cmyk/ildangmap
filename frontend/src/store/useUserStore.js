@@ -29,6 +29,7 @@ import {
 import { useUiStore } from "./useUiStore";
 import { validateNicknameInput } from "../utils/displayNickname";
 import { authDiag, authDiagStoreSnapshot } from "../utils/authDiag";
+import { ACTIVITY_REGIONS, normalizeActivityRegion } from "../constants/activityRegions";
 
 const STORE_KEY = "ildangmap_user_store_v1";
 
@@ -71,7 +72,7 @@ const USER_MODE_STORAGE_KEY = "user_mode_v1";
 const USER_PREFS_STORAGE_KEY = "user_map_prefs_v1";
 const VALID_CRAFTS = ["film", "wallpaper", "tile", "electric", "facility", "paint"];
 const VALID_ROLES = ["조공", "준기공", "기공", "오야지", "소비자", "전체"];
-const VALID_REGIONS = ["대전 서구", "대전 유성구", "대전 동구", "대전 중구", "세종", "청주", "전국"];
+const VALID_REGIONS = ACTIVITY_REGIONS;
 
 function createDefaultSession() {
   return {
@@ -110,6 +111,11 @@ function createDefaultProfile() {
     role: "기공",
     experienceYears: null,
     setupCompleted: false,
+    referredByUserId: null,
+    referredByContactId: null,
+    referredByGroupId: null,
+    inviteAppliedAt: null,
+    desiredPay: null,
   };
 }
 
@@ -250,10 +256,28 @@ function normalizeProfile(raw) {
     shellPersona,
     needsPersonaChoice: raw.needsPersonaChoice === true,
     trade: tradeStr,
-    region: typeof raw.region === "string" && VALID_REGIONS.includes(raw.region) ? raw.region : defaults.region,
+    region: normalizeActivityRegion(raw.region, defaults.region),
+    desiredPay: Number.isFinite(Number(raw.desiredPay))
+      ? Number(raw.desiredPay)
+      : Number.isFinite(Number(raw.basePay))
+        ? Number(raw.basePay)
+        : defaults.desiredPay,
     craft: VALID_CRAFTS.includes(raw.craft) ? raw.craft : defaults.craft,
     role: typeof raw.role === "string" && VALID_ROLES.includes(raw.role) ? raw.role : defaults.role,
     setupCompleted,
+    referredByUserId:
+      Number.isFinite(Number(raw.referredByUserId)) && Number(raw.referredByUserId) > 0
+        ? Number(raw.referredByUserId)
+        : defaults.referredByUserId,
+    referredByContactId:
+      typeof raw.referredByContactId === "string" && raw.referredByContactId.trim()
+        ? raw.referredByContactId.trim()
+        : defaults.referredByContactId,
+    referredByGroupId:
+      typeof raw.referredByGroupId === "string" && raw.referredByGroupId.trim()
+        ? raw.referredByGroupId.trim()
+        : defaults.referredByGroupId,
+    inviteAppliedAt: typeof raw.inviteAppliedAt === "string" ? raw.inviteAppliedAt : defaults.inviteAppliedAt,
   };
 }
 
@@ -734,6 +758,49 @@ export const useUserStore = create(
             ...state.profile,
             ...(typeof patch === "function" ? patch(state.profile) : patch),
           }),
+        })),
+
+      /** MVP — 프로필 상세(출생년도·지역·직종·희망일당) localStorage 저장 */
+      saveLocalProfileDetails: (patch = {}) =>
+        set((state) => ({
+          profile: normalizeProfile({
+            ...state.profile,
+            ...patch,
+            region: patch.region != null ? normalizeActivityRegion(patch.region, state.profile.region) : state.profile.region,
+            residence:
+              patch.residence != null
+                ? String(patch.residence).trim()
+                : patch.region != null
+                  ? normalizeActivityRegion(patch.region, state.profile.region)
+                  : state.profile.residence,
+            birthYear:
+              patch.birthYear != null
+                ? Number.isFinite(Number(patch.birthYear)) && Number(patch.birthYear) > 1900
+                  ? Number(patch.birthYear)
+                  : null
+                : state.profile.birthYear,
+            desiredPay:
+              patch.desiredPay != null
+                ? Number.isFinite(Number(patch.desiredPay)) && Number(patch.desiredPay) > 0
+                  ? Number(patch.desiredPay)
+                  : null
+                : state.profile.desiredPay,
+          }),
+          prefs: normalizePrefs({
+            ...state.prefs,
+            regionLabel:
+              patch.region != null ? normalizeActivityRegion(patch.region, state.prefs.regionLabel) : state.prefs.regionLabel,
+            craft: patch.craft != null ? patch.craft : state.prefs.craft,
+            trade: patch.role != null ? patch.role : patch.trade != null ? patch.trade : state.prefs.trade,
+          }),
+        })),
+
+      setProfileMeta: (patch) =>
+        set((state) => ({
+          profileMeta: {
+            ...(state.profileMeta && typeof state.profileMeta === "object" ? state.profileMeta : createDefaultProfileMeta()),
+            ...(typeof patch === "function" ? patch(state.profileMeta) : patch),
+          },
         })),
 
       completeNicknameSetup: async (nextNickname) => {

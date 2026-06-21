@@ -2,17 +2,20 @@ import React, { useEffect } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import useAppBootstrap from "../../hooks/useAppBootstrap";
+import useInviteReferralSync from "../../hooks/useInviteReferralSync";
 import { useUserStore } from "../../store/useUserStore";
 import { useUiStore } from "../../store/useUiStore";
 import MainTabBar from "../navigation/MainTabBar";
 import NicknameSetupGate from "../onboarding/NicknameSetupGate";
 import LoginPromptSheet from "../auth/LoginPromptSheet";
 import AppToast from "../ui/AppToast";
+import PwaInstallBanner from "../pwa/PwaInstallBanner";
 import { bootstrapSessionFromToken } from "../../api/authApi";
 import { authDiag, authDiagStoreSnapshot } from "../../utils/authDiag";
 
 export default function AppShell() {
   useAppBootstrap();
+  useInviteReferralSync();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -70,6 +73,7 @@ export default function AppShell() {
         <Outlet />
       </main>
       {hideBottomNav ? null : <MainTabBar />}
+      <PwaInstallBanner hasBottomNav={!hideBottomNav} />
       <AppToast />
       <LoginPromptSheet />
       {nicknameGateVisible ? <NicknameSetupGate /> : null}

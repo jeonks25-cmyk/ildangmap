@@ -1,17 +1,24 @@
 /**
- * 미가입자 초대 링크/문구 생성 (P1).
- * 현재는 mock 도메인. 가입 후 ref(=초대한 오야지 userId)로 내 팀 연결을 잇기 위한 파라미터만 담는다.
- * 신규 데이터 모델 없음 — 순수 함수.
+ * 공개 앱 URL (초대 링크·OG 등).
+ * REACT_APP_PUBLIC_URL 우선, 없으면 런타임 origin, SSR/빌드 시 Vercel 기본값.
  */
-const INVITE_BASE_URL = "https://app.ildangmap.com/invite";
+export function getPublicAppOrigin() {
+  const fromEnv = String(process.env.REACT_APP_PUBLIC_URL || "").trim().replace(/\/$/, "");
+  if (fromEnv) return fromEnv;
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return String(window.location.origin).replace(/\/$/, "");
+  }
+  return "https://ildangmap.vercel.app";
+}
 
 export function buildInviteLink({ ref, contactId, groupId } = {}) {
+  const base = `${getPublicAppOrigin()}/invite`;
   const params = new URLSearchParams();
   if (ref != null && String(ref).trim() !== "") params.set("ref", String(ref));
   if (contactId != null && String(contactId).trim() !== "") params.set("contact", String(contactId));
   if (groupId) params.set("group", String(groupId));
   const qs = params.toString();
-  return qs ? `${INVITE_BASE_URL}?${qs}` : INVITE_BASE_URL;
+  return qs ? `${base}?${qs}` : base;
 }
 
 function formatInviterName(name) {
@@ -42,7 +49,7 @@ export function buildInviteMessageBody({ inviterName, link, includeLink = true }
 }
 
 /**
- * 문자/SNS/카카오톡 공유용 — 동일 문구, 링크 1회만.
+ * 문자/SNS/카카오톡/링크 복사 공통 — 동일 문구·동일 URL.
  * Web Share API는 text(링크 제외) + url 로 전달해 카카오톡 등에서 중복을 방지한다.
  */
 export function buildInviteSharePayload({ link, inviterName, ref, contactId, groupId } = {}) {
@@ -54,6 +61,7 @@ export function buildInviteSharePayload({ link, inviterName, ref, contactId, gro
     text,
     url: resolvedLink,
     fullText,
+    link: resolvedLink,
   };
 }
 

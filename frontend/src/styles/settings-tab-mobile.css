@@ -39,6 +39,32 @@
   box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04);
 }
 
+button.settings-profile-banner--action {
+  border: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button.settings-profile-banner--action:active {
+  background: #fafafa;
+}
+
+.settings-profile-banner__hint {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9ca3af;
+}
+
+.settings-profile-banner__chev {
+  flex-shrink: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #d1d5db;
+  line-height: 1;
+}
+
 .settings-profile-banner__avatar {
   width: 48px;
   height: 48px;
@@ -673,4 +699,83 @@ button.settings-menu-row--action:active {
 .settings-nickname__save:disabled {
   background: #e5e7eb;
   color: #9ca3af;
+}
+
+/* ─── 프로필 수정 ─── */
+.profile-edit-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px var(--app-page-pad-x, 16px) 8px;
+}
+
+.profile-edit-header__back {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 20px;
+  line-height: 1;
+  color: #111827;
+  cursor: pointer;
+}
+
+.profile-edit-header__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.profile-edit-page {
+  padding-bottom: 24px;
+}
+
+.profile-edit-section {
+  margin: 0 var(--app-page-pad-x, 16px) 14px;
+}
+
+.profile-edit-section .settings-prefs__label {
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.profile-edit-role-chips {
+  margin-top: 8px;
+}
+
+.profile-edit-pay-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-edit-pay-row__input {
+  flex: 1 1 auto;
+}
+
+.profile-edit-pay-row__unit {
+  flex-shrink: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #374151;
+}
+
+.profile-edit-intro {
+  width: 100%;
+  min-height: 96px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #111827;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.profile-edit-save-wrap {
+  margin: 8px var(--app-page-pad-x, 16px) 0;
 }

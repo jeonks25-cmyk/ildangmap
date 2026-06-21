@@ -33,6 +33,8 @@ export default function ContactsTabPage() {
   const favoriteById = useContactsStore((s) => s.favoriteById);
   const memoById = useContactsStore((s) => s.memoById);
   const addedContacts = useContactsStore((s) => s.addedContacts);
+  const contactOverridesById = useContactsStore((s) => s.contactOverridesById);
+  const removedContactIds = useContactsStore((s) => s.removedContactIds);
   const toggleFavorite = useContactsStore((s) => s.toggleFavorite);
   const groups = useContactsStore((s) => s.groups);
   const memberIdsByGroup = useContactsStore((s) => s.memberIdsByGroup);
@@ -46,10 +48,10 @@ export default function ContactsTabPage() {
 
   const contacts = useMemo(
     () =>
-      buildContactsList(favoriteById, memoById, addedContacts).map((c) =>
+      buildContactsList(favoriteById, memoById, addedContacts, contactOverridesById, removedContactIds).map((c) =>
         enrichContactTeam(c, prefs?.regionLabel)
       ),
-    [favoriteById, memoById, addedContacts, prefs?.regionLabel]
+    [favoriteById, memoById, addedContacts, contactOverridesById, removedContactIds, prefs?.regionLabel]
   );
 
   const [query, setQuery] = useState("");

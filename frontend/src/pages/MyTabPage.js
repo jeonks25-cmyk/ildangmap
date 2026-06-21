@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { isDevLoginShortcutEnabled, isMockApiEnabled } from "../api/client";
+import { fetchFeedbackAdminAccess } from "../api/feedbackApi";
 import { useAuth } from "../context/AuthContext";
 import { useJobs } from "../context/JobsContext";
 import { useUiStore } from "../store/useUiStore";
@@ -11,11 +13,12 @@ import SettingsProfileBanner from "../components/settings/SettingsProfileBanner"
 import AppTabHeader from "../components/layout/AppTabHeader";
 import MapNotificationOverlay from "../components/map/MapNotificationOverlay";
 import { useTabNotificationOverlay } from "../hooks/useTabNotificationOverlay";
-import { SETTINGS_MENU_SECTIONS, SETTINGS_SUPPORT_EMAIL, SETTINGS_APP_VERSION } from "../constants/settingsMenuMock";
+import { SETTINGS_MENU_SECTIONS, SETTINGS_SUPPORT_EMAIL, SETTINGS_APP_VERSION, BETA_FEEDBACK_ADMIN_MENU_ITEM } from "../constants/settingsMenuMock";
 import { getDisplayNickname } from "../utils/displayNickname";
 import "../styles/settings-tab-mobile.css";
 
 export default function MyTabPage() {
+  const navigate = useNavigate();
   const overlay = useTabNotificationOverlay();
   const { authUser, isAuthenticated, authReady, meVerified, loginWithKakaoMock, startKakaoOAuthLogin, logout, meBootstrapLoading } =
     useAuth();
@@ -24,6 +27,36 @@ export default function MyTabPage() {
   const { jobs, setJobs } = useJobs();
   const showAppToast = useUiStore((state) => state.showAppToast);
   const [kakaoBusy, setKakaoBusy] = useState(false);
+  const [isFeedbackAdmin, setIsFeedbackAdmin] = useState(false);
+
+  const menuSections = useMemo(() => {
+    if (!isFeedbackAdmin) return SETTINGS_MENU_SECTIONS;
+    return SETTINGS_MENU_SECTIONS.map((section) => {
+      if (section.id !== "beta") return section;
+      return {
+        ...section,
+        items: [...section.items, BETA_FEEDBACK_ADMIN_MENU_ITEM],
+      };
+    });
+  }, [isFeedbackAdmin]);
+
+  useEffect(() => {
+    if (!isAuthenticated || isMockApiEnabled()) {
+      setIsFeedbackAdmin(isMockApiEnabled());
+      return;
+    }
+    let cancelled = false;
+    fetchFeedbackAdminAccess()
+      .then((result) => {
+        if (!cancelled) setIsFeedbackAdmin(Boolean(result?.admin));
+      })
+      .catch(() => {
+        if (!cancelled) setIsFeedbackAdmin(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const displayName = getDisplayNickname(profile, authUser);
   const displayImage = profile?.profileImage || authUser?.profileImage;
@@ -74,6 +107,9 @@ export default function MyTabPage() {
   const handleMenuItemClick = useCallback(
     (item) => {
       switch (item.action) {
+        case "route":
+          navigate(item.path);
+          break;
         case "email":
           window.location.href = `mailto:${SETTINGS_SUPPORT_EMAIL}`;
           break;
@@ -84,7 +120,7 @@ export default function MyTabPage() {
           break;
       }
     },
-    [showAppToast]
+    [navigate, showAppToast]
   );
 
   return (
@@ -127,7 +163,7 @@ export default function MyTabPage() {
         ) : null}
 
         <div className="settings-menu-hub">
-          {SETTINGS_MENU_SECTIONS.map((section) => (
+          {menuSections.map((section) => (
             <SettingsMenuSection
               key={section.id}
               title={section.title}

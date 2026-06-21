@@ -1,0 +1,141 @@
+.pwa-install-banner {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+  z-index: 1150;
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #111827;
+  color: #f9fafb;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+}
+
+.pwa-install-banner__text {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.pwa-install-banner__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.pwa-install-banner__guide {
+  min-height: 38px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--ildang-brand, #f97316);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pwa-install-banner__dismiss {
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.pwa-install-guide__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.pwa-install-guide {
+  width: min(100%, 520px);
+  max-height: 88vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.pwa-install-guide__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pwa-install-guide__head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.pwa-install-guide__close {
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  border-radius: 999px;
+  background: #f3f4f6;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.pwa-install-guide__lead {
+  margin: 10px 0 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.pwa-install-guide__steps {
+  margin: 14px 0 0;
+  padding-left: 1.2rem;
+  color: #111827;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.pwa-install-guide__steps li + li {
+  margin-top: 8px;
+}
+
+.pwa-install-guide__note {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+  word-break: break-all;
+}
+
+.pwa-install-guide__ok {
+  width: 100%;
+  margin-top: 16px;
+  min-height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: var(--ildang-brand, #f97316);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pwa-install-banner--no-tab {
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (display-mode: standalone) {
+  .pwa-install-banner {
+    display: none;
+  }
+}

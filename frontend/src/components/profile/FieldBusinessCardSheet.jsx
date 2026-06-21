@@ -21,11 +21,13 @@ export default function FieldBusinessCardSheet({
   coworkHistoryEntries = [],
   isUnregistered = false,
   onClose,
+  onEdit,
   onCall,
   onKakao,
   onInvite,
   onSmsInvite,
   onKakaoInvite,
+  onCopyInvite,
 }) {
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -38,9 +40,10 @@ export default function FieldBusinessCardSheet({
   const residence = p.residence || "지역 미입력";
   const craftCareerLine = formatCraftCareerLine(p);
   const payLine = formatPersonDailyPayLabel(p.basePay);
+  const headline = person.displayName || p.name;
 
   return createPortal(
-    <div className="field-card-sheet field-card-sheet--person-detail" role="dialog" aria-modal="true" aria-label={`${p.name} 인원 상세`}>
+    <div className="field-card-sheet field-card-sheet--person-detail" role="dialog" aria-modal="true" aria-label={`${headline} 인원 상세`}>
       <button type="button" className="field-card-sheet__backdrop" aria-label="닫기" onClick={onClose} />
       <div className="field-card-sheet__panel">
         <div className="field-card-sheet__grab" aria-hidden="true" />
@@ -50,11 +53,17 @@ export default function FieldBusinessCardSheet({
 
         <div className="field-card-sheet__scroll">
           <header className="person-detail-head">
-            <h2 className="person-detail-head__name">{p.name}</h2>
+            <div className="person-detail-head__row">
+              <h2 className="person-detail-head__name">{headline}</h2>
+              <button type="button" className="person-detail-head__edit" onClick={() => onEdit?.()} aria-label="정보 수정">
+                수정
+              </button>
+            </div>
             {birthLabel ? <p className="person-detail-head__birth">{birthLabel}</p> : null}
             <p className="person-detail-head__region">{residence}</p>
             {craftCareerLine ? <p className="person-detail-head__craft">{craftCareerLine}</p> : null}
             {payLine ? <p className="person-detail-head__pay">{payLine}</p> : null}
+            {person.memo ? <p className="person-detail-head__memo">{person.memo}</p> : null}
           </header>
 
           {isUnregistered ? (
@@ -86,6 +95,9 @@ export default function FieldBusinessCardSheet({
               onClick={() => onKakaoInvite?.()}
             >
               카카오톡 초대
+            </button>
+            <button type="button" className="field-card-sheet__act" onClick={() => onCopyInvite?.()}>
+              링크 복사
             </button>
           </div>
         ) : (

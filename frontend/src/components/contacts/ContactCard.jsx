@@ -1,5 +1,8 @@
 import React, { useCallback } from "react";
-import { buildPersonLines } from "../../utils/fieldProfileCard";
+import {
+  formatContactListMetaLine,
+  getContactDisplayName,
+} from "../../utils/fieldContactsMock";
 import { usePersonCard } from "../../context/PersonCardContext";
 
 const NONE_OUTLOOK = { state: "none", dot: "⚫", label: "일정 미공유" };
@@ -30,22 +33,25 @@ function ContactCardInner({ contact, outlook, onToggleFavoriteById }) {
 
   if (!contact) return null;
 
-  const identityLine = buildPersonLines(contact, "invite").lines.join(" · ");
+  const displayName = getContactDisplayName(contact);
+  const metaLine = formatContactListMetaLine(contact);
   const status = outlook || NONE_OUTLOOK;
 
   return (
     <div className="contact-board-row" role="listitem">
       <button
         type="button"
-        className="contact-board-row__main"
+        className="contact-board-row__main contact-board-row__main--stacked"
         onClick={onMainClick}
-        aria-label={`${contact.name} 일정 보기`}
+        aria-label={`${displayName} 일정 보기`}
       >
-        <span className="contact-board-row__name">{contact.name}</span>
-        {identityLine ? <span className="contact-board-row__sub">{identityLine}</span> : null}
-        <span className={`contact-board-row__status contact-board-row__status--${status.state}`}>
-          {status.dot} {status.label}
+        <span className="contact-board-row__top">
+          <span className="contact-board-row__name">{displayName}</span>
+          <span className={`contact-board-row__status contact-board-row__status--${status.state}`}>
+            {status.dot} {status.label}
+          </span>
         </span>
+        {metaLine ? <span className="contact-board-row__sub">{metaLine}</span> : null}
       </button>
 
       <button
@@ -68,8 +74,10 @@ function contactVisualEqual(a, b) {
     a.id === b.id &&
     a.favorite === b.favorite &&
     a.name === b.name &&
+    a.nickname === b.nickname &&
     a.birthYear === b.birthYear &&
-    a.homeRegion === b.homeRegion
+    a.homeRegion === b.homeRegion &&
+    a.basePay === b.basePay
   );
 }
 

@@ -1,20 +1,21 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { buildContactsList, useContactsStore } from "../store/useContactsStore";
-import { contactStableUserId, isUnregisteredContact } from "../utils/fieldContactsMock";
+import { contactStableUserId, getContactDisplayName, isUnregisteredContact } from "../utils/fieldContactsMock";
 import { resolveScheduleOwnerId } from "../store/useFieldScheduleStore";
 import { useChatStore } from "../store/useChatStore";
 import { useUiStore } from "../store/useUiStore";
 import { useUserStore } from "../store/useUserStore";
 import { loadStoredJobs } from "../utils/jobsStorage";
 import { getDisplayNickname } from "../utils/displayNickname";
-import { buildInviteLink, buildInviteSharePayload, buildSmsHref } from "../utils/inviteLink";
+import { buildInviteSharePayload, buildSmsHref } from "../utils/inviteLink";
 import {
   CONTACT_QUICK_MODE,
   quickActionToastMessage,
   quickContactSiteAction,
 } from "../utils/contactQuickAction";
 import FieldBusinessCardSheet from "../components/profile/FieldBusinessCardSheet";
+import ContactEditSheet from "../components/contacts/ContactEditSheet";
 import ContactSiteShareSheet from "../components/contacts/ContactSiteShareSheet";
 import {
   deriveCoworkStats,
@@ -59,6 +60,7 @@ function resolvePerson(src, contacts, coworkHistory = []) {
   const person = {
     id: firstValue(match?.id, rawContactId, rawUserId),
     name: firstValue(rawName, base.name) || "이름 미입력",
+    displayName: getContactDisplayName(match || { name: rawName, nickname: src.nickname }),
     birthYear: firstValue(rawBirth, base.birthYear) ?? null,
     residence: firstValue(rawResidence, base.homeRegion) || "",
     craft: firstValue(src.craft, base.trade) || "",
@@ -67,6 +69,7 @@ function resolvePerson(src, contacts, coworkHistory = []) {
     careerYears: firstValue(src.careerYears, src.experienceYears, base.experienceYears) ?? null,
     basePay: firstValue(src.basePay, base.basePay) ?? null,
     photo: firstValue(src.photo, src.profileImage, src.authorImageUrl, base.profileImage) || "",
+    memo: String(match?.memo || src.memo || "").trim(),
   };
 
   let coworkCount = null;
@@ -90,23 +93,35 @@ export function PersonCardProvider({ children }) {
   const favoriteById = useContactsStore((s) => s.favoriteById);
   const memoById = useContactsStore((s) => s.memoById);
   const addedContacts = useContactsStore((s) => s.addedContacts);
+  const contactOverridesById = useContactsStore((s) => s.contactOverridesById);
+  const removedContactIds = useContactsStore((s) => s.removedContactIds);
   const coworkHistory = useContactsStore((s) => s.coworkHistory);
   const myUserId = useUserStore((s) => s.session?.userId ?? s.profile?.userId ?? 1);
   const profile = useUserStore((s) => s.profile);
   const sessionUser = useUserStore((s) => s.session?.user);
   const myDisplayName = useMemo(() => getDisplayNickname(profile, sessionUser), [profile, sessionUser]);
+  const updateContactFields = useContactsStore((s) => s.updateContactFields);
+  const setMemo = useContactsStore((s) => s.setMemo);
+  const deleteContact = useContactsStore((s) => s.deleteContact);
   const [card, setCard] = useState(null);
   const [inviteContact, setInviteContact] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const shareableJobs = useMemo(() => loadStoredJobs().filter(Boolean), []);
 
   const openPersonCard = useCallback(
     (src) => {
       if (!src) return;
-      const contacts = buildContactsList(favoriteById, memoById, addedContacts);
+      const contacts = buildContactsList(
+        favoriteById,
+        memoById,
+        addedContacts,
+        contactOverridesById,
+        removedContactIds
+      );
       setCard(resolvePerson(src, contacts, coworkHistory));
     },
-    [favoriteById, memoById, addedContacts, coworkHistory]
+    [favoriteById, memoById, addedContacts, contactOverridesById, removedContactIds, coworkHistory]
   );
 
   const handleCall = useCallback(() => {
@@ -149,33 +164,80 @@ export function PersonCardProvider({ children }) {
     [navigate]
   );
 
-  // 미가입자 초대 — 문자(sms:) / 공유(navigator.share) → 미지원 시 링크 복사
+  const buildInvitePayloadForContact = useCallback(
+    (contact) => {
+      return buildInviteSharePayload({
+        ref: myUserId,
+        contactId: contact?.id,
+        inviterName: myDisplayName,
+      });
+    },
+    [myDisplayName, myUserId]
+  );
+
+  // 미가입자 초대 — 문자(sms:) / 공유(navigator.share) / 링크 복사 (동일 URL·문구)
   const handleSmsInvite = useCallback(() => {
     const contact = card?.contact;
-    const link = buildInviteLink({ ref: myUserId, contactId: contact?.id });
-    const { fullText } = buildInviteSharePayload({ link, inviterName: myDisplayName });
+    const { fullText } = buildInvitePayloadForContact(contact);
     window.location.href = buildSmsHref({ phone: contact?.phone, body: fullText });
     useUiStore.getState().showAppToast("문자 초대를 준비했습니다");
-  }, [card, myDisplayName, myUserId]);
+  }, [buildInvitePayloadForContact, card]);
 
-  const handleKakaoInvite = useCallback(async () => {
-    const link = buildInviteLink({ ref: myUserId, contactId: card?.contact?.id });
-    const { title, text, url, fullText } = buildInviteSharePayload({ link, inviterName: myDisplayName });
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({ title, text, url });
-        return;
-      } catch (_) {
-        return; // 사용자가 공유 취소 — 복사 폴백 생략
-      }
-    }
+  const handleCopyInvite = useCallback(async () => {
+    const { fullText } = buildInvitePayloadForContact(card?.contact);
     try {
       await navigator.clipboard.writeText(fullText);
       useUiStore.getState().showAppToast("초대 메시지를 복사했습니다");
     } catch (_) {
       useUiStore.getState().showAppToast(fullText);
     }
-  }, [card, myDisplayName, myUserId]);
+  }, [buildInvitePayloadForContact, card]);
+
+  const handleKakaoInvite = useCallback(async () => {
+    const { title, text, url } = buildInvitePayloadForContact(card?.contact);
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title, text, url });
+        return;
+      } catch (_) {
+        return;
+      }
+    }
+    await handleCopyInvite();
+  }, [buildInvitePayloadForContact, card, handleCopyInvite]);
+
+  const handleEdit = useCallback(() => {
+    if (!card?.contact) {
+      useUiStore.getState().showAppToast("수정할 연락처가 없습니다");
+      return;
+    }
+    setEditOpen(true);
+  }, [card]);
+
+  const handleSaveEdit = useCallback(
+    (patch) => {
+      const contact = card?.contact;
+      if (!contact?.id) return;
+      updateContactFields(contact.id, {
+        phone: patch.phone,
+        homeRegion: patch.homeRegion,
+      });
+      setMemo(contact.id, patch.memo);
+      setEditOpen(false);
+      setCard(null);
+      useUiStore.getState().showAppToast("인원 정보를 저장했습니다");
+    },
+    [card, updateContactFields, setMemo]
+  );
+
+  const handleDeleteContact = useCallback(() => {
+    const contact = card?.contact;
+    if (!contact?.id) return;
+    deleteContact(contact.id);
+    setEditOpen(false);
+    setCard(null);
+    useUiStore.getState().showAppToast("목록에서 삭제했습니다");
+  }, [card, deleteContact]);
 
   const isUnregistered = isUnregisteredContact(card?.contact);
 
@@ -205,11 +267,20 @@ export function PersonCardProvider({ children }) {
         coworkHistoryEntries={card?.coworkHistoryEntries}
         isUnregistered={isUnregistered}
         onClose={() => setCard(null)}
+        onEdit={handleEdit}
         onCall={handleCall}
         onKakao={handleKakao}
         onInvite={handleInvite}
         onSmsInvite={handleSmsInvite}
         onKakaoInvite={handleKakaoInvite}
+        onCopyInvite={handleCopyInvite}
+      />
+      <ContactEditSheet
+        open={editOpen && Boolean(card?.contact)}
+        contact={card?.contact}
+        onClose={() => setEditOpen(false)}
+        onSave={handleSaveEdit}
+        onDelete={handleDeleteContact}
       />
       <ContactSiteShareSheet
         open={Boolean(inviteContact)}

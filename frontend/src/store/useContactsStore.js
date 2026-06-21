@@ -3,16 +3,43 @@ import { persist } from "zustand/middleware";
 import { FIELD_CONTACTS_MOCK, normalizeFieldContact } from "../utils/fieldContactsMock";
 import { createSafeJsonStorage, pickPersistedStoreState } from "./storeUtils";
 import { applyCoworkFromEndedSchedules, deriveCoworkStats, listCoworkHistoryForContact } from "../utils/coworkHistoryModel";
+import { normalizeActivityRegion } from "../constants/activityRegions";
 
 const STORE_KEY = "ildangmap_contacts_store_v1";
 
-export function buildContactsList(favoriteById = {}, memoById = {}, addedContacts = []) {
-  const overlay = (raw) =>
-    normalizeFieldContact(raw, {
-      favorite: favoriteById[raw.id] ?? raw.favorite,
-      memo: memoById[raw.id] ?? raw.memo,
+function applyContactOverride(raw, overrides = {}) {
+  if (!overrides || typeof overrides !== "object") return raw;
+  const next = { ...raw, ...overrides, id: raw.id };
+  if (overrides.homeRegion != null || overrides.region != null) {
+    next.homeRegion = normalizeActivityRegion(overrides.homeRegion || overrides.region, raw.homeRegion || raw.region);
+  }
+  if (overrides.basePay != null) {
+    const pay = Number(overrides.basePay);
+    next.basePay = Number.isFinite(pay) && pay > 0 ? pay : raw.basePay;
+  }
+  if (overrides.birthYear != null) {
+    const year = Number(overrides.birthYear);
+    next.birthYear = Number.isFinite(year) && year > 1900 ? year : raw.birthYear;
+  }
+  return next;
+}
+
+export function buildContactsList(
+  favoriteById = {},
+  memoById = {},
+  addedContacts = [],
+  contactOverridesById = {},
+  removedContactIds = []
+) {
+  const removed = new Set((removedContactIds || []).map(String));
+  const overlay = (raw) => {
+    const merged = applyContactOverride(raw, contactOverridesById[raw.id]);
+    return normalizeFieldContact(merged, {
+      favorite: favoriteById[raw.id] ?? merged.favorite,
+      memo: memoById[raw.id] ?? merged.memo,
     });
-  const base = FIELD_CONTACTS_MOCK.map(overlay);
+  };
+  const base = FIELD_CONTACTS_MOCK.filter((raw) => !removed.has(String(raw.id))).map(overlay);
   const added = (Array.isArray(addedContacts) ? addedContacts : []).map(overlay);
   return [...base, ...added].filter(Boolean);
 }
@@ -22,6 +49,10 @@ export const useContactsStore = create(
     (set, get) => ({
       favoriteById: {},
       memoById: {},
+      /** mock 연락처 편집 오버레이 */
+      contactOverridesById: {},
+      /** mock 연락처 삭제(숨김) */
+      removedContactIds: [],
 
       // 사용자 정의 그룹(인력 운영 보드). 공정 하드코딩 없음 — 모두 사용자 생성.
       groups: [], // { id, name, sortOrder, createdAt, tradeHint? }
@@ -35,12 +66,25 @@ export const useContactsStore = create(
       // 사용자가 직접 추가한 사람(수동 입력 + 일당맵 가입자). 기존 목 위에 합쳐 표시.
       addedContacts: [], // { id, name, phone, trade, homeRegion, birthYear, userId, source, createdAt }
 
-      getContacts: () => buildContactsList(get().favoriteById, get().memoById, get().addedContacts),
+      getContacts: () =>
+        buildContactsList(
+          get().favoriteById,
+          get().memoById,
+          get().addedContacts,
+          get().contactOverridesById,
+          get().removedContactIds
+        ),
 
       toggleFavorite: (contactId) => {
         const id = String(contactId);
         set((state) => {
-          const list = buildContactsList(state.favoriteById, state.memoById);
+          const list = buildContactsList(
+            state.favoriteById,
+            state.memoById,
+            state.addedContacts,
+            state.contactOverridesById,
+            state.removedContactIds
+          );
           const current = list.find((c) => c.id === id);
           const nextVal = !(current?.favorite ?? false);
           return {
@@ -80,12 +124,83 @@ export const useContactsStore = create(
       },
 
       updateContact: (contactId, patch = {}) => {
+        get().updateContactFields(contactId, patch);
+      },
+
+      /** mock·추가 연락처 공통 필드 수정 */
+      updateContactFields: (contactId, patch = {}) => {
         const id = String(contactId);
-        set((state) => ({
-          addedContacts: state.addedContacts.map((c) =>
-            c.id === id ? { ...c, ...patch, id: c.id } : c
-          ),
-        }));
+        if (!id) return;
+        const clean = { ...patch };
+        if (clean.homeRegion != null || clean.region != null) {
+          clean.homeRegion = normalizeActivityRegion(clean.homeRegion || clean.region);
+          delete clean.region;
+        }
+        if (clean.phone != null) clean.phone = String(clean.phone).trim();
+        if (clean.nickname != null) clean.nickname = String(clean.nickname).trim();
+        if (clean.name != null) clean.name = String(clean.name).trim();
+        if (clean.basePay != null) {
+          const pay = Number(String(clean.basePay).replace(/[^\d]/g, ""));
+          clean.basePay = Number.isFinite(pay) && pay > 0 ? pay : null;
+        }
+        if (clean.birthYear != null) {
+          const year = Number(String(clean.birthYear).replace(/[^\d]/g, ""));
+          clean.birthYear = Number.isFinite(year) && year > 1900 ? year : null;
+        }
+
+        set((state) => {
+          const isAdded = state.addedContacts.some((c) => c.id === id);
+          if (isAdded) {
+            return {
+              addedContacts: state.addedContacts.map((c) => (c.id === id ? { ...c, ...clean, id: c.id } : c)),
+            };
+          }
+          return {
+            contactOverridesById: {
+              ...state.contactOverridesById,
+              [id]: { ...(state.contactOverridesById[id] || {}), ...clean },
+            },
+          };
+        });
+      },
+
+      deleteContact: (contactId) => {
+        const id = String(contactId);
+        if (!id) return;
+        set((state) => {
+          const isAdded = state.addedContacts.some((c) => c.id === id);
+          const nextMembers = {};
+          Object.keys(state.memberIdsByGroup).forEach((gid) => {
+            nextMembers[gid] = (state.memberIdsByGroup[gid] || []).filter((cid) => cid !== id);
+          });
+          const nextFavorite = { ...state.favoriteById };
+          delete nextFavorite[id];
+          const nextMemo = { ...state.memoById };
+          delete nextMemo[id];
+          const nextOverrides = { ...state.contactOverridesById };
+          delete nextOverrides[id];
+
+          if (isAdded) {
+            return {
+              addedContacts: state.addedContacts.filter((c) => c.id !== id),
+              memberIdsByGroup: nextMembers,
+              favoriteById: nextFavorite,
+              memoById: nextMemo,
+              contactOverridesById: nextOverrides,
+            };
+          }
+
+          const removed = state.removedContactIds.includes(id)
+            ? state.removedContactIds
+            : [...state.removedContactIds, id];
+          return {
+            removedContactIds: removed,
+            memberIdsByGroup: nextMembers,
+            favoriteById: nextFavorite,
+            memoById: nextMemo,
+            contactOverridesById: nextOverrides,
+          };
+        });
       },
 
       /**
@@ -245,6 +360,8 @@ export const useContactsStore = create(
         pickPersistedStoreState(state, [
           "favoriteById",
           "memoById",
+          "contactOverridesById",
+          "removedContactIds",
           "groups",
           "memberIdsByGroup",
           "addedContacts",

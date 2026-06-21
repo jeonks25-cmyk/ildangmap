@@ -22,6 +22,7 @@ const FIELD_CONTACTS_FULL = [
   {
     id: "ct-1",
     name: "김기공",
+    nickname: "필름기공92",
     userId: 101,
     birthYear: 1992,
     gender: "남",
@@ -38,6 +39,7 @@ const FIELD_CONTACTS_FULL = [
   {
     id: "ct-2",
     name: "박조공",
+    nickname: "도배반장92",
     userId: 102,
     birthYear: 1992,
     gender: "남",
@@ -187,6 +189,7 @@ export function normalizeFieldContact(raw, overrides = {}) {
     scheduleOwnerId: String(raw.scheduleOwnerId || raw.id),
     userId: Number.isFinite(Number(raw.userId)) ? Number(raw.userId) : null,
     source: raw.source || null,
+    nickname: String(raw.nickname || "").trim(),
     name: String(raw.name || "이름없음"),
     birthYear: Number.isFinite(Number(raw.birthYear)) ? Number(raw.birthYear) : null,
     gender: String(raw.gender || "").trim() || "—",
@@ -287,8 +290,31 @@ export function getContactRecentWorkAt(contact) {
   return contactHasRecentWork(contact) ? 1 : 0;
 }
 
+export function getContactDisplayName(contact) {
+  return String(contact?.nickname || contact?.name || "").trim() || "이름없음";
+}
+
+export function formatContactDesiredPay(contact) {
+  const pay = Number(contact?.basePay);
+  if (!Number.isFinite(pay) || pay <= 0) return "";
+  return `희망 ${pay}만`;
+}
+
+export function formatContactListMetaLine(contact) {
+  const age = contact.birthYear ? `${String(contact.birthYear).slice(-2)}년생` : "";
+  const region = String(contact.homeRegion || "").trim();
+  const pay = formatContactDesiredPay(contact);
+  return [age, region, pay].filter(Boolean).join(" · ");
+}
+
 export function getContactSearchBlob(contact) {
-  return [contact.name, contact.tradeLabel, contact.homeRegion, formatContactSummaryLine(contact)]
+  return [
+    getContactDisplayName(contact),
+    contact.name,
+    contact.tradeLabel,
+    contact.homeRegion,
+    formatContactSummaryLine(contact),
+  ]
     .join(" ")
     .toLowerCase();
 }

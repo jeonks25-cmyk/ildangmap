@@ -1,0 +1,82 @@
+.invite-landing-page {
+  min-height: 100%;
+  padding: 1.25rem 1rem 2rem;
+  background: linear-gradient(180deg, #fff7ed 0%, #f8fafc 42%, #f8fafc 100%);
+}
+
+.invite-landing-page__hero {
+  padding: 0.5rem 0 1rem;
+}
+
+.invite-landing-page__brand {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--ildang-brand, #f97316);
+}
+
+.invite-landing-page__title {
+  margin: 0.35rem 0 0.75rem;
+  font-size: 1.55rem;
+  line-height: 1.35;
+}
+
+.invite-landing-page__title strong {
+  color: #111827;
+}
+
+.invite-landing-page__lead {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.invite-landing-page__card {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.invite-landing-page__points {
+  margin: 0 0 1rem;
+  padding-left: 1.1rem;
+  color: #374151;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.invite-landing-page__points li + li {
+  margin-top: 0.35rem;
+}
+
+.invite-landing-page__cta {
+  width: 100%;
+  min-height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: var(--ildang-brand, #f97316);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.invite-landing-page__cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.invite-landing-page__secondary {
+  width: 100%;
+  margin-top: 0.65rem;
+  min-height: 44px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+}

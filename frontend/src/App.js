@@ -21,6 +21,13 @@ const ChatTabPage = lazy(() => import("./pages/ChatTabPage"));
 const ChatRoomPage = lazy(() => import("./pages/ChatRoomPage"));
 const JobDetailPage = lazy(() => import("./pages/JobDetailPage"));
 
+const BetaFeedbackPage = lazy(() => import("./pages/BetaFeedbackPage"));
+const BetaFeedbackAdminPage = lazy(() => import("./pages/BetaFeedbackAdminPage"));
+const ProfileEditPage = lazy(() => import("./pages/ProfileEditPage"));
+const InviteLandingPage = lazy(() => import("./pages/InviteLandingPage"));
+const NewsFeedPage = lazy(() => import("./pages/NewsFeedPage"));
+const NewsDetailPage = lazy(() => import("./pages/NewsDetailPage"));
+
 function LazyRoute({ children }) {
   return <Suspense fallback={null}>{children}</Suspense>;
 }
@@ -38,6 +45,14 @@ export default function App() {
           <Route index element={<Navigate to="map" replace />} />
           <Route path="home" element={<HomeRoute />} />
           <Route path="map" element={<MapPage />} />
+          <Route
+            path="invite"
+            element={
+              <LazyRoute>
+                <InviteLandingPage />
+              </LazyRoute>
+            }
+          />
           <Route path="schedule/*" element={<ScheduleTabPage />} />
           <Route path="contacts" element={<ContactsTabPage />} />
           <Route
@@ -57,6 +72,46 @@ export default function App() {
             }
           />
           <Route path="settings" element={<MyTabPage />} />
+          <Route
+            path="settings/profile"
+            element={
+              <LazyRoute>
+                <ProfileEditPage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="settings/news"
+            element={
+              <LazyRoute>
+                <NewsFeedPage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="settings/news/:newsId"
+            element={
+              <LazyRoute>
+                <NewsDetailPage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="settings/beta-feedback"
+            element={
+              <LazyRoute>
+                <BetaFeedbackPage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="settings/beta-feedback/admin"
+            element={
+              <LazyRoute>
+                <BetaFeedbackAdminPage />
+              </LazyRoute>
+            }
+          />
           <Route
             path="visit-estimate"
             element={
