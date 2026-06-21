@@ -243,10 +243,13 @@ export function PersonCardProvider({ children }) {
       setMemo(contact.id, patch.memo);
 
       const contactUserId = contactStableUserId(contact);
-      const myId = Number(myProfileId);
+      const myId = String(myProfileId || "").trim();
       const isSelf =
-        (Number.isFinite(myId) && myId > 0 && contactUserId === myId) ||
-        (contact.userId != null && String(contact.userId) === myProfileId);
+        (myId &&
+          ((contactUserId != null && String(contactUserId) === myId) ||
+            (contact.userId != null && String(contact.userId) === myId) ||
+            (contact.applicantUserId != null && String(contact.applicantUserId) === myId))) ||
+        false;
 
       if (isSelf) {
         const regions = normalizeActivityRegions(patch.homeRegions ?? patch.homeRegion ?? patch.region);

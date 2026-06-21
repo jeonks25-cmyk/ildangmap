@@ -375,6 +375,16 @@ function applyMeResponse(state, me, providerOverride) {
       nicknameChangeAvailableAt: normalizedMe.nicknameChangeAvailableAt || "",
       userType: normalizedMe.userType ? String(normalizedMe.userType).toLowerCase() : state.profile.userType,
       loginProvider: provider,
+      // /me 응답에 없는 로컬 프로필 상세는 덮어쓰지 않음
+      regions: state.profile.regions,
+      region: state.profile.region,
+      residence: state.profile.residence,
+      birthYear: state.profile.birthYear,
+      craft: state.profile.craft,
+      experienceYears: state.profile.experienceYears,
+      careerYears: state.profile.careerYears,
+      desiredPay: state.profile.desiredPay,
+      phone: state.profile.phone,
     }),
   };
 }

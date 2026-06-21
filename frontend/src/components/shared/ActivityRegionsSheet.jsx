@@ -29,8 +29,17 @@ export default function ActivityRegionsSheet({ open, value = [], onClose, onChan
     onClose?.();
   };
 
+  const handleDismiss = () => {
+    const next = normalizeActivityRegions(draft);
+    const prev = normalizeActivityRegions(value);
+    if (next.join("\u0000") !== prev.join("\u0000")) {
+      onChange?.(next);
+    }
+    onClose?.();
+  };
+
   return (
-    <div className="settings-region-sheet-backdrop" role="presentation" onClick={onClose}>
+    <div className="settings-region-sheet-backdrop" role="presentation" onClick={handleDismiss}>
       <div
         className="settings-region-sheet"
         role="dialog"
@@ -45,7 +54,7 @@ export default function ActivityRegionsSheet({ open, value = [], onClose, onChan
               {draft.length ? formatRegionsLabel(draft) : "시 단위 · 복수 선택"}
             </p>
           </div>
-          <button type="button" className="settings-sheet__close" onClick={onClose} aria-label="닫기">
+          <button type="button" className="settings-sheet__close" onClick={handleDismiss} aria-label="닫기">
             ×
           </button>
         </div>
