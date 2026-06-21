@@ -1,10 +1,10 @@
-# 아이콘 시안 v4 (미적용 · 검토용)
+# 아이콘 시안 v4 (검토용)
 
-> **배포 전 시안** — 프로덕션 아이콘은 여전히 `app-icon-v3-bold.svg`
+> **프로덕션:** `concepts/app-icon-v4-2-hammer.svg` (2안 망치) — `npm run icons:generate`
 
 ## 방향
 
-- **1차:** 흰색 지도핀 (지도 서비스 인식)
+- **1차:** 흰색 지도핀 (지도 서비스 인 recognition)
 - **2차:** 핀 내부 건설/현장 요소 (안전모 · 망치)
 - v3 대비 심볼 **~18% 축소** (`scale 0.68`), safe area **128px**
 
@@ -13,7 +13,7 @@
 | 파일 | 설명 |
 |------|------|
 | `app-icon-v4-1-helmet.svg` | 1안 — 핀 내부 노란 안전모 |
-| `app-icon-v4-2-hammer.svg` | 2안 — 핀 내부 작은 망치 |
+| `app-icon-v4-2-hammer.svg` | **2안 — 핀 내부 망치 (프로덕션)** |
 | `app-icon-v4-3-combo.svg` | 3안 — 핀 내부 안전모 + 망치 |
 
 ## 미리보기 생성

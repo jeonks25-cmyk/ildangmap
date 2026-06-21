@@ -7,9 +7,9 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const publicDir = path.resolve(__dirname, "../public");
 const iconsDir = path.join(publicDir, "brand/icons");
-const sourceSvg = path.join(iconsDir, "app-icon-v4-helmet.svg");
+const sourceSvg = path.join(iconsDir, "concepts/app-icon-v4-2-hammer.svg");
 const adaptiveBgSvg = path.join(iconsDir, "adaptive/background.svg");
-const adaptiveFgSvg = path.join(iconsDir, "adaptive/foreground-v4-helmet.svg");
+const adaptiveFgSvg = path.join(iconsDir, "concepts/app-icon-v4-2-hammer.svg");
 const previewDir = path.join(iconsDir, "previews");
 
 async function renderSvg(svgPath, size) {
@@ -30,7 +30,7 @@ async function renderAdaptiveIcon(size) {
 
 async function main() {
   const sourceBuffer = await renderSvg(sourceSvg, 1024);
-  const masterPath = path.join(iconsDir, "app-icon-v4-helmet-1024.png");
+  const masterPath = path.join(iconsDir, "app-icon-v4-hammer-1024.png");
   await writeFile(masterPath, sourceBuffer);
   console.log(`wrote ${path.relative(publicDir, masterPath)} (1024x1024)`);
 
