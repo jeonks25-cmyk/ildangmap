@@ -28,6 +28,7 @@ import {
   runAsyncStoreAction,
   writeJsonStorage,
 } from "./storeUtils";
+import { useContactsStore } from "./useContactsStore";
 import { useUiStore } from "./useUiStore";
 import { validateNicknameInput } from "../utils/displayNickname";
 import { authDiag, authDiagStoreSnapshot } from "../utils/authDiag";
@@ -583,7 +584,19 @@ export const useUserStore = create(
                   console.log("[AUTH-DIAG] refreshCurrentUser getMe result JSON (non-serializable)", me);
                 }
                 authDiag("refreshCurrentUser getMe result", me);
-                return applyMeResponse(state, me);
+                const patch = applyMeResponse(state, me);
+                const normalizedMe = extractMePayload(me);
+                const contactsUserId = normalizedMe?.id ?? normalizedMe?.userId;
+                queueMicrotask(() => {
+                  if (contactsUserId != null && contactsUserId !== "") {
+                    useContactsStore.getState().bootstrapContacts(contactsUserId).catch(() => {
+                      /* contactsError in store */
+                    });
+                  } else {
+                    useContactsStore.getState().resetContacts();
+                  }
+                });
+                return patch;
               },
               onError: (state, error) => {
                 authDiag("refreshCurrentUser error", {
@@ -592,6 +605,9 @@ export const useUserStore = create(
                 });
                 const next = { authReady: true, meBootstrapLoading: false, meVerified: true };
                 if (isAuthError(error)) {
+                  queueMicrotask(() => {
+                    useContactsStore.getState().resetContacts();
+                  });
                   return {
                     ...next,
                     session: normalizeSession({
@@ -854,6 +870,7 @@ export const useUserStore = create(
         };
         set(nextState);
         removeStorageKey(ONBOARDING_STORAGE_KEY);
+        useContactsStore.getState().resetContacts();
       },
 
       setProfile: (patch) =>
