@@ -3,7 +3,7 @@
  * 일당맵 PWA Service Worker — 기본 정적 캐시 + SPA 오프라인 폴백
  * 빌드 시 해시 파일명은 런타임에 캐시됩니다.
  */
-const CACHE_VERSION = "ildangmap-v5-paste-settings-place-ux";
+const CACHE_VERSION = "ildangmap-v6-icon-map-grid";
 const PRECACHE_URLS = [
   "/",
   "/index.html",
