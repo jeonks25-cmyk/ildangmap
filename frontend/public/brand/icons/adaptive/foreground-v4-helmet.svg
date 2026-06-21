@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Ildangmap adaptive foreground v4 helmet">
+  <defs>
+    <clipPath id="pinHeadFg">
+      <circle cx="0" cy="-158" r="86"/>
+    </clipPath>
+  </defs>
+  <g transform="translate(512 512)">
+    <g transform="translate(0 -56) scale(0.63) translate(0 56)">
+      <path
+        fill="#FFFFFF"
+        d="M0-262c-108 0-196 88-196 196 0 120 196 292 196 292s196-184 196-292c0-108-88-196-196-196z"
+      />
+      <g clip-path="url(#pinHeadFg)">
+        <g transform="translate(0 -158) scale(0.90) translate(0 158)">
+          <path
+            fill="#FBBF24"
+            d="M-58 -228 Q0 -268 58 -228 L58 -188 Q0 -168 -58 -188 Z"
+          />
+          <rect x="-64" y="-192" width="128" height="16" rx="5" fill="#EAB308"/>
+          <rect x="-5" y="-248" width="10" height="52" rx="3" fill="#FDE047"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>
