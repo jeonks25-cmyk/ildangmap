@@ -11,7 +11,7 @@
       var(--map-card-sheet-gap)
   );
   --map-card-sheet-max-height: min(
-    75dvh,
+    62dvh,
     calc(100dvh - var(--map-card-sheet-top) - var(--map-card-sheet-bottom))
   );
 }

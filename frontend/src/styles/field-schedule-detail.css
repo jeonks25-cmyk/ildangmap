@@ -94,6 +94,20 @@
 
 .field-detail-summary__actions {
   margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.field-detail-summary__share-btn {
+  min-height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: #fee500;
+  color: #191919;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .field-detail-summary__calendar-btn {

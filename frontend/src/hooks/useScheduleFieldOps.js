@@ -18,8 +18,12 @@ import { useSettlementStore } from "../store/useSettlementStore";
 import { buildUnifiedDayEntries } from "../utils/scheduleDayEntries";
 import { useJobStore } from "../store/useJobStore";
 import { useUserProfile } from "../context/UserProfileContext";
+import { useUserStore } from "../store/useUserStore";
 import { useMapItemStore } from "../store/useMapItemStore";
 import { useUiStore } from "../store/useUiStore";
+import { buildContactsList, useContactsStore } from "../store/useContactsStore";
+import { contactStableUserId, getContactDisplayName } from "../utils/fieldContactsMock";
+import { getDisplayNickname } from "../utils/displayNickname";
 import { createFieldJobFromDraft } from "../utils/fieldJobDraftAdapter";
 import { SCHEDULE_DEFAULT_END_TIME, SCHEDULE_DEFAULT_START_TIME } from "../constants/scheduleDefaults";
 import { scheduleDateKeyFromWorkDate, toDateKey } from "../utils/fieldScheduleModel";
@@ -121,6 +125,7 @@ export function useScheduleFieldOps(selectedDateKey) {
   const updatePersonalEvent = useFieldScheduleStore((s) => s.updatePersonalEvent);
   const addScheduleFromJobMatch = useSettlementStore((s) => s.addScheduleFromJobMatch);
   const updateSchedule = useSettlementStore((s) => s.updateSchedule);
+  const inviteContactsToSchedule = useSettlementStore((s) => s.inviteContactsToSchedule);
   const createJobPost = useJobStore((s) => s.createJobPost);
   const updateJobLocal = useJobStore((s) => s.updateJobLocal);
   const jobs = useJobStore((s) => s.jobs);
@@ -128,6 +133,12 @@ export function useScheduleFieldOps(selectedDateKey) {
   const updateItemsForScheduleMove = useMapItemStore((s) => s.updateItemsForScheduleMove);
   const showAppToast = useUiStore((s) => s.showAppToast);
   const { profile } = useUserProfile();
+  const favoriteById = useContactsStore((s) => s.favoriteById);
+  const memoById = useContactsStore((s) => s.memoById);
+  const addedContacts = useContactsStore((s) => s.addedContacts);
+  const contactOverridesById = useContactsStore((s) => s.contactOverridesById);
+  const removedContactIds = useContactsStore((s) => s.removedContactIds);
+  const myUserId = useUserStore((s) => s.session?.userId ?? s.profile?.userId ?? 1);
 
   const fieldOnDay = useMemo(
     () =>
@@ -403,7 +414,7 @@ export function useScheduleFieldOps(selectedDateKey) {
   );
 
   const handleSubmitSiteEntry = useCallback(
-    async ({ title, dateKey, endDateKey, workDateStart, workDateEnd, startTime, endTime, color, memo }) => {
+    async ({ title, dateKey, endDateKey, workDateStart, workDateEnd, startTime, endTime, color, memo, participantIds = [] }) => {
       const startKey = workDateStart || dateKey;
       const endKey = workDateEnd || endDateKey || startKey;
       const workTime = `${startTime}~${endTime}`;
@@ -448,6 +459,32 @@ export function useScheduleFieldOps(selectedDateKey) {
           calendarMemo: memo,
         });
       }
+
+      const contacts = buildContactsList(
+        favoriteById,
+        memoById,
+        addedContacts,
+        contactOverridesById,
+        removedContactIds
+      );
+      const selectedSet = new Set((participantIds || []).map(String));
+      const selectedContacts = contacts.filter((c) => selectedSet.has(String(c.id)));
+      if (createdSchedule?.id && selectedContacts.length) {
+        const invitees = selectedContacts.map((c) => ({
+          userId: contactStableUserId(c),
+          name: getContactDisplayName(c),
+          birthYear: c.birthYear ?? null,
+          residence: c.homeRegion || "",
+        }));
+        inviteContactsToSchedule({
+          scheduleId: createdSchedule.id,
+          fromUserId: myUserId,
+          fromName: getDisplayNickname(profile) || profile?.name || "현장 소장",
+          invitees,
+        });
+        updateSchedule?.(createdSchedule.id, { crewCount: Math.max(selectedContacts.length, 1) });
+      }
+
       getScheduleMemoryKeys(createdSchedule || job, persisted || job).forEach((key) => {
         saveFieldVisitMemory(key, createVisitMemoryFromSchedule(createdSchedule || job, persisted || job));
         saveFieldTimelineEvent(key, {
@@ -459,21 +496,36 @@ export function useScheduleFieldOps(selectedDateKey) {
           source: "schedule_registration",
         });
       });
-      setTeamInviteContext({
-        job: saved,
-        scheduleId: createdSchedule?.id || null,
-        title: saved?.title || "새 현장",
-        workDateStart: scheduleDate,
-        workDateEnd: endDate,
-      });
-      showAppToast?.("현장 일정을 저장했습니다");
+      setTeamInviteContext(
+        selectedContacts?.length
+          ? null
+          : {
+              job: saved,
+              scheduleId: createdSchedule?.id || null,
+              title: saved?.title || "새 현장",
+              workDateStart: scheduleDate,
+              workDateEnd: endDate,
+            }
+      );
+      showAppToast?.(
+        selectedContacts.length
+          ? `현장 일정을 저장했습니다 · ${selectedContacts.length}명 배정`
+          : "현장 일정을 저장했습니다"
+      );
     },
     [
       addScheduleFromJobMatch,
+      addedContacts,
       composeCraftSeed,
+      contactOverridesById,
       createJobPost,
       fallbackLocation,
-      profile?.craft,
+      favoriteById,
+      inviteContactsToSchedule,
+      memoById,
+      myUserId,
+      profile,
+      removedContactIds,
       showAppToast,
       updateSchedule,
     ]

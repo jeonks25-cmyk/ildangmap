@@ -39,23 +39,25 @@ export const PLACE_REGISTER_CONFIG = {
     autoSearch: true,
   },
   [MAP_ITEM_TYPE.RESTROOM]: {
-    mode: PLACE_REGISTER_MODE.MANUAL_FIRST,
+    mode: PLACE_REGISTER_MODE.AUTO_OPTIONAL,
+    keyword: "화장실",
+    radiusM: 50,
     label: "화장실",
     registerLabel: "화장실 등록",
     titlePlaceholder: "예: 1층 경비실 옆",
     locationHintPlaceholder: "예: GS25 화장실 사용 가능, 건물 뒤편",
     locationHintExamples: ["1층 경비실 옆", "GS25 화장실 사용 가능", "건물 뒤편"],
     showLocationHint: true,
-    autoSearch: false,
+    autoSearch: true,
   },
   [MAP_ITEM_TYPE.FIELD]: {
-    mode: PLACE_REGISTER_MODE.ADDRESS_ONLY,
-    radiusM: 50,
+    mode: PLACE_REGISTER_MODE.AUTO_OPTIONAL,
+    keyword: "아파트",
+    radiusM: 80,
     label: "아파트",
     registerLabel: "아파트 등록",
     titlePlaceholder: "아파트·단지 이름",
-    addressOnly: true,
-    autoSearch: false,
+    autoSearch: true,
   },
   [MAP_ITEM_TYPE.MEETING_PLACE]: {
     mode: PLACE_REGISTER_MODE.AUTO_OPTIONAL,
@@ -75,7 +77,7 @@ export function getPlaceRegisterConfig(type) {
 /** + 장소 FAB → 유형 선택 시트 옵션 */
 export const PLACE_CATEGORY_OPTIONS = [
   { type: MAP_ITEM_TYPE.RESTAURANT, label: "식당", desc: "근처 식당 자동 찾기" },
-  { type: MAP_ITEM_TYPE.RESTROOM, label: "화장실", desc: "위치 설명 직접 입력" },
+  { type: MAP_ITEM_TYPE.RESTROOM, label: "화장실", desc: "근처 화장실 자동 찾기" },
   { type: MAP_ITEM_TYPE.PARKING, label: "주차장", desc: "자동 찾기 또는 직접 입력" },
-  { type: MAP_ITEM_TYPE.FIELD, label: "아파트", desc: "단지·현장 위치 등록" },
+  { type: MAP_ITEM_TYPE.FIELD, label: "아파트", desc: "근처 아파트 자동 찾기" },
 ];

@@ -21,6 +21,7 @@ import {
 import { buildUrgentHelpJobFromSchedule } from "../utils/urgentHelpFromSchedule";
 import ScheduleEditSheet from "../components/schedule/ScheduleEditSheet";
 import CalendarSaveButton from "../components/schedule/CalendarSaveButton";
+import ScheduleShareSheet from "../components/schedule/ScheduleShareSheet";
 import FieldScheduleNoticeBoard from "../components/schedule/FieldScheduleNoticeBoard";
 import FieldScheduleDailyRoster from "../components/schedule/FieldScheduleDailyRoster";
 import FieldTeamRosterSheet from "../components/map/FieldTeamRosterSheet";
@@ -81,6 +82,7 @@ export default function FieldScheduleDetailPage() {
   const [rosterOpen, setRosterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(location.state?.action === "notice" ? "board" : "info");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const schedule = useMemo(() => {
     void refreshKey;
@@ -279,6 +281,9 @@ export default function FieldScheduleDetailPage() {
           </div>
         </dl>
         <div className="field-detail-summary__actions">
+          <button type="button" className="field-detail-summary__share-btn" onClick={() => setShareOpen(true)}>
+            공유하기
+          </button>
           <CalendarSaveButton
             fieldSchedule={schedule}
             label="캘린더 저장"
@@ -483,6 +488,12 @@ export default function FieldScheduleDetailPage() {
         workDateStart={schedule.workDate}
         workDateEnd={endDate || schedule.workDate}
         onClose={() => setRosterOpen(false)}
+      />
+      <ScheduleShareSheet
+        open={shareOpen}
+        scheduleInput={schedule}
+        onClose={() => setShareOpen(false)}
+        onToast={showAppToast}
       />
     </div>
   );

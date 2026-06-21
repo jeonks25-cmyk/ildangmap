@@ -12,6 +12,7 @@ import { MAP_ITEM_TYPE } from "../constants/mapItemTypes";
 import { toDateKey } from "../utils/fieldScheduleModel";
 import { useScheduleFieldOps } from "../hooks/useScheduleFieldOps";
 import ScheduleEntryComposerSheet from "../components/schedule/ScheduleEntryComposerSheet";
+import ScheduleShareSheet from "../components/schedule/ScheduleShareSheet";
 import { getScheduleColorOption } from "../constants/scheduleColors";
 import { personalEventToIcsInput } from "../features/calendar-export";
 import "../styles/schedule-page-mobile.css";
@@ -34,6 +35,7 @@ export default function ScheduleMonthPage() {
   const [ocrReviewOpen, setOcrReviewOpen] = useState(false);
   const [ocrReviewDrafts, setOcrReviewDrafts] = useState([]);
   const [ocrReviewSaving, setOcrReviewSaving] = useState(false);
+  const [shareEntry, setShareEntry] = useState(null);
   const [calendarExportEvents, setCalendarExportEvents] = useState(null);
   const ops = useScheduleFieldOps(selectedDateKey);
 
@@ -109,7 +111,7 @@ export default function ScheduleMonthPage() {
                 const tone = getScheduleColorOption(entry.colorId);
                 const isPersonal = entry.kind === "personal";
                 return (
-                  <li key={entry.id}>
+                  <li key={entry.id} className="schedule-oyaji-list__item">
                     <button
                       type="button"
                       className="schedule-oyaji-list__row"
@@ -132,6 +134,14 @@ export default function ScheduleMonthPage() {
                       {isPersonal && entry.memo ? (
                         <span className="schedule-oyaji-list__memo">{entry.memo}</span>
                       ) : null}
+                    </button>
+                    <button
+                      type="button"
+                      className="schedule-oyaji-list__share"
+                      aria-label={`${entry.title} 공유하기`}
+                      onClick={() => setShareEntry(entry)}
+                    >
+                      공유
                     </button>
                   </li>
                 );
@@ -217,6 +227,12 @@ export default function ScheduleMonthPage() {
         workDateStart={ops.teamInviteContext?.workDateStart}
         workDateEnd={ops.teamInviteContext?.workDateEnd}
         onClose={() => ops.setTeamInviteContext(null)}
+      />
+      <ScheduleShareSheet
+        open={Boolean(shareEntry)}
+        scheduleInput={shareEntry}
+        onClose={() => setShareEntry(null)}
+        onToast={ops.showAppToast}
       />
       <FloatingActionButton label="일정" aria-label="일정 추가" onClick={ops.openFieldScheduleComposer} />
     </div>

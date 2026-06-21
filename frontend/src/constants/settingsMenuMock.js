@@ -6,7 +6,7 @@ export const SETTINGS_SUPPORT_EMAIL = "contact@ildangmap.com";
 
 export const PROFILE_MENU_ITEM = {
   id: "my-profile",
-  label: "내 프로필",
+  label: "내 정보 관리",
   icon: "👤",
   action: "route",
   path: "/settings/profile",

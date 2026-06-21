@@ -10,7 +10,7 @@ const SettingsProfileBanner = memo(function SettingsProfileBanner({ displayName,
     <button
       type="button"
       className="settings-profile-banner settings-profile-banner--action"
-      aria-label="내 프로필 수정"
+      aria-label="내 정보 관리"
       onClick={() => navigate("/settings/profile")}
     >
       {displayImage ? (
@@ -22,7 +22,7 @@ const SettingsProfileBanner = memo(function SettingsProfileBanner({ displayName,
       )}
       <span className="settings-profile-banner__main">
         <strong className="settings-profile-banner__name">{displayName || "게스트"}</strong>
-        <span className="settings-profile-banner__hint">프로필 수정</span>
+        <span className="settings-profile-banner__hint">내 정보 관리</span>
       </span>
       <span className="settings-profile-banner__chev" aria-hidden="true">
         ›

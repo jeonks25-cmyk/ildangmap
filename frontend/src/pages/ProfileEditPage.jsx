@@ -11,6 +11,7 @@ import { useUiStore } from "../store/useUiStore";
 import { getDisplayNickname } from "../utils/displayNickname";
 import { ACTIVITY_REGIONS } from "../constants/activityRegions";
 import { CRAFT_KEYS, CRAFT_LABEL } from "../utils/jobModel";
+import { profilePatchFromForm } from "../models/profileModel";
 import "../styles/settings-tab-mobile.css";
 
 const ROLE_OPTIONS = ["조공", "준기공", "기공", "오야지"];
@@ -23,6 +24,12 @@ function parseBirthYearInput(value) {
 
 function parseDesiredPayInput(value) {
   const digits = String(value || "").replace(/[^\d]/g, "").slice(0, 3);
+  if (!digits) return { text: "", number: null };
+  return { text: digits, number: Number(digits) };
+}
+
+function parseExperienceInput(value) {
+  const digits = String(value || "").replace(/[^\d]/g, "").slice(0, 2);
   if (!digits) return { text: "", number: null };
   return { text: digits, number: Number(digits) };
 }
@@ -46,6 +53,10 @@ export default function ProfileEditPage() {
   const [desiredPayText, setDesiredPayText] = useState(
     profile?.desiredPay != null ? String(profile.desiredPay) : ""
   );
+  const [experienceYearsText, setExperienceYearsText] = useState(
+    profile?.experienceYears != null ? String(profile.experienceYears) : ""
+  );
+  const [phone, setPhone] = useState(profile?.phone || "");
   const [intro, setIntro] = useState(profileMeta?.intro || "");
   const [regionSheetOpen, setRegionSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -58,6 +69,8 @@ export default function ProfileEditPage() {
     setCraft(profile?.craft || "film");
     setRole(profile?.role || "기공");
     setDesiredPayText(profile?.desiredPay != null ? String(profile.desiredPay) : "");
+    setExperienceYearsText(profile?.experienceYears != null ? String(profile.experienceYears) : "");
+    setPhone(profile?.phone || "");
     setIntro(profileMeta?.intro || "");
   }, [currentNickname, profile, profileMeta?.intro]);
 
@@ -93,6 +106,7 @@ export default function ProfileEditPage() {
     }
 
     const pay = parseDesiredPayInput(desiredPayText);
+    const exp = parseExperienceInput(experienceYearsText);
 
     setSaving(true);
     try {
@@ -106,13 +120,16 @@ export default function ProfileEditPage() {
       }
 
       saveLocalProfileDetails({
+        ...profilePatchFromForm({
+          nickname: trimmedNick,
+          region,
+          craft,
+          role,
+          experienceYearsText: exp.text,
+          desiredPayText: pay.text,
+          phone,
+        }),
         birthYear: birth.number,
-        region,
-        residence: region,
-        craft,
-        role,
-        trade: role,
-        desiredPay: pay.number,
       });
       setProfileMeta({ intro: String(intro || "").trim(), region, craft, trade: role });
 
@@ -131,6 +148,8 @@ export default function ProfileEditPage() {
     nicknameAvailable,
     birthYearText,
     desiredPayText,
+    experienceYearsText,
+    phone,
     region,
     craft,
     role,
@@ -151,7 +170,7 @@ export default function ProfileEditPage() {
           <button type="button" className="profile-edit-header__back" onClick={() => navigate("/settings")} aria-label="뒤로">
             ←
           </button>
-          <h1 className="profile-edit-header__title">내 프로필</h1>
+          <h1 className="profile-edit-header__title">내 정보 관리</h1>
         </header>
         <div className="tab-page-shell__body">
           <p className="settings-prefs__lead">로그인 후 프로필을 수정할 수 있습니다.</p>
@@ -237,6 +256,32 @@ export default function ProfileEditPage() {
           <p className="settings-prefs__hint">
             {craftLabel} · {role}
           </p>
+        </section>
+
+        <section className="settings-prefs profile-edit-section">
+          <h2 className="settings-prefs__label">경력 (년)</h2>
+          <input
+            type="text"
+            inputMode="numeric"
+            className="settings-nickname__input"
+            value={experienceYearsText}
+            onChange={(e) => setExperienceYearsText(parseExperienceInput(e.target.value).text)}
+            placeholder="예: 8"
+            maxLength={2}
+            aria-label="경력"
+          />
+        </section>
+
+        <section className="settings-prefs profile-edit-section">
+          <h2 className="settings-prefs__label">연락처</h2>
+          <input
+            type="tel"
+            className="settings-nickname__input"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="010-0000-0000"
+            aria-label="연락처"
+          />
         </section>
 
         <section className="settings-prefs profile-edit-section">

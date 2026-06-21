@@ -4,6 +4,8 @@ import ContactCard from "../components/contacts/ContactCard";
 import ContactGroupAddSheet from "../components/contacts/ContactGroupAddSheet";
 import GroupScheduleBoardSheet from "../components/contacts/GroupScheduleBoardSheet";
 import PeopleAddSheet from "../components/contacts/PeopleAddSheet";
+import ContactsSelfProfileCard from "../components/contacts/ContactsSelfProfileCard";
+import { useAuth } from "../context/AuthContext";
 import { buildContactsList, useContactsStore } from "../store/useContactsStore";
 import { useUserMapPreferences } from "../context/UserMapPreferencesContext";
 import { usePersonCard } from "../context/PersonCardContext";
@@ -45,6 +47,7 @@ export default function ContactsTabPage() {
   const addToGroup = useContactsStore((s) => s.addToGroup);
   const removeFromGroup = useContactsStore((s) => s.removeFromGroup);
   const { openPersonCard } = usePersonCard();
+  const { authUser, isAuthenticated } = useAuth();
 
   const contacts = useMemo(
     () =>
@@ -191,6 +194,8 @@ export default function ContactsTabPage() {
       <div className="tab-page-shell__body contacts-tab-page__body">
       <div className="contacts-desktop-split">
       <div className="contacts-desktop-list">
+
+      {isAuthenticated ? <ContactsSelfProfileCard authUser={authUser} /> : null}
 
       <section className="team-summary-bar" aria-label="우리 팀 현황">
         <div className="team-summary-bar__head">

@@ -256,15 +256,26 @@
   padding: 0 0 8px;
 }
 
+.schedule-oyaji-list__item {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.schedule-oyaji-list__items li:first-child.schedule-oyaji-list__item {
+  border-top: none;
+}
+
 .schedule-oyaji-list__row {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 2px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 10px 0;
   border: none;
-  border-top: 1px solid #f3f4f6;
   background: transparent;
   text-align: left;
   cursor: pointer;
@@ -273,6 +284,20 @@
 .schedule-oyaji-list__items li:first-child .schedule-oyaji-list__row {
   border-top: none;
   padding-top: 2px;
+}
+
+.schedule-oyaji-list__share {
+  flex: 0 0 auto;
+  align-self: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: #fee500;
+  color: #191919;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .schedule-oyaji-list__name {
@@ -3812,6 +3837,24 @@
   margin-bottom: 10px;
 }
 
+.schedule-entry-composer__head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.schedule-entry-composer__share {
+  min-height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: #fee500;
+  color: #191919;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .schedule-entry-composer__head h2 {
   margin: 0;
   font-size: 18px;
@@ -3903,6 +3946,58 @@
 .schedule-entry-composer__color-btn.is-selected {
   border-color: #111827;
   box-shadow: 0 0 0 1px #111827;
+}
+
+.schedule-participant-picker {
+  margin: 0 0 12px;
+  padding: 0;
+  border: none;
+}
+
+.schedule-participant-picker legend {
+  font-size: 13px;
+  font-weight: 800;
+  color: #374151;
+  margin-bottom: 8px;
+}
+
+.schedule-participant-picker__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.schedule-participant-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #f9fafb;
+  cursor: pointer;
+}
+
+.schedule-participant-picker__name {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.schedule-participant-picker__sub {
+  margin-left: auto;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.schedule-participant-picker__empty {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: #9ca3af;
 }
 
 .schedule-entry-composer__hint {

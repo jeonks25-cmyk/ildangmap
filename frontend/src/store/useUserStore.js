@@ -116,6 +116,7 @@ function createDefaultProfile() {
     referredByGroupId: null,
     inviteAppliedAt: null,
     desiredPay: null,
+    phone: "",
   };
 }
 
@@ -264,6 +265,7 @@ function normalizeProfile(raw) {
         : defaults.desiredPay,
     craft: VALID_CRAFTS.includes(raw.craft) ? raw.craft : defaults.craft,
     role: typeof raw.role === "string" && VALID_ROLES.includes(raw.role) ? raw.role : defaults.role,
+    phone: typeof raw.phone === "string" ? raw.phone.trim() : defaults.phone,
     setupCompleted,
     referredByUserId:
       Number.isFinite(Number(raw.referredByUserId)) && Number(raw.referredByUserId) > 0
@@ -785,6 +787,19 @@ export const useUserStore = create(
                   ? Number(patch.desiredPay)
                   : null
                 : state.profile.desiredPay,
+            experienceYears:
+              patch.experienceYears != null
+                ? Number.isFinite(Number(patch.experienceYears)) && Number(patch.experienceYears) >= 0
+                  ? Number(patch.experienceYears)
+                  : null
+                : state.profile.experienceYears,
+            careerYears:
+              patch.careerYears != null
+                ? Number.isFinite(Number(patch.careerYears)) && Number(patch.careerYears) >= 0
+                  ? Number(patch.careerYears)
+                  : null
+                : state.profile.careerYears,
+            phone: patch.phone != null ? String(patch.phone).trim() : state.profile.phone,
           }),
           prefs: normalizePrefs({
             ...state.prefs,

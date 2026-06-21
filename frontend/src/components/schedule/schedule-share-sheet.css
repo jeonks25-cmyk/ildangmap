@@ -1,0 +1,111 @@
+.schedule-share-sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.schedule-share-sheet-root[data-open="true"] {
+  pointer-events: auto;
+}
+
+.schedule-share-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(15, 23, 42, 0.42);
+  cursor: pointer;
+}
+
+.schedule-share-sheet-panel {
+  position: relative;
+  width: min(100%, 480px);
+  margin: 0 auto;
+  padding: 12px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-radius: 18px 18px 0 0;
+  background: #fff;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.12);
+}
+
+.schedule-share-sheet-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.schedule-share-sheet-panel__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+}
+
+.schedule-share-sheet-panel__close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.schedule-share-sheet-preview {
+  margin: 0 0 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #334155;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.schedule-share-sheet-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.schedule-share-sheet-menu__btn {
+  width: 100%;
+  min-height: 52px;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.schedule-share-sheet-menu__btn--kakao {
+  background: #fee500;
+  color: #191919;
+}
+
+.schedule-share-sheet-menu__btn--sms {
+  background: #111827;
+  color: #fff;
+}
+
+.schedule-share-sheet-menu__btn--copy {
+  background: #fff;
+  color: #111827;
+  border: 1px solid rgba(120, 113, 108, 0.22);
+}
