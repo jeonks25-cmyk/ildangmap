@@ -2132,6 +2132,7 @@ export default function MapPage() {
       <PlaceRegisterSheet
         item={tempSearchItem}
         open={placeRegisterOpen}
+        centerPinMoving={centerPinMoving}
         onClose={() => {
           closeMapActivePanel();
           setQuickAddOpen(false);

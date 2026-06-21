@@ -9,18 +9,22 @@ import {
 } from "../../features/schedule-ocr";
 import { formatOcrError } from "../../utils/scheduleOcr";
 
-const EXAMPLE_TEXT = `6월12일 둔산필름
-08:00~17:00
-기공 2명`;
+const EXAMPLE_TEXT = `성환부영 3차, 301동 105호.
+공용현관:5623
+세대비번:260403`;
 
 function buildPasteStatusMessage(result) {
   if (result.ok) {
-    return { tone: "success", message: "날짜·시간·제목을 채웠습니다.", stage: "parse_success" };
+    const parts = ["제목·날짜·메모를 채웠습니다."];
+    if (!result.filledFields.includes("dateDetected")) {
+      parts.push("날짜는 내일로 넣었습니다.");
+    }
+    return { tone: "success", message: parts.join(" "), stage: "parse_success" };
   }
-  if (result.filledFields.length) {
+  if (result.filledFields.includes("dateKey")) {
     return {
       tone: "warn",
-      message: result.warnings[0] || "일부만 채웠습니다. 나머지는 확인해 주세요.",
+      message: result.warnings[0] || "제목만 확인해 주세요.",
       stage: "parse_partial",
     };
   }

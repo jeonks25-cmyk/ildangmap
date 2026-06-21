@@ -55,14 +55,14 @@ export default function ScheduleEntryComposerSheet({
     if (result.title) setTitle(result.title);
     if (result.dateKey) {
       setWorkDateStart(result.dateKey);
-      if (!workDateEnd || workDateEnd < result.dateKey) setWorkDateEnd(result.dateKey);
+      setWorkDateEnd(result.dateKey);
     }
     if (result.startTime) setStartTime(result.startTime);
     if (result.endTime) setEndTime(result.endTime);
-    if (result.memo) {
-      setMemo((prev) => (prev.trim() ? `${prev.trim()}\n${result.memo}` : result.memo));
+    if (result.memo != null) {
+      setMemo(result.memo);
     }
-  }, [workDateEnd]);
+  }, []);
 
   const endDate = workDateEnd || workDateStart;
   const shareInput = useMemo(

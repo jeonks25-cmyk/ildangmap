@@ -1,0 +1,50 @@
+---
+description: 작업 완료 시 자동 커밋·배포 (베타 운영)
+alwaysApply: true
+---
+
+# 자동 커밋·배포
+
+사용자가 기능/수정 요청(스크립트)을 주고 구현이 끝나면 **별도 확인 없이** 아래를 수행한다.
+
+## 1. 빌드 검증
+
+```bash
+cd frontend && npm run build
+```
+
+빌드 실패 시 배포하지 않고 원인을 수정한 뒤 재시도.
+
+## 2. Service Worker 캐시
+
+프론트 변경이 있으면 `frontend/public/sw.js`의 `CACHE_VERSION`을 의미 있는 새 값으로 bump.
+
+## 3. Git 커밋
+
+- 관련 파일만 stage (`.env`, credentials 제외)
+- 저장소 커밋 메시지 스타일 따르기 (feat/fix/chore, why 중심)
+- 사용자가 "커밋만"이라고 명시한 경우 push/배포 생략
+
+## 4. Push (백엔드 Railway)
+
+```bash
+git push origin master
+```
+
+`backend/` 변경 포함 시 Railway 자동 재배포를 위해 push 필수.
+
+## 5. 프론트 Vercel 프로덕션
+
+```bash
+cd frontend && npx vercel --prod --yes
+```
+
+- 프로덕션 URL: https://ildangmap.vercel.app
+- CLI 실패 시 push만 완료하고 사용자에게 Vercel 대시보드 재배포 안내
+
+## 6. 완료 보고
+
+- 커밋 해시
+- push 여부
+- Vercel 배포 URL/상태
+- Railway는 push 후 자동 배포됨을 명시

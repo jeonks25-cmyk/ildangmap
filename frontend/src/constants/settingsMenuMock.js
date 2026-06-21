@@ -4,6 +4,13 @@ export const SETTINGS_APP_VERSION = "0.1.0";
 
 export const SETTINGS_SUPPORT_EMAIL = "contact@ildangmap.com";
 
+/**
+ * 베타 기간 설정 탭 간소화
+ * 정식 출시 시 REACT_APP_SETTINGS_BETA_SIMPLIFIED=false 로 전체 메뉴 복원
+ */
+export const SETTINGS_BETA_SIMPLIFIED =
+  String(process.env.REACT_APP_SETTINGS_BETA_SIMPLIFIED ?? "true").trim() !== "false";
+
 export const PROFILE_MENU_ITEM = {
   id: "my-profile",
   label: "내 정보 관리",
@@ -51,14 +58,15 @@ export const SETTINGS_MENU_SECTIONS = [
     id: "privacy-support",
     title: "개인정보 및 지원",
     items: [
-      { id: "privacy", label: "개인정보처리방침", icon: "🛡️", action: "mock" },
-      { id: "terms", label: "이용약관", icon: "📄", action: "mock" },
+      { id: "privacy", label: "개인정보처리방침", icon: "🛡️", action: "mock", hiddenDuringBeta: true },
+      { id: "terms", label: "이용약관", icon: "📄", action: "mock", hiddenDuringBeta: true },
       {
         id: "email",
         label: "이메일 문의",
         icon: "✉️",
         action: "email",
         value: SETTINGS_SUPPORT_EMAIL,
+        hiddenDuringBeta: true,
       },
     ],
   },
@@ -66,22 +74,37 @@ export const SETTINGS_MENU_SECTIONS = [
     id: "community",
     title: "커뮤니티",
     items: [
-      { id: "blog", label: "공식 블로그", icon: "📝", action: "mock" },
-      { id: "instagram", label: "인스타그램", icon: "📷", action: "mock" },
+      { id: "blog", label: "공식 블로그", icon: "📝", action: "mock", hiddenDuringBeta: true },
+      { id: "instagram", label: "인스타그램", icon: "📷", action: "mock", hiddenDuringBeta: true },
     ],
   },
   {
     id: "app-info",
     title: "앱 정보",
     items: [
-      { id: "about-app", label: "일당맵 소개", icon: "🗺️", action: "mock" },
+      { id: "about-app", label: "일당맵 소개", icon: "🗺️", action: "mock", hiddenDuringBeta: true },
       {
         id: "app-version",
         label: "버전 정보",
         icon: "ℹ️",
         action: "none",
         value: `v${SETTINGS_APP_VERSION}`,
+        hiddenDuringBeta: true,
       },
     ],
   },
 ];
+
+/** 베타 간소화 플래그에 따라 노출할 섹션·항목만 반환 */
+export function getVisibleSettingsMenuSections(
+  sections = SETTINGS_MENU_SECTIONS,
+  { betaSimplified = SETTINGS_BETA_SIMPLIFIED } = {}
+) {
+  if (!betaSimplified) return sections;
+  return sections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.hiddenDuringBeta),
+    }))
+    .filter((section) => section.items.length > 0);
+}

@@ -13,7 +13,7 @@ import SettingsProfileBanner from "../components/settings/SettingsProfileBanner"
 import AppTabHeader from "../components/layout/AppTabHeader";
 import MapNotificationOverlay from "../components/map/MapNotificationOverlay";
 import { useTabNotificationOverlay } from "../hooks/useTabNotificationOverlay";
-import { SETTINGS_MENU_SECTIONS, SETTINGS_SUPPORT_EMAIL, SETTINGS_APP_VERSION, BETA_FEEDBACK_ADMIN_MENU_ITEM } from "../constants/settingsMenuMock";
+import { getVisibleSettingsMenuSections, SETTINGS_MENU_SECTIONS, SETTINGS_SUPPORT_EMAIL, SETTINGS_APP_VERSION, SETTINGS_BETA_SIMPLIFIED, BETA_FEEDBACK_ADMIN_MENU_ITEM } from "../constants/settingsMenuMock";
 import { getDisplayNickname } from "../utils/displayNickname";
 import "../styles/settings-tab-mobile.css";
 
@@ -30,8 +30,9 @@ export default function MyTabPage() {
   const [isFeedbackAdmin, setIsFeedbackAdmin] = useState(false);
 
   const menuSections = useMemo(() => {
-    if (!isFeedbackAdmin) return SETTINGS_MENU_SECTIONS;
-    return SETTINGS_MENU_SECTIONS.map((section) => {
+    const base = getVisibleSettingsMenuSections(SETTINGS_MENU_SECTIONS);
+    if (!isFeedbackAdmin) return base;
+    return base.map((section) => {
       if (section.id !== "beta") return section;
       return {
         ...section,
@@ -178,7 +179,9 @@ export default function MyTabPage() {
             <button type="button" className="settings-app-footer__logout" onClick={onLogout}>
               로그아웃
             </button>
-            <p className="settings-app-footer__version">v{SETTINGS_APP_VERSION}</p>
+            {!SETTINGS_BETA_SIMPLIFIED ? (
+              <p className="settings-app-footer__version">v{SETTINGS_APP_VERSION}</p>
+            ) : null}
           </footer>
         ) : null}
 
