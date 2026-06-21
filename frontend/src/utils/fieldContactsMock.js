@@ -1,4 +1,5 @@
 import { CRAFT_LABEL } from "./jobModel";
+import { formatRegionsLabel, normalizeActivityRegions } from "../constants/activityRegions";
 import { isBetaSeedMode } from "./betaSeed";
 import { BETA_FIELD_CONTACTS } from "./betaTestSeed";
 
@@ -175,8 +176,10 @@ export function normalizeFieldContact(raw, overrides = {}) {
   if (!raw || typeof raw !== "object") return null;
 
   const trade = raw.trade || "film";
-  const legacyRegions = parseStringList(raw.regions);
-  const workRegions = parseStringList(raw.workRegions, legacyRegions);
+  const regions = normalizeActivityRegions(
+    Array.isArray(raw.regions) && raw.regions.length ? raw.regions : raw.homeRegion || raw.region
+  );
+  const workRegions = parseStringList(raw.workRegions, regions);
   const legacySites = Array.isArray(raw.sharedSites) ? raw.sharedSites : Array.isArray(raw.recentJobs) ? raw.recentJobs : [];
   const hasCoworkHistory = Boolean(
     raw.hasCoworkHistory ?? (legacySites.length > 0)
@@ -195,7 +198,8 @@ export function normalizeFieldContact(raw, overrides = {}) {
     gender: String(raw.gender || "").trim() || "—",
     trade,
     tradeLabel: CRAFT_LABEL[trade] || trade,
-    homeRegion: String(raw.homeRegion || raw.region || "").trim(),
+    homeRegion: formatRegionsLabel(regions),
+    regions,
     experienceYears: Number.isFinite(Number(raw.experienceYears)) ? Number(raw.experienceYears) : null,
     basePay: resolveBasePay(raw),
     workRegions,

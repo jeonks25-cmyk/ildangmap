@@ -1,10 +1,11 @@
 import { CRAFT_LABEL } from "../utils/jobModel";
+import { formatRegionsLabel, normalizeActivityRegions } from "../constants/activityRegions";
 
 /**
  * 사용자 프로필 도메인 모델 — localStorage(MVP) · 추후 API 공통.
  * @typedef {Object} UserProfileFields
  * @property {string} nickname
- * @property {string} region
+ * @property {string[]} regions
  * @property {string} craft
  * @property {string} role
  * @property {string} trade
@@ -21,10 +22,11 @@ export function normalizeProfileFields(raw = {}) {
       ? Number(raw.careerYears)
       : null;
   const desiredPay = Number.isFinite(Number(raw.desiredPay)) && Number(raw.desiredPay) > 0 ? Number(raw.desiredPay) : null;
+  const regions = normalizeActivityRegions(raw);
 
   return {
     nickname: String(raw.nickname || raw.displayNickname || "").trim(),
-    region: String(raw.region || raw.residence || "").trim(),
+    regions,
     craft: String(raw.craft || "film").trim(),
     role: String(raw.role || raw.trade || "기공").trim(),
     trade: String(raw.trade || raw.role || "기공").trim(),
@@ -39,10 +41,12 @@ export function normalizeProfileFields(raw = {}) {
 export function profilePatchFromForm(form = {}) {
   const exp = form.experienceYearsText ? Number(form.experienceYearsText) : null;
   const pay = form.desiredPayText ? Number(form.desiredPayText) : null;
+  const regions = normalizeActivityRegions(form.regions);
+  const regionLabel = formatRegionsLabel(regions);
   return {
     nickname: String(form.nickname || "").trim(),
-    region: form.region,
-    residence: form.region,
+    regions,
+    residence: regionLabel,
     craft: form.craft,
     role: form.role,
     trade: form.role,
@@ -58,7 +62,7 @@ export function profileToApiPayload(profile, profileMeta = {}) {
   const fields = normalizeProfileFields({ ...profile, intro: profileMeta?.intro });
   return {
     nickname: fields.nickname,
-    region: fields.region,
+    regions: fields.regions,
     craft: fields.craft,
     role: fields.role,
     experienceYears: fields.experienceYears,
@@ -73,7 +77,8 @@ export function buildProfileDisplayLines(profile, profileMeta = {}) {
   const f = normalizeProfileFields({ ...profile, intro: profileMeta?.intro });
   const craftLabel = CRAFT_LABEL[f.craft] || f.craft;
   const lines = [];
-  if (f.region) lines.push(f.region);
+  const regionLine = formatRegionsLabel(f.regions, { emptyLabel: "" });
+  if (regionLine) lines.push(regionLine);
   if (craftLabel || f.role) lines.push([craftLabel, f.role].filter(Boolean).join(" "));
   if (f.experienceYears != null) lines.push(`${f.experienceYears}년`);
   if (f.desiredPay != null) lines.push(`희망 ${f.desiredPay}만`);

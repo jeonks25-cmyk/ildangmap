@@ -7,6 +7,7 @@ import {
 import { myProfileMock } from "../utils/myProfileMock";
 import { favoriteWorkersMock, oyajiTrustProfileMock } from "../utils/oyajiMock";
 import { isMockApiEnabled, runApiRequest, getApiBaseUrl } from "./client";
+import { normalizeActivityRegions } from "../constants/activityRegions";
 import { authDiag } from "../utils/authDiag";
 
 const USER_MODE_STORAGE_KEY = "user_mode_v1";
@@ -86,7 +87,7 @@ function buildMockMe() {
     userType,
     trade: savedProfile?.craft || savedPrefs?.craft || fallback.trade,
     role: savedProfile?.role || savedPrefs?.trade || fallback.role,
-    region: savedProfile?.region || savedPrefs?.regionLabel || fallback.region,
+    regions: normalizeActivityRegions(savedProfile?.regions ?? savedProfile?.region ?? savedPrefs?.regionLabel ?? fallback.regions ?? fallback.region),
     phone: savedUser?.phone || fallback.phone,
     profileImage: savedProfile?.profileImage || savedSession?.user?.profileImage || savedUser?.profileImage || fallback.profileImage,
   };
@@ -103,7 +104,7 @@ function buildWorkerProfileMeta(me) {
     name: me?.name || myProfileMock.name,
     trade: me?.role || myProfileMock.trade,
     craft: me?.trade || myProfileMock.craft,
-    region: me?.region || myProfileMock.region,
+    regions: normalizeActivityRegions(me?.regions ?? me?.region ?? myProfileMock.regions),
     profileImage: me?.profileImage || myProfileMock.profileImage,
   };
 }
@@ -113,7 +114,7 @@ function buildForemanProfileMeta(me) {
     name: me?.name || "현장 오야지",
     trade: "오야지",
     craft: me?.trade || "film",
-    region: me?.region || "대전 서구",
+    regions: normalizeActivityRegions(me?.regions ?? me?.region ?? ["대전"]),
     profileImage: me?.profileImage || "",
     trustStats: oyajiTrustProfileMock.trustStats,
     verificationBadges: oyajiTrustProfileMock.verificationBadges,
@@ -123,7 +124,7 @@ function buildForemanProfileMeta(me) {
       { id: "settlement-rate", label: "정산완료율", value: "100%" },
     ],
     recentCoworkers: oyajiTrustProfileMock.recentCoworkers,
-    frequentRegions: [me?.region || "대전 서구", "세종", "청주"],
+    frequentRegions: normalizeActivityRegions(me?.regions ?? me?.region ?? ["대전", "세종", "청주"]),
     intro: "현장 연결과 정산 흐름을 꾸준히 관리하는 오야지입니다.",
   };
 }

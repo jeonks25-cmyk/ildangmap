@@ -2,7 +2,7 @@ export const myProfileMock = {
   name: "김OO",
   trade: "기공",
   craft: "film",
-  region: "대전 서구",
+  regions: ["대전", "세종", "청주"],
   profileImage: "",
   trustStats: [
     { id: "film-jobs", label: "필름 작업", value: "128회" },
@@ -27,6 +27,6 @@ export const myProfileMock = {
     "최근 체크인 지역",
   ],
   recentCoworkers: ["김OO", "박OO", "이OO"],
-  frequentRegions: ["대전 서구", "세종", "청주"],
+  frequentRegions: ["대전", "세종", "청주"],
   intro: "현장 일정과 작업 이력을 꾸준히 관리하는 필름 기공입니다.",
 };

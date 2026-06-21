@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ACTIVITY_REGIONS } from "../../constants/activityRegions";
+import ActivityRegionsSheet from "../shared/ActivityRegionsSheet";
+import { formatRegionsLabel, normalizeActivityRegions } from "../../constants/activityRegions";
 import { getContactDisplayName } from "../../utils/fieldContactsMock";
 import { CRAFT_KEYS, CRAFT_LABEL } from "../../utils/jobModel";
 
@@ -11,7 +12,7 @@ function digitsOnly(value, maxLen) {
 export default function ContactEditSheet({ open, contact, onClose, onSave }) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [homeRegion, setHomeRegion] = useState("대전 서구");
+  const [regions, setRegions] = useState(["대전"]);
   const [trade, setTrade] = useState("film");
   const [experienceYearsText, setExperienceYearsText] = useState("");
   const [basePayText, setBasePayText] = useState("");
@@ -22,7 +23,7 @@ export default function ContactEditSheet({ open, contact, onClose, onSave }) {
     if (!open || !contact) return;
     setName(String(contact.nickname || contact.name || ""));
     setPhone(String(contact.phone || ""));
-    setHomeRegion(String(contact.homeRegion || "대전 서구"));
+    setRegions(normalizeActivityRegions(contact));
     setTrade(String(contact.trade || "film"));
     setExperienceYearsText(
       contact.experienceYears != null && Number.isFinite(Number(contact.experienceYears))
@@ -43,11 +44,13 @@ export default function ContactEditSheet({ open, contact, onClose, onSave }) {
     if (!trimmedName) return;
     const experienceYears = experienceYearsText ? Number(experienceYearsText) : null;
     const basePay = basePayText ? Number(basePayText) : null;
+    const normalizedRegions = normalizeActivityRegions(regions);
     onSave?.({
       name: trimmedName,
       nickname: trimmedName,
       phone: phone.trim(),
-      homeRegion,
+      regions: normalizedRegions,
+      homeRegion: formatRegionsLabel(normalizedRegions),
       trade,
       experienceYears: Number.isFinite(experienceYears) && experienceYears >= 0 ? experienceYears : null,
       basePay: Number.isFinite(basePay) && basePay > 0 ? basePay : null,
@@ -95,7 +98,7 @@ export default function ContactEditSheet({ open, contact, onClose, onSave }) {
             <div className="contact-edit-sheet__field">
               <span className="contact-edit-sheet__label">활동지역</span>
               <button type="button" className="contact-edit-sheet__region-btn" onClick={() => setRegionSheetOpen(true)}>
-                {homeRegion}
+                {formatRegionsLabel(regions)}
                 <span aria-hidden="true">›</span>
               </button>
             </div>
@@ -162,43 +165,12 @@ export default function ContactEditSheet({ open, contact, onClose, onSave }) {
         </div>
       </div>
 
-      {regionSheetOpen ? (
-        <div
-          className="contact-edit-sheet__region-backdrop settings-region-sheet-backdrop"
-          role="presentation"
-          onClick={() => setRegionSheetOpen(false)}
-        >
-          <div
-            className="settings-region-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="활동지역 선택"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="settings-region-sheet__head">
-              <strong>활동지역</strong>
-              <button type="button" className="settings-sheet__close" onClick={() => setRegionSheetOpen(false)} aria-label="닫기">
-                ×
-              </button>
-            </div>
-            <div className="settings-region-sheet__list">
-              {ACTIVITY_REGIONS.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={`settings-region-sheet__item${homeRegion === item ? " is-active" : ""}`}
-                  onClick={() => {
-                    setHomeRegion(item);
-                    setRegionSheetOpen(false);
-                  }}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ActivityRegionsSheet
+        open={regionSheetOpen}
+        value={regions}
+        onChange={setRegions}
+        onClose={() => setRegionSheetOpen(false)}
+      />
     </>,
     document.body
   );

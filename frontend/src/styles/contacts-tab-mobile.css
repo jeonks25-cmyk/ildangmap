@@ -1487,6 +1487,46 @@
   border-bottom-color: #16a34a;
 }
 
+.people-add-sheet__region-filters {
+  margin-bottom: 12px;
+}
+
+.people-add-sheet__region-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #374151;
+}
+
+.people-add-sheet__region-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.people-add-sheet__region-chip {
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.people-add-sheet__region-chip.is-active {
+  border-color: var(--ildang-brand, #c45a16);
+  background: rgba(196, 90, 22, 0.08);
+  color: var(--ildang-brand, #c45a16);
+}
+
+.people-add-sheet__hint--compact {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
 .people-add-sheet__lead {
   margin: 0 0 12px;
   font-size: 14px;

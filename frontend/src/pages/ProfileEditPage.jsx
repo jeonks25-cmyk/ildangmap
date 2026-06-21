@@ -9,7 +9,8 @@ import { useUserProfile } from "../context/UserProfileContext";
 import { useUserStore } from "../store/useUserStore";
 import { useUiStore } from "../store/useUiStore";
 import { getDisplayNickname } from "../utils/displayNickname";
-import { ACTIVITY_REGIONS } from "../constants/activityRegions";
+import { formatRegionsLabel, normalizeActivityRegions } from "../constants/activityRegions";
+import ActivityRegionsSheet from "../components/shared/ActivityRegionsSheet";
 import { CRAFT_KEYS, CRAFT_LABEL } from "../utils/jobModel";
 import { profilePatchFromForm } from "../models/profileModel";
 import "../styles/settings-tab-mobile.css";
@@ -47,7 +48,7 @@ export default function ProfileEditPage() {
 
   const [nicknameDraft, setNicknameDraft] = useState(currentNickname);
   const [birthYearText, setBirthYearText] = useState(profile?.birthYear ? String(profile.birthYear) : "");
-  const [region, setRegion] = useState(profile?.region || "대전 서구");
+  const [regions, setRegions] = useState(() => normalizeActivityRegions(profile));
   const [craft, setCraft] = useState(profile?.craft || "film");
   const [role, setRole] = useState(profile?.role || "기공");
   const [desiredPayText, setDesiredPayText] = useState(
@@ -65,7 +66,7 @@ export default function ProfileEditPage() {
   useEffect(() => {
     setNicknameDraft(currentNickname);
     setBirthYearText(profile?.birthYear ? String(profile.birthYear) : "");
-    setRegion(profile?.region || "대전 서구");
+    setRegions(normalizeActivityRegions(profile));
     setCraft(profile?.craft || "film");
     setRole(profile?.role || "기공");
     setDesiredPayText(profile?.desiredPay != null ? String(profile.desiredPay) : "");
@@ -122,7 +123,7 @@ export default function ProfileEditPage() {
       saveLocalProfileDetails({
         ...profilePatchFromForm({
           nickname: trimmedNick,
-          region,
+          regions,
           craft,
           role,
           experienceYearsText: exp.text,
@@ -131,7 +132,7 @@ export default function ProfileEditPage() {
         }),
         birthYear: birth.number,
       });
-      setProfileMeta({ intro: String(intro || "").trim(), region, craft, trade: role });
+      setProfileMeta({ intro: String(intro || "").trim(), regions, craft, trade: role });
 
       showAppToast("프로필을 저장했습니다.");
       navigate("/settings", { replace: true });
@@ -150,7 +151,7 @@ export default function ProfileEditPage() {
     desiredPayText,
     experienceYearsText,
     phone,
-    region,
+    regions,
     craft,
     role,
     intro,
@@ -219,10 +220,10 @@ export default function ProfileEditPage() {
         <section className="settings-prefs profile-edit-section">
           <h2 className="settings-prefs__label">활동지역</h2>
           <button type="button" className="settings-prefs__region" onClick={() => setRegionSheetOpen(true)}>
-            <span>{region}</span>
+            <span>{formatRegionsLabel(regions)}</span>
             <span aria-hidden="true">›</span>
           </button>
-          <p className="settings-prefs__hint">시·군·구 단위로 선택합니다.</p>
+          <p className="settings-prefs__hint">시 단위로 여러 곳을 선택할 수 있습니다.</p>
         </section>
 
         <section className="settings-prefs profile-edit-section">
@@ -326,39 +327,12 @@ export default function ProfileEditPage() {
         </div>
       </div>
 
-      {regionSheetOpen ? (
-        <div className="settings-region-sheet-backdrop" role="presentation" onClick={() => setRegionSheetOpen(false)}>
-          <div
-            className="settings-region-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="활동지역 선택"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="settings-region-sheet__head">
-              <strong>활동지역</strong>
-              <button type="button" className="settings-sheet__close" onClick={() => setRegionSheetOpen(false)} aria-label="닫기">
-                ×
-              </button>
-            </div>
-            <div className="settings-region-sheet__list">
-              {ACTIVITY_REGIONS.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={`settings-region-sheet__item${region === item ? " is-active" : ""}`}
-                  onClick={() => {
-                    setRegion(item);
-                    setRegionSheetOpen(false);
-                  }}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ActivityRegionsSheet
+        open={regionSheetOpen}
+        value={regions}
+        onChange={setRegions}
+        onClose={() => setRegionSheetOpen(false)}
+      />
     </div>
   );
 }

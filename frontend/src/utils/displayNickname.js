@@ -1,4 +1,4 @@
-/** 게시판·공개 영역 표시용 닉네임 (실명·카카오명과 분리) */
+import { getPrimaryRegion } from "../constants/activityRegions";
 
 const CRAFT_SUFFIX = {
   film: "필름",
@@ -92,7 +92,7 @@ export function isKakaoPlaceholderNickname() {
 export function ensureDisplayNicknameForAuth(profile, sessionUser, userId, options = {}) {
   return suggestNicknames({
     craft: profile?.craft || options.craft || "film",
-    region: profile?.region || options.region || "대전 서구",
+    region: getPrimaryRegion(profile?.regions, profile?.region || options.region || "대전"),
     birthYear: profile?.birthYear,
     userId,
     count: 1,

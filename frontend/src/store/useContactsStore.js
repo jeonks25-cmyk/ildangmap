@@ -3,15 +3,19 @@ import { persist } from "zustand/middleware";
 import { FIELD_CONTACTS_MOCK, normalizeFieldContact } from "../utils/fieldContactsMock";
 import { createSafeJsonStorage, pickPersistedStoreState } from "./storeUtils";
 import { applyCoworkFromEndedSchedules, deriveCoworkStats, listCoworkHistoryForContact } from "../utils/coworkHistoryModel";
-import { normalizeActivityRegion } from "../constants/activityRegions";
+import { formatRegionsLabel, normalizeActivityRegions } from "../constants/activityRegions";
 
 const STORE_KEY = "ildangmap_contacts_store_v1";
 
 function applyContactOverride(raw, overrides = {}) {
   if (!overrides || typeof overrides !== "object") return raw;
   const next = { ...raw, ...overrides, id: raw.id };
-  if (overrides.homeRegion != null || overrides.region != null) {
-    next.homeRegion = normalizeActivityRegion(overrides.homeRegion || overrides.region, raw.homeRegion || raw.region);
+  if (overrides.regions != null || overrides.homeRegion != null || overrides.region != null) {
+    const nextRegions = normalizeActivityRegions(
+      overrides.regions ?? overrides.homeRegion ?? overrides.region ?? raw.regions ?? raw.homeRegion ?? raw.region
+    );
+    next.regions = nextRegions;
+    next.homeRegion = formatRegionsLabel(nextRegions);
   }
   if (overrides.basePay != null) {
     const pay = Number(overrides.basePay);
@@ -108,12 +112,14 @@ export const useContactsStore = create(
         const name = String(data.name || "").trim();
         if (!name) return null;
         const id = `u-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`;
+        const regions = normalizeActivityRegions(data.regions ?? data.homeRegion ?? data.region);
         const record = {
           id,
           name,
           phone: String(data.phone || "").trim(),
           trade: String(data.trade || "").trim(),
-          homeRegion: String(data.homeRegion || data.region || "").trim(),
+          regions,
+          homeRegion: formatRegionsLabel(regions),
           birthYear: Number.isFinite(Number(data.birthYear)) ? Number(data.birthYear) : null,
           userId: Number.isFinite(Number(data.userId)) ? Number(data.userId) : null,
           source: data.source === "appuser" ? "appuser" : "manual",
@@ -132,8 +138,10 @@ export const useContactsStore = create(
         const id = String(contactId);
         if (!id) return;
         const clean = { ...patch };
-        if (clean.homeRegion != null || clean.region != null) {
-          clean.homeRegion = normalizeActivityRegion(clean.homeRegion || clean.region);
+        if (clean.regions != null || clean.homeRegion != null || clean.region != null) {
+          const nextRegions = normalizeActivityRegions(clean.regions ?? clean.homeRegion ?? clean.region);
+          clean.regions = nextRegions;
+          clean.homeRegion = formatRegionsLabel(nextRegions);
           delete clean.region;
         }
         if (clean.phone != null) clean.phone = String(clean.phone).trim();
