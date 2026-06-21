@@ -12,7 +12,8 @@ import { useUiStore } from "../store/useUiStore";
 import { formatRegionsLabel, normalizeActivityRegions } from "../constants/activityRegions";
 import { getDisplayNickname } from "../utils/displayNickname";
 import { CRAFT_KEYS, CRAFT_LABEL } from "../utils/jobModel";
-import { profilePatchFromForm } from "../models/profileModel";
+import { profilePatchFromForm, parseBusinessRegNoInput, normalizeBusinessCardFields } from "../models/profileModel";
+import { compressImageFileToDataUrl } from "../utils/briefingImageCompress";
 import "../styles/settings-tab-mobile.css";
 
 function parseBirthYearInput(value) {
@@ -55,6 +56,17 @@ export default function ProfileEditPage() {
   );
   const [phone, setPhone] = useState(profile?.phone || "");
   const [intro, setIntro] = useState(profileMeta?.intro || "");
+  const [businessName, setBusinessName] = useState(profile?.businessName || "");
+  const [jobTitle, setJobTitle] = useState(profile?.jobTitle || "");
+  const [kakaoTalkId, setKakaoTalkId] = useState(profile?.kakaoTalkId || "");
+  const [blogUrl, setBlogUrl] = useState(profile?.blogUrl || "");
+  const [instagramUrl, setInstagramUrl] = useState(profile?.instagramUrl || "");
+  const [homepageUrl, setHomepageUrl] = useState(profile?.homepageUrl || "");
+  const [portfolioImageUrl, setPortfolioImageUrl] = useState(profile?.portfolioImageUrl || "");
+  const [businessRegNoText, setBusinessRegNoText] = useState(
+    profile?.businessRegNo ? String(profile.businessRegNo) : ""
+  );
+  const [portfolioUploading, setPortfolioUploading] = useState(false);
   const [regionSheetOpen, setRegionSheetOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [nicknameAvailable, setNicknameAvailable] = useState(null);
@@ -75,6 +87,11 @@ export default function ProfileEditPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storedRegionsKey]);
 
+  const storedCardKey = useMemo(
+    () => JSON.stringify(normalizeBusinessCardFields(profile || {})),
+    [profile]
+  );
+
   useEffect(() => {
     setBirthYearText(profile?.birthYear ? String(profile.birthYear) : "");
     setCraft(profile?.craft || "film");
@@ -82,6 +99,19 @@ export default function ProfileEditPage() {
     setExperienceYearsText(profile?.experienceYears != null ? String(profile.experienceYears) : "");
     setPhone(profile?.phone || "");
   }, [profile?.birthYear, profile?.craft, profile?.desiredPay, profile?.experienceYears, profile?.phone]);
+
+  useEffect(() => {
+    const card = normalizeBusinessCardFields(profile || {});
+    setBusinessName(card.businessName);
+    setJobTitle(card.jobTitle);
+    setKakaoTalkId(card.kakaoTalkId);
+    setBlogUrl(card.blogUrl);
+    setInstagramUrl(card.instagramUrl);
+    setHomepageUrl(card.homepageUrl);
+    setPortfolioImageUrl(card.portfolioImageUrl);
+    setBusinessRegNoText(card.businessRegNo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storedCardKey]);
 
   useEffect(() => {
     setIntro(profileMeta?.intro || "");
@@ -94,6 +124,24 @@ export default function ProfileEditPage() {
   });
 
   const regionLabel = useMemo(() => formatRegionsLabel(regions), [regions]);
+
+  const onPortfolioFile = useCallback(
+    async (event) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+      setPortfolioUploading(true);
+      try {
+        const dataUrl = await compressImageFileToDataUrl(file, { maxWidth: 1200, maxChars: 180_000 });
+        setPortfolioImageUrl(dataUrl);
+      } catch (err) {
+        showAppToast(err?.message || "이미지를 처리하지 못했습니다.");
+      } finally {
+        setPortfolioUploading(false);
+      }
+    },
+    [showAppToast]
+  );
 
   const onSave = useCallback(async () => {
     if (!isAuthenticated) {
@@ -119,6 +167,11 @@ export default function ProfileEditPage() {
 
     const pay = parseDesiredPayInput(desiredPayText);
     const exp = parseExperienceInput(experienceYearsText);
+    const bizReg = parseBusinessRegNoInput(businessRegNoText);
+    if (bizReg.text && bizReg.text.length !== 10) {
+      showAppToast("사업자등록번호는 10자리 숫자입니다. (선택)");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -140,6 +193,14 @@ export default function ProfileEditPage() {
           experienceYearsText: exp.text,
           desiredPayText: pay.text,
           phone,
+          businessName,
+          jobTitle,
+          kakaoTalkId,
+          blogUrl,
+          instagramUrl,
+          homepageUrl,
+          portfolioImageUrl,
+          businessRegNo: bizReg.text,
         }),
         birthYear: birth.number,
         intro: String(intro || "").trim(),
@@ -168,6 +229,14 @@ export default function ProfileEditPage() {
     regions,
     craft,
     intro,
+    businessName,
+    jobTitle,
+    kakaoTalkId,
+    blogUrl,
+    instagramUrl,
+    homepageUrl,
+    portfolioImageUrl,
+    businessRegNoText,
     changeDisplayNickname,
     saveProfileDetails,
     showAppToast,
@@ -199,11 +268,12 @@ export default function ProfileEditPage() {
         <button type="button" className="profile-edit-header__back" onClick={() => navigate("/settings")} aria-label="뒤로">
           ←
         </button>
-        <h1 className="profile-edit-header__title">내 프로필</h1>
+        <h1 className="profile-edit-header__title">내 명함</h1>
       </header>
 
       <div className="profile-edit-scroll">
         <div className="profile-edit-page">
+        <p className="profile-edit-lead">현장에서 공유하는 기술자 명함입니다. 명함 공유·QR은 곧 제공됩니다.</p>
         <ProfileNicknameSection
           currentNickname={currentNickname}
           draft={nicknameDraft}
@@ -305,6 +375,113 @@ export default function ProfileEditPage() {
             placeholder="현장 경험, 가능 공정, 연락 가능 시간 등"
             maxLength={200}
             rows={3}
+          />
+        </section>
+
+        <section className="settings-prefs profile-edit-section profile-edit-section--card">
+          <h2 className="settings-prefs__label">명함 정보</h2>
+          <p className="settings-prefs__hint">상호·SNS·포트폴리오 등 현장 명함에 표시할 정보</p>
+
+          <label className="profile-edit-field-label" htmlFor="profile-business-name">상호명</label>
+          <input
+            id="profile-business-name"
+            type="text"
+            className="settings-nickname__input"
+            value={businessName}
+            onChange={(e) => setBusinessName(e.target.value)}
+            placeholder="예: ○○인테리어"
+            maxLength={80}
+          />
+
+          <label className="profile-edit-field-label" htmlFor="profile-job-title">직책</label>
+          <input
+            id="profile-job-title"
+            type="text"
+            className="settings-nickname__input"
+            value={jobTitle}
+            onChange={(e) => setJobTitle(e.target.value)}
+            placeholder="예: 소장, 팀장, 기공"
+            maxLength={40}
+          />
+
+          <label className="profile-edit-field-label" htmlFor="profile-kakao-id">카카오톡 ID</label>
+          <input
+            id="profile-kakao-id"
+            type="text"
+            className="settings-nickname__input"
+            value={kakaoTalkId}
+            onChange={(e) => setKakaoTalkId(e.target.value)}
+            placeholder="카카오톡 검색 ID"
+            maxLength={40}
+            autoComplete="off"
+          />
+
+          <label className="profile-edit-field-label" htmlFor="profile-blog-url">블로그 URL</label>
+          <input
+            id="profile-blog-url"
+            type="url"
+            className="settings-nickname__input"
+            value={blogUrl}
+            onChange={(e) => setBlogUrl(e.target.value)}
+            placeholder="https://"
+            maxLength={255}
+          />
+
+          <label className="profile-edit-field-label" htmlFor="profile-instagram-url">인스타 URL</label>
+          <input
+            id="profile-instagram-url"
+            type="url"
+            className="settings-nickname__input"
+            value={instagramUrl}
+            onChange={(e) => setInstagramUrl(e.target.value)}
+            placeholder="https://instagram.com/..."
+            maxLength={255}
+          />
+
+          <label className="profile-edit-field-label" htmlFor="profile-homepage-url">홈페이지 URL</label>
+          <input
+            id="profile-homepage-url"
+            type="url"
+            className="settings-nickname__input"
+            value={homepageUrl}
+            onChange={(e) => setHomepageUrl(e.target.value)}
+            placeholder="https://"
+            maxLength={255}
+          />
+
+          <label className="profile-edit-field-label">포트폴리오 이미지</label>
+          {portfolioImageUrl ? (
+            <div className="profile-edit-portfolio">
+              <img src={portfolioImageUrl} alt="포트폴리오 미리보기" className="profile-edit-portfolio__img" />
+              <button
+                type="button"
+                className="profile-edit-portfolio__remove"
+                onClick={() => setPortfolioImageUrl("")}
+              >
+                이미지 제거
+              </button>
+            </div>
+          ) : null}
+          <label className="profile-edit-portfolio-upload">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={onPortfolioFile}
+              disabled={portfolioUploading || saving}
+            />
+            <span>{portfolioUploading ? "이미지 처리 중…" : portfolioImageUrl ? "다른 이미지 선택" : "이미지 선택"}</span>
+          </label>
+
+          <label className="profile-edit-field-label" htmlFor="profile-business-reg">사업자등록번호 (선택)</label>
+          <input
+            id="profile-business-reg"
+            type="text"
+            inputMode="numeric"
+            className="settings-nickname__input"
+            value={businessRegNoText}
+            onChange={(e) => setBusinessRegNoText(parseBusinessRegNoInput(e.target.value).text)}
+            placeholder="10자리 숫자"
+            maxLength={10}
           />
         </section>
         </div>

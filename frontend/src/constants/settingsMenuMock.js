@@ -13,8 +13,8 @@ export const SETTINGS_BETA_SIMPLIFIED =
 
 export const PROFILE_MENU_ITEM = {
   id: "my-profile",
-  label: "내 정보 관리",
-  icon: "👤",
+  label: "내 명함",
+  icon: "🪪",
   action: "route",
   path: "/settings/profile",
 };

@@ -23,7 +23,7 @@ public class UserProfileController {
     private final SessionUserService sessionUserService;
 
     @PatchMapping({"/users/me/profile", "/api/users/me/profile"})
-    @Operation(summary = "내 프로필 상세 저장", description = "활동지역·공종·경력·희망일당·출생년도 등을 DB에 저장합니다.")
+    @Operation(summary = "내 명함·프로필 저장", description = "활동지역·공종·경력·명함 필드 등을 DB에 저장합니다.")
     public ApiResponse<MeResponse> updateProfile(
             @Valid @RequestBody ProfileUpdateRequest request,
             Authentication authentication

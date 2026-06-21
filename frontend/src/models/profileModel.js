@@ -5,8 +5,55 @@ import {
   normalizeActivityRegions,
 } from "../constants/activityRegions";
 
+/** 현장 명함 확장 필드 키 */
+export const BUSINESS_CARD_FIELD_KEYS = [
+  "businessName",
+  "jobTitle",
+  "kakaoTalkId",
+  "blogUrl",
+  "instagramUrl",
+  "homepageUrl",
+  "portfolioImageUrl",
+  "businessRegNo",
+];
+
+export function createEmptyBusinessCardFields() {
+  return {
+    businessName: "",
+    jobTitle: "",
+    kakaoTalkId: "",
+    blogUrl: "",
+    instagramUrl: "",
+    homepageUrl: "",
+    portfolioImageUrl: "",
+    businessRegNo: "",
+  };
+}
+
+export function normalizeBusinessCardFields(raw = {}) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const trim = (value, max) => String(value || "").trim().slice(0, max);
+  const regDigits = String(source.businessRegNo || "").replace(/[^\d]/g, "").slice(0, 10);
+  return {
+    businessName: trim(source.businessName, 80),
+    jobTitle: trim(source.jobTitle, 40),
+    kakaoTalkId: trim(source.kakaoTalkId, 40),
+    blogUrl: trim(source.blogUrl, 255),
+    instagramUrl: trim(source.instagramUrl, 255),
+    homepageUrl: trim(source.homepageUrl, 255),
+    portfolioImageUrl:
+      typeof source.portfolioImageUrl === "string" ? source.portfolioImageUrl.trim() : "",
+    businessRegNo: regDigits,
+  };
+}
+
+export function parseBusinessRegNoInput(value) {
+  const digits = String(value || "").replace(/[^\d]/g, "").slice(0, 10);
+  return { text: digits, value: digits };
+}
+
 /**
- * 사용자 프로필 도메인 모델 — localStorage(MVP) · 추후 API 공통.
+ * 사용자 프로필 도메인 모델 — localStorage(MVP) · API 공통.
  */
 
 export function normalizeProfileFields(raw = {}) {
@@ -32,6 +79,7 @@ export function normalizeProfileFields(raw = {}) {
     desiredPay,
     phone: String(source.phone || "").trim(),
     intro: String(source.intro || "").trim(),
+    ...normalizeBusinessCardFields(source),
   };
 }
 
@@ -41,6 +89,7 @@ export function profilePatchFromForm(form = {}) {
   const pay = form.desiredPayText ? Number(form.desiredPayText) : null;
   const regions = normalizeActivityRegions(form.regions);
   const region = getPrimaryRegion(regions);
+  const card = normalizeBusinessCardFields(form);
   return {
     nickname: String(form.nickname || "").trim(),
     regions,
@@ -51,10 +100,11 @@ export function profilePatchFromForm(form = {}) {
     careerYears: Number.isFinite(exp) && exp >= 0 ? exp : null,
     desiredPay: Number.isFinite(pay) && pay > 0 ? pay : null,
     phone: String(form.phone || "").trim(),
+    ...card,
   };
 }
 
-/** store + meta → API body (추후 연동) */
+/** store + meta → API body */
 export function profileToApiPayload(profile, profileMeta = {}) {
   const fields = normalizeProfileFields({ ...profile, intro: profileMeta?.intro });
   return {
@@ -67,6 +117,14 @@ export function profileToApiPayload(profile, profileMeta = {}) {
     desiredPay: fields.desiredPay,
     phone: fields.phone,
     intro: fields.intro,
+    businessName: fields.businessName || null,
+    jobTitle: fields.jobTitle || null,
+    kakaoTalkId: fields.kakaoTalkId || null,
+    blogUrl: fields.blogUrl || null,
+    instagramUrl: fields.instagramUrl || null,
+    homepageUrl: fields.homepageUrl || null,
+    portfolioImageUrl: fields.portfolioImageUrl || null,
+    businessRegNo: fields.businessRegNo || null,
   };
 }
 
@@ -87,6 +145,8 @@ function formatCraftExperienceLine(craftKey, years) {
 export function buildProfileDisplayLines(profile, profileMeta = {}) {
   const f = normalizeProfileFields({ ...profile, intro: profileMeta?.intro });
   const lines = [];
+  if (f.businessName) lines.push(f.businessName);
+  if (f.jobTitle) lines.push(f.jobTitle);
   const craftLine = formatCraftExperienceLine(f.craft, f.experienceYears);
   if (craftLine) lines.push(craftLine);
   const payLine = formatDesiredPayLine(f.desiredPay);

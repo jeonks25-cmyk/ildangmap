@@ -260,6 +260,14 @@ export async function updateUserProfile(payload = {}) {
     regions: Array.isArray(payload.regions) ? payload.regions : [],
     phone: payload.phone ?? "",
     intro: payload.intro ?? "",
+    businessName: payload.businessName ?? null,
+    jobTitle: payload.jobTitle ?? null,
+    kakaoTalkId: payload.kakaoTalkId ?? null,
+    blogUrl: payload.blogUrl ?? null,
+    instagramUrl: payload.instagramUrl ?? null,
+    homepageUrl: payload.homepageUrl ?? null,
+    portfolioImageUrl: payload.portfolioImageUrl ?? null,
+    businessRegNo: payload.businessRegNo ?? null,
   };
   const raw = await runApiRequest({
     path: "/api/users/me/profile",
@@ -278,6 +286,14 @@ export async function updateUserProfile(payload = {}) {
         regions,
         region: getPrimaryRegion(regions),
         phone: body.phone,
+        businessName: body.businessName,
+        jobTitle: body.jobTitle,
+        kakaoTalkId: body.kakaoTalkId,
+        blogUrl: body.blogUrl,
+        instagramUrl: body.instagramUrl,
+        homepageUrl: body.homepageUrl,
+        portfolioImageUrl: body.portfolioImageUrl,
+        businessRegNo: body.businessRegNo,
       });
       const mockBase = buildMockMeResponse() || {};
       return {
@@ -289,6 +305,14 @@ export async function updateUserProfile(payload = {}) {
         regions,
         phone: body.phone,
         intro: body.intro,
+        businessName: body.businessName,
+        jobTitle: body.jobTitle,
+        kakaoTalkId: body.kakaoTalkId,
+        blogUrl: body.blogUrl,
+        instagramUrl: body.instagramUrl,
+        homepageUrl: body.homepageUrl,
+        portfolioImageUrl: body.portfolioImageUrl,
+        businessRegNo: body.businessRegNo,
       };
     },
   });

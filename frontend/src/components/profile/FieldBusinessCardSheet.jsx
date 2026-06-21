@@ -42,6 +42,15 @@ export default function FieldBusinessCardSheet({
   const craftCareerLine = formatCraftCareerLine(p);
   const payLine = formatPersonDailyPayLabel(p.basePay);
   const headline = person.displayName || p.name;
+  const cardLines = [
+    p.businessName,
+    p.jobTitle,
+  ].filter(Boolean);
+  const linkItems = [
+    p.blogUrl ? { label: "블로그", href: p.blogUrl } : null,
+    p.instagramUrl ? { label: "인스타", href: p.instagramUrl } : null,
+    p.homepageUrl ? { label: "홈페이지", href: p.homepageUrl } : null,
+  ].filter(Boolean);
 
   return createPortal(
     <div className="field-card-sheet field-card-sheet--person-detail" role="dialog" aria-modal="true" aria-label={`${headline} 인원 상세`}>
@@ -59,8 +68,37 @@ export default function FieldBusinessCardSheet({
             <p className="person-detail-head__region">{residence}</p>
             {craftCareerLine ? <p className="person-detail-head__craft">{craftCareerLine}</p> : null}
             {payLine ? <p className="person-detail-head__pay">{payLine}</p> : null}
+            {cardLines.map((line) => (
+              <p key={line} className="person-detail-head__card-line">{line}</p>
+            ))}
+            {p.kakaoTalkId ? (
+              <p className="person-detail-head__kakao">카카오톡 {p.kakaoTalkId}</p>
+            ) : null}
             {person.memo ? <p className="person-detail-head__memo">{person.memo}</p> : null}
           </header>
+
+          {p.portfolioImageUrl ? (
+            <div className="person-detail-portfolio">
+              <img src={p.portfolioImageUrl} alt={`${headline} 포트폴리오`} className="person-detail-portfolio__img" />
+            </div>
+          ) : null}
+
+          {linkItems.length > 0 ? (
+            <div className="person-detail-links" role="list">
+              {linkItems.map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="person-detail-links__item"
+                  role="listitem"
+                >
+                  {item.label}
+                </a>
+              ))}
+            </div>
+          ) : null}
 
           <PersonAvailabilityCalendar
             ownerId={ownerId}

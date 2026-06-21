@@ -772,6 +772,67 @@ button.settings-menu-row--action:active {
   padding-bottom: 16px;
 }
 
+.profile-edit-lead {
+  margin: 0 var(--app-page-pad-x, 16px) 14px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.profile-edit-field-label {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.profile-edit-section--card .profile-edit-field-label:first-of-type {
+  margin-top: 4px;
+}
+
+.profile-edit-portfolio {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 10px;
+}
+
+.profile-edit-portfolio__img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.profile-edit-portfolio__remove {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  color: #dc2626;
+  font-size: 13px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.profile-edit-portfolio-upload {
+  display: inline-flex;
+  align-items: center;
+  margin: 4px 0 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px dashed #cbd5e1;
+  background: #f8fafc;
+  font-size: 13px;
+  color: #475569;
+  cursor: pointer;
+}
+
+.profile-edit-portfolio-upload input {
+  display: none;
+}
+
 .profile-edit-section {
   margin: 0 var(--app-page-pad-x, 16px) 14px;
 }

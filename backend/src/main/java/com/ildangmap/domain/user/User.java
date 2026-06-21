@@ -87,6 +87,33 @@ public class User extends BaseTimeEntity {
     @Column(columnDefinition = "TEXT")
     private String intro;
 
+    /** 현장 명함 — 상호명 */
+    @Column(name = "business_name", length = 80)
+    private String businessName;
+
+    /** 직책 */
+    @Column(name = "job_title", length = 40)
+    private String jobTitle;
+
+    @Column(name = "kakao_talk_id", length = 40)
+    private String kakaoTalkId;
+
+    @Column(name = "blog_url", length = 255)
+    private String blogUrl;
+
+    @Column(name = "instagram_url", length = 255)
+    private String instagramUrl;
+
+    @Column(name = "homepage_url", length = 255)
+    private String homepageUrl;
+
+    @Column(name = "portfolio_image_url", columnDefinition = "TEXT")
+    private String portfolioImageUrl;
+
+    /** 사업자등록번호 (선택, 10자리) */
+    @Column(name = "business_reg_no", length = 12)
+    private String businessRegNo;
+
     @Column(nullable = false)
     private boolean active;
 
@@ -108,6 +135,14 @@ public class User extends BaseTimeEntity {
             Integer desiredPay,
             String activityRegionsJson,
             String intro,
+            String businessName,
+            String jobTitle,
+            String kakaoTalkId,
+            String blogUrl,
+            String instagramUrl,
+            String homepageUrl,
+            String portfolioImageUrl,
+            String businessRegNo,
             boolean active
     ) {
         this.email = email;
@@ -126,6 +161,14 @@ public class User extends BaseTimeEntity {
         this.desiredPay = desiredPay;
         this.activityRegionsJson = activityRegionsJson;
         this.intro = intro;
+        this.businessName = businessName;
+        this.jobTitle = jobTitle;
+        this.kakaoTalkId = kakaoTalkId;
+        this.blogUrl = blogUrl;
+        this.instagramUrl = instagramUrl;
+        this.homepageUrl = homepageUrl;
+        this.portfolioImageUrl = portfolioImageUrl;
+        this.businessRegNo = businessRegNo;
         this.active = active;
     }
 
@@ -162,7 +205,15 @@ public class User extends BaseTimeEntity {
             Integer desiredPay,
             List<String> activityRegions,
             String phone,
-            String intro
+            String intro,
+            String businessName,
+            String jobTitle,
+            String kakaoTalkId,
+            String blogUrl,
+            String instagramUrl,
+            String homepageUrl,
+            String portfolioImageUrl,
+            String businessRegNo
     ) {
         this.birthYear = birthYear;
         this.craft = craft;
@@ -178,6 +229,22 @@ public class User extends BaseTimeEntity {
             this.activityRegionsJson = String.join(",", activityRegions);
             this.region = activityRegions.get(0);
         }
+        this.businessName = trimToNull(businessName);
+        this.jobTitle = trimToNull(jobTitle);
+        this.kakaoTalkId = trimToNull(kakaoTalkId);
+        this.blogUrl = trimToNull(blogUrl);
+        this.instagramUrl = trimToNull(instagramUrl);
+        this.homepageUrl = trimToNull(homepageUrl);
+        this.portfolioImageUrl = trimToNull(portfolioImageUrl);
+        this.businessRegNo = trimToNull(businessRegNo);
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     public List<String> readActivityRegions() {

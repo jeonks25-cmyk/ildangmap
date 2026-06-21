@@ -29,4 +29,13 @@ public class MeResponse {
     private List<String> regions;
     private String phone;
     private String intro;
+
+    private String businessName;
+    private String jobTitle;
+    private String kakaoTalkId;
+    private String blogUrl;
+    private String instagramUrl;
+    private String homepageUrl;
+    private String portfolioImageUrl;
+    private String businessRegNo;
 }

@@ -3,6 +3,7 @@
  */
 import { CRAFT_LABEL } from "./jobModel";
 import { formatRegionsLabel, normalizeActivityRegions } from "../constants/activityRegions";
+import { normalizeBusinessCardFields } from "../models/profileModel";
 
 /** 1984 → "84년생" */
 export function formatBirthYearLabel(birthYear) {
@@ -72,9 +73,10 @@ export function toFieldPerson(source) {
       : null;
   const basePayRaw = Number(source.basePay ?? source.desiredPay);
   const basePay = Number.isFinite(basePayRaw) && basePayRaw > 0 ? basePayRaw : null;
-  const photo = String(source.photo || source.profileImage || "").trim();
+  const photo = String(source.photo || source.profileImage || source.portfolioImageUrl || "").trim();
   const coworkCount = Number.isFinite(Number(source.coworkCount)) ? Number(source.coworkCount) : null;
   const recentSites = Array.isArray(source.recentSites) ? source.recentSites.filter(Boolean) : [];
+  const card = normalizeBusinessCardFields(source);
   return {
     id: source.id,
     name,
@@ -88,6 +90,7 @@ export function toFieldPerson(source) {
     photo,
     coworkCount,
     recentSites,
+    ...card,
   };
 }
 

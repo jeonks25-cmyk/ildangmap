@@ -201,6 +201,7 @@ public class UserService {
                 throw new BadRequestException("활동지역을 선택해주세요.");
             }
         }
+        String businessRegNo = normalizeBusinessRegNo(request.getBusinessRegNo());
         user.updateProfileDetails(
                 request.getBirthYear(),
                 craft != null && !craft.isBlank() ? craft.trim() : null,
@@ -208,9 +209,31 @@ public class UserService {
                 request.getDesiredPay(),
                 regions,
                 request.getPhone(),
-                request.getIntro()
+                request.getIntro(),
+                request.getBusinessName(),
+                request.getJobTitle(),
+                request.getKakaoTalkId(),
+                request.getBlogUrl(),
+                request.getInstagramUrl(),
+                request.getHomepageUrl(),
+                request.getPortfolioImageUrl(),
+                businessRegNo
         );
         return toMeResponse(userRepository.save(user));
+    }
+
+    private String normalizeBusinessRegNo(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String digits = raw.replaceAll("[^0-9]", "");
+        if (digits.isEmpty()) {
+            return null;
+        }
+        if (digits.length() != 10) {
+            throw new BadRequestException("사업자등록번호는 10자리 숫자입니다.");
+        }
+        return digits;
     }
 
     private boolean isNicknameTaken(String nickname, Long excludeUserId) {
@@ -252,6 +275,14 @@ public class UserService {
                 .regions(user.readActivityRegions())
                 .phone(StringUtils.hasText(user.getPhone()) ? user.getPhone() : null)
                 .intro(StringUtils.hasText(user.getIntro()) ? user.getIntro() : null)
+                .businessName(user.getBusinessName())
+                .jobTitle(user.getJobTitle())
+                .kakaoTalkId(user.getKakaoTalkId())
+                .blogUrl(user.getBlogUrl())
+                .instagramUrl(user.getInstagramUrl())
+                .homepageUrl(user.getHomepageUrl())
+                .portfolioImageUrl(user.getPortfolioImageUrl())
+                .businessRegNo(user.getBusinessRegNo())
                 .build();
     }
 

@@ -18,7 +18,7 @@ import {
 import { fetchOAuthConfigDiagnostics, getKakaoOAuthStartUrl, getKakaoRedirectMustMatch, getSpringOAuthApiBase, logoutSession, probeSpringOAuthBackend } from "../api/authApi";
 import { changeNickname, setInitialNickname } from "../api/nicknameApi";
 import { getApiBaseUrl, isMockApiEnabled, isNetworkError } from "../api/client";
-import { profileToApiPayload } from "../models/profileModel";
+import { profileToApiPayload, normalizeBusinessCardFields, BUSINESS_CARD_FIELD_KEYS } from "../models/profileModel";
 import {
   createSafeJsonStorage,
   isAuthError,
@@ -120,7 +120,12 @@ function createDefaultProfile() {
     inviteAppliedAt: null,
     desiredPay: null,
     phone: "",
+    ...createEmptyBusinessCardFieldsFromModel(),
   };
+}
+
+function createEmptyBusinessCardFieldsFromModel() {
+  return normalizeBusinessCardFields({});
 }
 
 function createDefaultPrefs() {
@@ -302,6 +307,7 @@ function normalizeProfile(raw) {
         ? raw.referredByGroupId.trim()
         : defaults.referredByGroupId,
     inviteAppliedAt: typeof raw.inviteAppliedAt === "string" ? raw.inviteAppliedAt : defaults.inviteAppliedAt,
+    ...normalizeBusinessCardFields(raw),
   };
 }
 
@@ -350,6 +356,12 @@ function meProfileDetailPatch(normalizedMe) {
   }
   if (Object.prototype.hasOwnProperty.call(normalizedMe, "phone")) {
     patch.phone = String(normalizedMe.phone || "").trim();
+  }
+  const cardPatch = normalizeBusinessCardFields(normalizedMe);
+  for (const key of BUSINESS_CARD_FIELD_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(normalizedMe, key)) {
+      patch[key] = cardPatch[key];
+    }
   }
   return patch;
 }

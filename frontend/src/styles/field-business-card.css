@@ -326,6 +326,50 @@
   letter-spacing: -0.02em;
 }
 
+.person-detail-head__card-line {
+  margin: 4px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.person-detail-head__kakao {
+  margin: 4px 0 0;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.person-detail-portfolio {
+  margin: 12px 0 4px;
+}
+
+.person-detail-portfolio__img {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.person-detail-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 4px;
+}
+
+.person-detail-links__item {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .person-detail-head__today {
   display: inline-flex;
   align-items: center;
