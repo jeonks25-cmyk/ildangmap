@@ -119,4 +119,31 @@ public interface SiteMemoryEventRepository extends JpaRepository<SiteMemoryEvent
             @Param("types") List<SiteMemoryEventType> types,
             @Param("from") Instant from,
             @Param("to") Instant to);
+
+    @Query(
+            """
+            SELECT e FROM SiteMemoryEvent e
+            WHERE e.eventType IN :types
+              AND e.createdAt >= :from
+              AND e.createdAt < :to
+            ORDER BY e.createdAt DESC
+            """)
+    List<SiteMemoryEvent> findRecentOcrEvents(
+            @Param("types") List<SiteMemoryEventType> types,
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            org.springframework.data.domain.Pageable pageable);
+
+    @Query(
+            """
+            SELECT e FROM SiteMemoryEvent e
+            WHERE e.eventType = com.ildangmap.domain.sitememory.SiteMemoryEventType.OCR_EDIT
+              AND e.userId = :userId
+              AND e.ocrTitleOriginal = :original
+            ORDER BY e.createdAt DESC
+            """)
+    List<SiteMemoryEvent> findEditsForOriginalTitle(
+            @Param("userId") Long userId,
+            @Param("original") String original,
+            org.springframework.data.domain.Pageable pageable);
 }

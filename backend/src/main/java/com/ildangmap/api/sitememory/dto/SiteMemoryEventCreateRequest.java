@@ -32,4 +32,6 @@ public class SiteMemoryEventCreateRequest {
     private Boolean userEditedUnit;
     private String ocrTitleOriginal;
     private String ocrTitleCorrected;
+    private String ocrTitleExtracted;
+    private String resultReason;
 }

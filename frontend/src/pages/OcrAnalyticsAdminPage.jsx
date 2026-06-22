@@ -13,6 +13,15 @@ function pct(value) {
   return `${Math.round(n * 100)}%`;
 }
 
+function formatTs(value) {
+  if (!value) return "—";
+  try {
+    return new Date(value).toLocaleString("ko-KR", { hour12: false });
+  } catch {
+    return String(value);
+  }
+}
+
 function StatCard({ label, value, hint }) {
   return (
     <div className="beta-feedback-admin__stat-card">
@@ -121,6 +130,48 @@ export default function OcrAnalyticsAdminPage() {
             <StatCard label="Tesseract Fallback" value={data.tesseractFallbackCount ?? 0} />
             <StatCard label="OCR 성공률" value={pct(data.ocrSuccessRate)} hint={`${data.ocrSuccessCount ?? 0} / ${data.ocrAttemptCount ?? 0}`} />
             <StatCard label="사용자 수정률" value={pct(data.userEditRate)} hint={`수정 ${data.ocrEditCount ?? 0}건`} />
+          </section>
+
+          <section className="beta-feedback-admin__section">
+            <h2>최근 OCR 시도</h2>
+            {(data.recentAttempts || []).length ? (
+              <div className="beta-feedback-admin__recent-table-wrap">
+                <table className="beta-feedback-admin__recent-table">
+                  <thead>
+                    <tr>
+                      <th>시각</th>
+                      <th>엔진</th>
+                      <th>추출 제목</th>
+                      <th>저장 제목</th>
+                      <th>결과</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.recentAttempts.map((row) => (
+                      <tr key={row.id || `${row.timestamp}-${row.extractedTitle}`}>
+                        <td>{formatTs(row.timestamp)}</td>
+                        <td>{row.engineLabel || "—"}</td>
+                        <td>{row.extractedTitle || "—"}</td>
+                        <td>{row.savedTitle || "—"}</td>
+                        <td>
+                          <span
+                            className={`beta-feedback-admin__result-pill${
+                              row.success ? " is-success" : " is-fail"
+                            }`}
+                          >
+                            {row.resultReasonLabel || (row.success ? "성공" : "실패")}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="beta-feedback-admin__empty">
+                아직 수집된 OCR 시도가 없습니다. 카톡 캡처로 5~10건 테스트해 주세요.
+              </p>
+            )}
           </section>
 
           <section className="beta-feedback-admin__section">

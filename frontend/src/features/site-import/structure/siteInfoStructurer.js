@@ -21,6 +21,10 @@ import {
 } from "../memory";
 import { fetchGlobalMemoryCandidates } from "../memory/globalSiteMemory";
 import { reportSiteMemoryEvent } from "../../../api/siteMemoryApi";
+import {
+  buildExtractedTitle,
+  buildResultReason,
+} from "../utils/ocrAnalyticsReporter";
 
 const MIN_UNIT_CONFIDENCE = 0.55;
 
@@ -294,12 +298,28 @@ export async function structureSiteInfo(ocrText, options = {}) {
     unit: payload.unit || "",
     success: Boolean(payload.ok),
     userEdited: false,
-    siteNameRaw: normalization?.rawName || merged.apartmentName || "",
+    siteNameRaw: payload.apartmentName || "",
     ocrSource: options.ocrSource || "tesseract-fallback",
     confidence: payload.confidence,
     hasApartmentName: Boolean(payload.apartmentName),
     hasBuilding: Boolean(payload.building),
     hasUnit: Boolean(payload.unit),
+    ocrTitleExtracted: buildExtractedTitle({
+      apartmentName: payload.apartmentName,
+      building: payload.building,
+      unit: payload.unit,
+    }),
+    ocrTitleOriginal: buildExtractedTitle({
+      apartmentName: payload.apartmentName,
+      building: payload.building,
+      unit: payload.unit,
+    }),
+    resultReason: buildResultReason({
+      success: Boolean(payload.ok),
+      hasApartmentName: Boolean(payload.apartmentName),
+      hasBuilding: Boolean(payload.building),
+      hasUnit: Boolean(payload.unit),
+    }),
   });
 
   return {

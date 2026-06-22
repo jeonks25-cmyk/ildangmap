@@ -1,4 +1,10 @@
-import { createOcrApplySnapshot, reportOcrUserEdit } from "./ocrAnalyticsReporter";
+import {
+  buildExtractedTitle,
+  buildResultReason,
+  createOcrApplySnapshot,
+  OCR_RESULT_REASON,
+  reportOcrUserEdit,
+} from "./ocrAnalyticsReporter";
 
 jest.mock("../../../api/siteMemoryApi", () => ({
   reportSiteMemoryEvent: jest.fn(),
@@ -27,7 +33,22 @@ describe("ocrAnalyticsReporter", () => {
         userEditedTitle: true,
         ocrTitleOriginal: "장재열 1109동 1402호",
         ocrTitleCorrected: "장재계룡 1109동 1402호",
+        resultReason: "user_edited",
       })
     );
+  });
+
+  it("builds result reason for missing building", () => {
+    expect(
+      buildResultReason({
+        success: false,
+        hasApartmentName: true,
+        hasBuilding: false,
+        hasUnit: true,
+      })
+    ).toBe(OCR_RESULT_REASON.MISSING_BUILDING);
+    expect(
+      buildExtractedTitle({ apartmentName: "장재계룡", building: "1109", unit: "1402" })
+    ).toBe("장재계룡 1109동 1402호");
   });
 });

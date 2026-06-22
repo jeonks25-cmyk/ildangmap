@@ -1,13 +1,16 @@
 package com.ildangmap.service.analytics;
 
 import com.ildangmap.api.admin.dto.OcrAnalyticsSummaryResponse;
+import com.ildangmap.domain.sitememory.SiteMemoryEvent;
 import com.ildangmap.domain.sitememory.SiteMemoryEventType;
 import com.ildangmap.repository.SiteMemoryEventRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +22,14 @@ public class OcrAnalyticsService {
             List.of(SiteMemoryEventType.OCR_ATTEMPT, SiteMemoryEventType.OCR_SUCCESS);
     private static final String SOURCE_VISION = "gemini-vision";
     private static final String SOURCE_TESSERACT = "tesseract-fallback";
+    private static final Map<String, String> REASON_LABELS =
+            Map.of(
+                    "ok", "동·호 추출 완료",
+                    "missing_apartment", "현장명 미추출",
+                    "missing_building", "동 미추출",
+                    "missing_unit", "호 미추출",
+                    "structure_failed", "구조화 실패",
+                    "user_edited", "사용자 제목 수정");
 
     private final SiteMemoryEventRepository eventRepository;
 
@@ -35,9 +46,6 @@ public class OcrAnalyticsService {
         long attemptCount = eventRepository.countByTypes(OCR_ATTEMPT_TYPES, from, to);
         long successCount = eventRepository.countSuccessByTypes(OCR_ATTEMPT_TYPES, from, to);
         long editCount = eventRepository.countOcrEdits(from, to);
-        long editedAfterOcr =
-                eventRepository.countEditedAfterOcr(
-                        List.of(SiteMemoryEventType.OCR_SUCCESS), from, to);
 
         double successRate = attemptCount > 0 ? (double) successCount / attemptCount : 0.0;
         double editRate = successCount > 0 ? (double) editCount / successCount : 0.0;
@@ -77,7 +85,84 @@ public class OcrAnalyticsService {
                 .topSiteNames(topSiteNames)
                 .topFailurePatterns(failurePatterns)
                 .topTitleCorrections(corrections)
+                .recentAttempts(buildRecentAttempts(from, to))
                 .build();
+    }
+
+    private List<OcrAnalyticsSummaryResponse.RecentOcrAttempt> buildRecentAttempts(Instant from, Instant to) {
+        List<SiteMemoryEvent> events =
+                eventRepository.findRecentOcrEvents(
+                        OCR_ATTEMPT_TYPES, from, to, PageRequest.of(0, 30));
+        List<OcrAnalyticsSummaryResponse.RecentOcrAttempt> items = new ArrayList<>();
+        for (SiteMemoryEvent event : events) {
+            String extracted = resolveExtractedTitle(event);
+            String saved = resolveSavedTitle(event, extracted);
+            String source = event.getOcrSource() != null ? event.getOcrSource() : "";
+            items.add(
+                    OcrAnalyticsSummaryResponse.RecentOcrAttempt.builder()
+                            .id(event.getId())
+                            .timestamp(event.getCreatedAt())
+                            .ocrSource(source)
+                            .engineLabel(engineLabel(source))
+                            .extractedTitle(extracted)
+                            .savedTitle(saved)
+                            .success(event.isSuccess())
+                            .resultReason(event.getResultReason())
+                            .resultReasonLabel(reasonLabel(event.getResultReason(), event.isSuccess()))
+                            .confidence(event.getConfidence())
+                            .build());
+        }
+        return items;
+    }
+
+    private String resolveExtractedTitle(SiteMemoryEvent event) {
+        if (event.getOcrTitleExtracted() != null && !event.getOcrTitleExtracted().isBlank()) {
+            return event.getOcrTitleExtracted();
+        }
+        if (event.getOcrTitleOriginal() != null && !event.getOcrTitleOriginal().isBlank()) {
+            return event.getOcrTitleOriginal();
+        }
+        String building = event.getBuilding() != null ? event.getBuilding() : "";
+        String unit = event.getUnit() != null ? event.getUnit() : "";
+        if (!building.isBlank() && !unit.isBlank()) {
+            String apt = event.getCanonicalKey() != null ? event.getCanonicalKey() + " " : "";
+            return (apt + building + "동 " + unit + "호").trim();
+        }
+        return event.getCanonicalKey() != null ? event.getCanonicalKey() : "";
+    }
+
+    private String resolveSavedTitle(SiteMemoryEvent event, String extracted) {
+        if (extracted == null || extracted.isBlank() || event.getUserId() == null) {
+            return "";
+        }
+        List<SiteMemoryEvent> edits =
+                eventRepository.findEditsForOriginalTitle(
+                        event.getUserId(), extracted, PageRequest.of(0, 1));
+        if (edits.isEmpty()) {
+            return "";
+        }
+        SiteMemoryEvent edit = edits.get(0);
+        if (edit.getOcrTitleCorrected() != null && !edit.getOcrTitleCorrected().isBlank()) {
+            return edit.getOcrTitleCorrected();
+        }
+        return "";
+    }
+
+    private String engineLabel(String source) {
+        if (SOURCE_VISION.equals(source)) {
+            return "Gemini Vision";
+        }
+        if (SOURCE_TESSERACT.equals(source)) {
+            return "Tesseract Fallback";
+        }
+        return source.isBlank() ? "—" : source;
+    }
+
+    private String reasonLabel(String reason, boolean success) {
+        if (reason != null && !reason.isBlank()) {
+            return REASON_LABELS.getOrDefault(reason, reason);
+        }
+        return success ? REASON_LABELS.get("ok") : REASON_LABELS.get("structure_failed");
     }
 
     private List<OcrAnalyticsSummaryResponse.FailurePatternCount> buildFailurePatterns(

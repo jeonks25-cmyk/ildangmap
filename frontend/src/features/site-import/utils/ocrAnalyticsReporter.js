@@ -6,12 +6,41 @@ export const OCR_SOURCE = {
   TESSERACT: "tesseract-fallback",
 };
 
+export const OCR_RESULT_REASON = {
+  OK: "ok",
+  MISSING_APARTMENT: "missing_apartment",
+  MISSING_BUILDING: "missing_building",
+  MISSING_UNIT: "missing_unit",
+  STRUCTURE_FAILED: "structure_failed",
+};
+
 function buildOcrFieldFlags({ apartmentName, building, unit } = {}) {
   return {
     hasApartmentName: Boolean(String(apartmentName || "").trim()),
     hasBuilding: Boolean(String(building || "").trim()),
     hasUnit: Boolean(String(unit || "").trim()),
   };
+}
+
+export function buildExtractedTitle({ apartmentName, building, unit, title } = {}) {
+  const explicit = String(title || "").trim();
+  if (explicit && /\d+\s*동/.test(explicit)) return explicit;
+  const apt = String(apartmentName || "").trim();
+  const b = String(building || "").trim();
+  const u = String(unit || "").trim();
+  if (b && u) {
+    return `${apt ? `${apt} ` : ""}${b}동 ${u}호`.trim();
+  }
+  return explicit || apt;
+}
+
+export function buildResultReason({ success, hasApartmentName, hasBuilding, hasUnit } = {}) {
+  if (success) return OCR_RESULT_REASON.OK;
+  if (!hasBuilding && !hasUnit) return OCR_RESULT_REASON.STRUCTURE_FAILED;
+  if (!hasBuilding) return OCR_RESULT_REASON.MISSING_BUILDING;
+  if (!hasUnit) return OCR_RESULT_REASON.MISSING_UNIT;
+  if (!hasApartmentName) return OCR_RESULT_REASON.MISSING_APARTMENT;
+  return OCR_RESULT_REASON.STRUCTURE_FAILED;
 }
 
 function parseTitleFields(title) {
@@ -23,7 +52,7 @@ function parseTitleFields(title) {
   };
 }
 
-/** OCR 시도/성공 이벤트 */
+/** OCR 시도/성공 이벤트 — 원문·비밀번호 미저장 */
 export function reportOcrAttempt({
   ocrSource = OCR_SOURCE.TESSERACT,
   success = false,
@@ -33,10 +62,13 @@ export function reportOcrAttempt({
   confidence = null,
   region = "",
   craft = "",
-  siteNameRaw = "",
+  title = "",
   matchSource = "none",
 } = {}) {
   const flags = buildOcrFieldFlags({ apartmentName, building, unit });
+  const extractedTitle = buildExtractedTitle({ apartmentName, building, unit, title });
+  const resultReason = buildResultReason({ success, ...flags });
+
   reportSiteMemoryEvent({
     eventType: success ? "ocr_success" : "ocr_attempt",
     ocrSource,
@@ -53,7 +85,10 @@ export function reportOcrAttempt({
     matchSource,
     region,
     craft,
-    siteNameRaw,
+    siteNameRaw: apartmentName || extractedTitle,
+    ocrTitleExtracted: extractedTitle,
+    ocrTitleOriginal: extractedTitle,
+    resultReason,
   });
 }
 
@@ -66,7 +101,7 @@ export function reportOcrAttemptFromVisionDiag(diag, extras = {}) {
     building: diag.building,
     unit: diag.unit,
     confidence: diag.confidence,
-    siteNameRaw: diag.apartmentName || "",
+    title: diag.apartmentName ? `${diag.apartmentName} ${diag.building}동 ${diag.unit}호` : "",
     ...extras,
   });
 }
@@ -82,7 +117,7 @@ export function reportOcrAttemptFromChatResult(chatResult, { ocrSource = OCR_SOU
     building: trace.building || metrics.building || "",
     unit: trace.unit || metrics.unit || "",
     confidence: chatResult.parseDiagnostics?.confidence,
-    siteNameRaw: chatResult.title || "",
+    title: chatResult.title || "",
   });
 }
 
@@ -96,10 +131,16 @@ export function createOcrApplySnapshot({
   confidence = null,
 } = {}) {
   const parsed = parseTitleFields(title);
+  const extractedTitle = buildExtractedTitle({
+    apartmentName: apartmentName || parsed.apartmentName,
+    building: building || parsed.building,
+    unit: unit || parsed.unit,
+    title,
+  });
   return {
     id: `ocr-snap-${Date.now()}`,
     ocrSource: ocrSource || OCR_SOURCE.TESSERACT,
-    title: String(title || "").trim(),
+    title: extractedTitle,
     apartmentName: String(apartmentName || parsed.apartmentName || "").trim(),
     building: String(building || parsed.building || "").trim(),
     unit: String(unit || parsed.unit || "").trim(),
@@ -141,8 +182,10 @@ export function reportOcrUserEdit(snapshot, finalState = {}) {
     userEditedBuilding,
     userEditedUnit,
     ocrTitleOriginal: snapshot.title || null,
-    ocrTitleCorrected: userEditedTitle ? finalTitle : null,
-    siteNameRaw: snapshot.title,
+    ocrTitleCorrected: userEditedTitle ? finalTitle : snapshot.title,
+    ocrTitleExtracted: snapshot.title || null,
+    resultReason: anyEdit ? "user_edited" : OCR_RESULT_REASON.OK,
+    siteNameRaw: snapshot.apartmentName || snapshot.title,
   });
 }
 

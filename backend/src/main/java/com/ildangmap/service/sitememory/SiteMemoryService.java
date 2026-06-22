@@ -145,6 +145,9 @@ public class SiteMemoryService {
                         .userEditedUnit(request.getUserEditedUnit())
                         .ocrTitleOriginal(blankToNull(request.getOcrTitleOriginal()))
                         .ocrTitleCorrected(blankToNull(request.getOcrTitleCorrected()))
+                        .ocrTitleExtracted(blankToNull(firstNonBlank(
+                                request.getOcrTitleExtracted(), request.getOcrTitleOriginal())))
+                        .resultReason(blankToNull(request.getResultReason()))
                         .build()
         );
 

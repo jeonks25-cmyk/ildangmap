@@ -99,6 +99,14 @@ public class SiteMemoryEvent extends BaseTimeEntity {
     @Column(name = "ocr_title_corrected", length = 200)
     private String ocrTitleCorrected;
 
+    /** OCR 추출 제목 (비밀번호·원문 제외) */
+    @Column(name = "ocr_title_extracted", length = 200)
+    private String ocrTitleExtracted;
+
+    /** ok | missing_apartment | missing_building | missing_unit | structure_failed */
+    @Column(name = "result_reason", length = 64)
+    private String resultReason;
+
     @Builder
     public SiteMemoryEvent(
             Long userId,
@@ -121,7 +129,9 @@ public class SiteMemoryEvent extends BaseTimeEntity {
             Boolean userEditedBuilding,
             Boolean userEditedUnit,
             String ocrTitleOriginal,
-            String ocrTitleCorrected
+            String ocrTitleCorrected,
+            String ocrTitleExtracted,
+            String resultReason
     ) {
         this.userId = userId;
         this.eventType = eventType;
@@ -144,5 +154,7 @@ public class SiteMemoryEvent extends BaseTimeEntity {
         this.userEditedUnit = userEditedUnit;
         this.ocrTitleOriginal = ocrTitleOriginal;
         this.ocrTitleCorrected = ocrTitleCorrected;
+        this.ocrTitleExtracted = ocrTitleExtracted;
+        this.resultReason = resultReason;
     }
 }
