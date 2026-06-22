@@ -13,16 +13,22 @@ describe("siteImportDiag", () => {
       title: null,
       titleDiag: { garbageRejected: true, rejectedTitle: "-6" },
     });
-    expect(failure.stage).toBe("structure_failed");
+    expect(failure.stage).toBe("title_garbage_rejected");
   });
 
-  test("실패 단계 구분 — 제목 쓰레기 폐기", () => {
+  test("실패 단계 구분 — 동·호 있으면 structure_partial 아님", () => {
     const failure = resolveFailureStage({
-      ocrText: "some text",
-      fieldParse: { structureOk: false, building: "", unit: "" },
-      title: "",
-      titleDiag: { garbageRejected: true },
+      ocrText: "1109동 1402호",
+      fieldParse: {
+        structureOk: true,
+        building: "1109",
+        unit: "1402",
+        siteName: "",
+        structureOkDiag: { formula: "Boolean(building && unit)" },
+      },
+      title: "1109동 1402호",
+      titleDiag: {},
     });
-    expect(failure.stage).toBe("structure_failed");
+    expect(failure.stage).toBe("ok");
   });
 });

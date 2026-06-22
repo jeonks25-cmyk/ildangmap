@@ -36,9 +36,7 @@ export function recordStructureAttempt(input = {}) {
       building: Boolean(parsed.building),
       unit: Boolean(parsed.unit),
     },
-    structureOk: Boolean(
-      (parsed.siteName || parsed.apartmentName) && parsed.building && parsed.unit
-    ),
+    structureOk: Boolean(parsed.building && parsed.unit),
     savedWithoutEdit: null,
   };
 

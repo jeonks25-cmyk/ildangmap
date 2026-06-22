@@ -141,12 +141,49 @@ export function isPlausibleSiteName(name) {
   return true;
 }
 
+/**
+ * MVP structureOk — 동·호만 있으면 성공, 아파트명은 optional
+ */
+export function evaluateStructureOk({ siteName, building, unit, bestScore } = {}) {
+  const apartmentName = String(siteName || "").trim();
+  const hasBuilding = Boolean(String(building || "").trim());
+  const hasUnit = Boolean(String(unit || "").trim());
+  const structureOk = hasBuilding && hasUnit;
+
+  const diag = {
+    apartmentName,
+    building: building || "",
+    unit: unit || "",
+    hasBuilding,
+    hasUnit,
+    hasSiteName: Boolean(apartmentName),
+    structureOk,
+    formula: "Boolean(building && unit)",
+    bestScore: bestScore ?? null,
+    legacyStrictWouldPass: Boolean(
+      apartmentName && hasBuilding && hasUnit && isPlausibleSiteName(apartmentName) && (bestScore ?? 0) >= 0.55
+    ),
+  };
+
+  if (typeof console !== "undefined" && console.log) {
+    console.log("[SCHEDULE-OCR] structureOk 판정:", diag);
+  }
+
+  if (!structureOk && hasBuilding && hasUnit) {
+    console.warn("[BUG] building/unit 추출 성공했는데 structure_failed 처리됨", diag);
+  }
+
+  return { structureOk, diag };
+}
+
 function pushMatch(matches, payload) {
   const { siteName, building, unit, lineIndex, line, source } = payload;
   if (!building || !unit) return;
   if (building.length < 3 || unit.length < 2) return;
-  if (!siteName || siteName.length < 2) return;
-  if (!isPlausibleSiteName(siteName)) {
+
+  const hasSiteName = Boolean(siteName && siteName.length >= 2);
+  if (!hasSiteName && source !== "dong_ho_only") return;
+  if (hasSiteName && !isPlausibleSiteName(siteName)) {
     if (source === "full_blob" || source === "cross_line") return;
   }
 
@@ -184,6 +221,42 @@ function collectFromRegex(text, lineIndex, patterns, source) {
       });
     }
   }
+  return matches;
+}
+
+function collectDongHoOnlyMatches(lines) {
+  const matches = [];
+  const patterns = [
+    DONG_HO_COMPACT_RE,
+    DONG_HO_SPACED_RE,
+    DONG_UNIT_COMPACT_RE,
+    DONG_UNIT_SPACED_RE,
+    DONG_UNIT_LINE_RE,
+  ];
+
+  lines.forEach((line, lineIndex) => {
+    if (isNoiseLine(line)) return;
+    const compact = compactBlob(line);
+
+    for (const re of patterns) {
+      re.lastIndex = 0;
+      const m = re.exec(line) || (() => {
+        re.lastIndex = 0;
+        return re.exec(compact);
+      })();
+      if (!m) continue;
+
+      pushMatch(matches, {
+        siteName: "",
+        building: digitsOnly(m[1]),
+        unit: digitsOnly(m[2]),
+        lineIndex,
+        line,
+        source: "dong_ho_only",
+      });
+      break;
+    }
+  });
   return matches;
 }
 
@@ -254,6 +327,9 @@ export function parseSiteFields(text, options = {}) {
   // 3) 인접 줄 — 현장명 / 동호 분리
   allMatches.push(...collectCrossLineMatches(lines));
 
+  // 3b) 동·호만 있는 줄 (아파트명 없음)
+  allMatches.push(...collectDongHoOnlyMatches(lines));
+
   // 4) 원문 fallback
   if (!allMatches.length) {
     allMatches.push(...collectMatchesFromText(compactBlob(rawText), -1));
@@ -267,9 +343,16 @@ export function parseSiteFields(text, options = {}) {
   const unitCandidates = [...new Set(allMatches.map((m) => m.unit).filter(Boolean))];
 
   const siteName = best?.siteName || "";
-  const building = best?.building || "";
-  const unit = best?.unit || "";
+  const building = best?.building || buildingCandidates[0] || "";
+  const unit = best?.unit || unitCandidates[0] || "";
   const title = buildSiteTitle({ siteName, building, unit });
+
+  const { structureOk, diag: structureOkDiag } = evaluateStructureOk({
+    siteName,
+    building,
+    unit,
+    bestScore: best?.score,
+  });
 
   const result = {
     rawText,
@@ -284,9 +367,8 @@ export function parseSiteFields(text, options = {}) {
     final: { siteName, building, unit, title },
     hasUnit: Boolean(building && unit),
     hasSiteName: Boolean(siteName && siteName.length >= 2),
-    structureOk: Boolean(
-      siteName && building && unit && isPlausibleSiteName(siteName) && (best?.score ?? 0) >= 0.55
-    ),
+    structureOk,
+    structureOkDiag,
     matchCount: allMatches.length,
     debug: {
       matches: allMatches.slice(0, 10).map((m) => ({

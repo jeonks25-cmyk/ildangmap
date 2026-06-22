@@ -33,10 +33,25 @@ export function resolveFailureStage({ ocrText, fieldParse, title, titleDiag }) {
   }
 
   const structureOk = Boolean(fieldParse?.structureOk);
-  const hasPartial = Boolean(fieldParse?.building && fieldParse?.unit);
+  const hasBuilding = Boolean(fieldParse?.building);
+  const hasUnit = Boolean(fieldParse?.unit);
+  const hasPartial = hasBuilding && hasUnit;
   const titleStr = String(title || "").trim();
 
+  const stageContext = {
+    structureOk,
+    hasBuilding,
+    hasUnit,
+    hasPartial,
+    apartmentName: fieldParse?.siteName || "",
+    building: fieldParse?.building || "",
+    unit: fieldParse?.unit || "",
+    title: titleStr || null,
+    structureOkDiag: fieldParse?.structureOkDiag || null,
+  };
+
   if (!structureOk && !hasPartial) {
+    console.log("[SCHEDULE-OCR] resolveFailureStage → structure_failed (동·호 없음)", stageContext);
     if (titleStr) {
       return {
         stage: "structure_failed_with_fallback_title",
@@ -48,7 +63,10 @@ export function resolveFailureStage({ ocrText, fieldParse, title, titleDiag }) {
     }
     return { stage: "structure_failed", label: "구조화 실패 — 현장명·동·호 미추출" };
   }
+
   if (!structureOk && hasPartial) {
+    console.warn("[BUG] building/unit 추출 성공했는데 structure_failed 처리됨", stageContext);
+    console.log("[SCHEDULE-OCR] resolveFailureStage → structure_partial (MVP: 동·호만 추출)", stageContext);
     return { stage: "structure_partial", label: "구조화 부분 성공 — 동·호만 추출" };
   }
 
@@ -109,12 +127,38 @@ export function logScheduleStructurePipeline(payload = {}) {
     building: payload.fieldParse?.building,
     unit: payload.fieldParse?.unit,
     structureOk: payload.fieldParse?.structureOk,
+    structureOkDiag: payload.fieldParse?.structureOkDiag,
     siteNameCandidates: payload.fieldParse?.siteNameCandidates,
     buildingCandidates: payload.fieldParse?.buildingCandidates,
     unitCandidates: payload.fieldParse?.unitCandidates,
     matchCount: payload.fieldParse?.matchCount,
     matches: payload.fieldParse?.debug?.matches,
   });
+
+  console.log("5a) structureOk 판정 조건:", {
+    apartmentName: payload.preTitle?.apartmentName ?? payload.fieldParse?.siteName ?? "",
+    building: payload.preTitle?.building ?? payload.fieldParse?.building ?? "",
+    unit: payload.preTitle?.unit ?? payload.fieldParse?.unit ?? "",
+    commonPassword: payload.preTitle?.commonPassword ?? payload.siteInfo?.commonPassword ?? "",
+    housePassword: payload.preTitle?.housePassword ?? payload.siteInfo?.housePassword ?? "",
+    structureOk: payload.fieldParse?.structureOk,
+    formula: payload.fieldParse?.structureOkDiag?.formula ?? "Boolean(building && unit)",
+    structureOkDiag: payload.fieldParse?.structureOkDiag,
+  });
+
+  if (
+    !payload.fieldParse?.structureOk &&
+    payload.fieldParse?.building &&
+    payload.fieldParse?.unit
+  ) {
+    console.warn("[BUG] building/unit 추출 성공했는데 structure_failed 처리됨", {
+      apartmentName: payload.fieldParse?.siteName,
+      building: payload.fieldParse?.building,
+      unit: payload.fieldParse?.unit,
+      structureOkDiag: payload.fieldParse?.structureOkDiag,
+      failureStage: failure.stage,
+    });
+  }
 
   if (payload.siteInfo) {
     console.log("5b) extractSiteInfo 스냅샷:", {

@@ -267,7 +267,7 @@ export function extractSiteInfo(text) {
     confidence = 0.35;
   }
 
-  const structureOk = fieldParse.structureOk || Boolean(apartmentName && building && unitNo);
+  const structureOk = Boolean(building && unitNo);
   const metricsSession = recordStructureAttempt({
     rawText,
     source: "site-import",

@@ -342,7 +342,7 @@ export function parseSchedulePasteText(text, options = {}) {
       siteName: fieldParse.siteName,
       building: fieldParse.building,
       unit: fieldParse.unit,
-      structureOk: fieldParse.structureOk,
+      structureOk: Boolean(fieldParse.structureOk || (fieldParse.building && fieldParse.unit)),
     },
   });
 
@@ -377,23 +377,15 @@ export function parseSchedulePasteText(text, options = {}) {
   let titleLineIndex = -1;
   const titleDiag = { path: null, steps: [] };
 
-  if (fieldParse.structureOk) {
-    titleDiag.path = "site_field_parser";
-    titleDiag.steps.push({ step: "fieldParse.structureOk", title: fieldParse.final.title });
-    title = fieldParse.final.title;
-    titleLineIndex = lines.findIndex((line) => isSiteInfoLine(line, fieldParse));
-    if (titleLineIndex < 0) {
-      titleLineIndex = fieldParse.debug?.matches?.[0]?.lineIndex ?? 0;
-    }
-  } else if (fieldParse.building && fieldParse.unit) {
-    titleDiag.path = "partial_dong_ho";
+  if (fieldParse.structureOk || (fieldParse.building && fieldParse.unit)) {
+    titleDiag.path = fieldParse.structureOk ? "site_field_parser" : "partial_dong_ho";
     title = buildSiteTitle({
       siteName: fieldParse.siteName,
       building: fieldParse.building,
       unit: fieldParse.unit,
     });
     titleDiag.steps.push({
-      step: "buildSiteTitle_partial",
+      step: fieldParse.structureOk ? "fieldParse.structureOk" : "buildSiteTitle_partial",
       siteName: fieldParse.siteName,
       building: fieldParse.building,
       unit: fieldParse.unit,
@@ -401,7 +393,7 @@ export function parseSchedulePasteText(text, options = {}) {
     });
     titleLineIndex = lines.findIndex((line) => isSiteInfoLine(line, fieldParse));
     if (titleLineIndex < 0) {
-      titleLineIndex = fieldParse.debug?.matches?.[0]?.lineIndex ?? -1;
+      titleLineIndex = fieldParse.debug?.matches?.[0]?.lineIndex ?? 0;
     }
   } else {
     titleDiag.path = "legacy_fallback";
@@ -486,7 +478,9 @@ export function parseSchedulePasteText(text, options = {}) {
   } else {
     warnings.push("제목을 찾지 못했습니다. 직접 입력해 주세요.");
   }
-  if (fieldParse.structureOk) filledFields.push("structureOk");
+  if (fieldParse.structureOk || (fieldParse.building && fieldParse.unit)) {
+    filledFields.push("structureOk");
+  }
   if (dateFromText) filledFields.push("dateDetected");
   if (memoLines.length) filledFields.push("memo");
 
@@ -531,7 +525,7 @@ export function parseSchedulePasteText(text, options = {}) {
     source,
     filledFields,
     warnings,
-    structureOk: fieldParse.structureOk,
+    structureOk: Boolean(fieldParse.structureOk || (fieldParse.building && fieldParse.unit)),
     structureTrace: {
       ...fieldParse,
       timeCandidates: timeParse.candidates,

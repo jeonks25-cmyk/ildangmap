@@ -68,6 +68,14 @@ describe("siteFieldParser", () => {
     expect(result.unit).toBe("1402");
   });
 
+  test("동·호만 있어도 structureOk — 아파트명 optional", () => {
+    const result = parseSiteFields("1109동 1402호", { debug: false });
+    expect(result.structureOk).toBe(true);
+    expect(result.building).toBe("1109");
+    expect(result.unit).toBe("1402");
+    expect(result.final.title).toBe("1109동 1402호");
+  });
+
   test("garbage 제목 -6 방지 (schedule paste)", () => {
     const { parseSchedulePasteText } = require("../../../utils/schedulePasteParser");
     const result = parseSchedulePasteText(`KT 12:52
