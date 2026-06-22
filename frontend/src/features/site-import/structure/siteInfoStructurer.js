@@ -17,6 +17,8 @@ import {
   syncSiteMemoryFromSchedules,
   loadSiteMemory,
 } from "../memory";
+import { fetchGlobalMemoryCandidates } from "../memory/globalSiteMemory";
+import { reportSiteMemoryEvent } from "../../../api/siteMemoryApi";
 
 const MIN_UNIT_CONFIDENCE = 0.55;
 
@@ -189,7 +191,32 @@ export async function structureSiteInfo(ocrText, options = {}) {
   }
 
   let normalization = null;
+  let globalMemoryMatch = null;
+  const activityRegion = options.activityRegions?.[0] || "";
+
   if (merged.apartmentName && merged.apartmentName.length >= 2) {
+    const globalCandidates = await fetchGlobalMemoryCandidates({
+      rawName: merged.apartmentName,
+      building: merged.building,
+      region: activityRegion,
+      craft: merged.craft,
+      limit: 5,
+    });
+
+    const topGlobal = globalCandidates[0];
+    if (topGlobal?.score >= AUTO_SELECT_THRESHOLD) {
+      merged = { ...merged, apartmentName: topGlobal.name };
+      globalMemoryMatch = topGlobal;
+      memoryMatch = memoryMatch || {
+        siteName: topGlobal.name,
+        score: topGlobal.score,
+        registrationCount: topGlobal.registrationCount,
+        source: "global",
+      };
+      merged.confidence = Math.min(0.98, (merged.confidence || 0) + 0.08);
+      source = "global+rule";
+    }
+
     normalization = await normalizeSiteName({
       rawName: merged.apartmentName,
       building: merged.building,
@@ -199,34 +226,39 @@ export async function structureSiteInfo(ocrText, options = {}) {
       recentAddresses: options.recentAddresses,
       kakao: options.kakao,
     });
-    if (normalization.autoSelected && normalization.normalizedName) {
+    if (normalization.autoSelected && normalization.normalizedName && !globalMemoryMatch) {
       merged = { ...merged, apartmentName: normalization.normalizedName };
       if (normalization.confidence > 0.8) {
         merged.confidence = Math.min(0.98, merged.confidence + 0.06);
       }
     }
 
-    if (siteMemory) {
-      const memoryCandidates = buildMemorySiteNameCandidates(
-        normalization.rawName || merged.apartmentName,
-        merged.building,
-        siteMemory
-      );
-      if (memoryCandidates.length) {
-        const mergedCandidates = mergeMemoryCandidates(memoryCandidates, normalization.candidates);
-        const top = mergedCandidates[0];
-        const autoFromMemory = top?.score >= AUTO_SELECT_THRESHOLD;
-        normalization = {
-          ...normalization,
-          candidates: mergedCandidates,
-          autoSelected: autoFromMemory || normalization.autoSelected,
-          normalizedName: autoFromMemory ? top.name : normalization.normalizedName,
-          needsSelection: !autoFromMemory && mergedCandidates.length >= 2,
-          confidence: Math.max(normalization.confidence || 0, top?.score || 0),
-        };
-        if (autoFromMemory) {
-          merged = { ...merged, apartmentName: top.name };
-        }
+    const personalCandidates = siteMemory
+      ? buildMemorySiteNameCandidates(
+          normalization.rawName || merged.apartmentName,
+          merged.building,
+          siteMemory
+        )
+      : [];
+    const mergedCandidates = mergeMemoryCandidates(
+      mergeMemoryCandidates(personalCandidates, globalCandidates),
+      normalization.candidates
+    );
+
+    if (mergedCandidates.length) {
+      const top = mergedCandidates[0];
+      const autoSelected = top?.score >= AUTO_SELECT_THRESHOLD;
+      normalization = {
+        ...normalization,
+        candidates: mergedCandidates,
+        autoSelected: autoSelected || normalization.autoSelected,
+        normalizedName: autoSelected ? top.name : normalization.normalizedName,
+        needsSelection: !autoSelected && mergedCandidates.length >= 2,
+        confidence: Math.max(normalization.confidence || 0, top?.score || 0),
+      };
+      if (autoSelected) {
+        merged = { ...merged, apartmentName: top.name };
+        if (top.source === "global") globalMemoryMatch = top;
       }
     }
   }
@@ -238,9 +270,36 @@ export async function structureSiteInfo(ocrText, options = {}) {
 
   const payload = toStructuredPayload(merged, source, normalization, { memoryMatch });
   const recommendation = buildSiteMemoryRecommendation(payload, siteMemory);
+
+  const matchSource = globalMemoryMatch
+    ? "global"
+    : memoryMatch?.source === "personalDict"
+      ? "personal"
+      : source.includes("gpt")
+        ? "gpt"
+        : normalization?.autoSelected
+          ? "pattern"
+          : "none";
+
+  reportSiteMemoryEvent({
+    eventType: payload.ok ? "ocr_success" : "ocr_attempt",
+    canonicalKey: payload.apartmentName || normalization?.rawName || "",
+    displayName: payload.apartmentName || "",
+    matchSource,
+    region: activityRegion,
+    craft: payload.craft || merged.craft || "",
+    building: payload.building || "",
+    unit: payload.unit || "",
+    success: Boolean(payload.ok),
+    userEdited: false,
+    siteNameRaw: normalization?.rawName || merged.apartmentName || "",
+  });
+
   return {
     ...payload,
     siteMemoryRecommendation: recommendation,
+    globalMemoryMatch,
+    matchSource,
     multiSchedules: multiSchedules.length >= 2 ? multiSchedules : [],
   };
 }

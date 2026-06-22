@@ -7,6 +7,7 @@ import {
 } from "./siteMemoryModel";
 import { getScheduleParticipants } from "../../../utils/scheduleFieldOpsStorage";
 import { resolveFieldScheduleColor } from "../../../constants/scheduleColors";
+import { reportSiteMemoryEvent } from "../../../api/siteMemoryApi";
 
 const STORAGE_KEY = "ildangmap_site_memory_v2";
 
@@ -229,7 +230,27 @@ export function recordSiteMemoryFromRegistration({
     memory.personalDict = bumpDictEntry(memory.personalDict, parts.siteName, { type: "site" });
   }
 
-  return saveUserMemory(userId, memory);
+  const saved = saveUserMemory(userId, memory);
+
+  reportSiteMemoryEvent({
+    eventType: "registration",
+    canonicalKey: parts.siteName ? normalizeSiteMemoryKey(parts.siteName) : "",
+    displayName: parts.siteName || title,
+    matchSource: "personal",
+    region:
+      draft?.location?.shortRegion ||
+      schedule?.shortRegion ||
+      job?.shortRegion ||
+      "",
+    craft: source.craft || draft?.craft || "",
+    building: parts.building || "",
+    unit: parts.unit || "",
+    success: Boolean(parts.siteName && parts.building && parts.unit),
+    userEdited: false,
+    siteNameRaw: ocrText || title,
+  });
+
+  return saved;
 }
 
 export function getSiteMemoryRecord(memory, siteName) {
