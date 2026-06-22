@@ -51,6 +51,14 @@ export const BETA_FEEDBACK_ADMIN_MENU_ITEM = {
   path: "/settings/beta-feedback/admin",
 };
 
+export const OCR_ANALYTICS_ADMIN_MENU_ITEM = {
+  id: "ocr-analytics-admin",
+  label: "OCR Analytics",
+  icon: "📊",
+  action: "route",
+  path: "/settings/admin/analytics",
+};
+
 export const SETTINGS_MENU_SECTIONS = [
   {
     id: "account",

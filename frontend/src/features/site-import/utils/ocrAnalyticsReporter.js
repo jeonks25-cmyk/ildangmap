@@ -1,0 +1,151 @@
+import { reportSiteMemoryEvent } from "../../../api/siteMemoryApi";
+import { extractSiteInfo } from "../extractor/siteInfoExtractor";
+
+export const OCR_SOURCE = {
+  VISION: "gemini-vision",
+  TESSERACT: "tesseract-fallback",
+};
+
+function buildOcrFieldFlags({ apartmentName, building, unit } = {}) {
+  return {
+    hasApartmentName: Boolean(String(apartmentName || "").trim()),
+    hasBuilding: Boolean(String(building || "").trim()),
+    hasUnit: Boolean(String(unit || "").trim()),
+  };
+}
+
+function parseTitleFields(title) {
+  const info = extractSiteInfo(String(title || ""));
+  return {
+    apartmentName: info.apartmentName || "",
+    building: info.building || "",
+    unit: info.unit || "",
+  };
+}
+
+/** OCR 시도/성공 이벤트 */
+export function reportOcrAttempt({
+  ocrSource = OCR_SOURCE.TESSERACT,
+  success = false,
+  apartmentName = "",
+  building = "",
+  unit = "",
+  confidence = null,
+  region = "",
+  craft = "",
+  siteNameRaw = "",
+  matchSource = "none",
+} = {}) {
+  const flags = buildOcrFieldFlags({ apartmentName, building, unit });
+  reportSiteMemoryEvent({
+    eventType: success ? "ocr_success" : "ocr_attempt",
+    ocrSource,
+    success: Boolean(success),
+    displayName: apartmentName,
+    canonicalKey: apartmentName,
+    building,
+    unit,
+    confidence: confidence != null ? Number(confidence) : null,
+    hasApartmentName: flags.hasApartmentName,
+    hasBuilding: flags.hasBuilding,
+    hasUnit: flags.hasUnit,
+    userEdited: false,
+    matchSource,
+    region,
+    craft,
+    siteNameRaw,
+  });
+}
+
+export function reportOcrAttemptFromVisionDiag(diag, extras = {}) {
+  if (!diag) return;
+  reportOcrAttempt({
+    ocrSource: OCR_SOURCE.VISION,
+    success: diag.structureStatus === "success" || Boolean(diag.building && diag.unit),
+    apartmentName: diag.apartmentName,
+    building: diag.building,
+    unit: diag.unit,
+    confidence: diag.confidence,
+    siteNameRaw: diag.apartmentName || "",
+    ...extras,
+  });
+}
+
+export function reportOcrAttemptFromChatResult(chatResult, { ocrSource = OCR_SOURCE.TESSERACT } = {}) {
+  if (!chatResult) return;
+  const trace = chatResult.structureTrace || {};
+  const metrics = chatResult.structureMetrics || {};
+  reportOcrAttempt({
+    ocrSource,
+    success: Boolean(chatResult.structureOk),
+    apartmentName: trace.siteName || metrics.siteName || "",
+    building: trace.building || metrics.building || "",
+    unit: trace.unit || metrics.unit || "",
+    confidence: chatResult.parseDiagnostics?.confidence,
+    siteNameRaw: chatResult.title || "",
+  });
+}
+
+/** OCR 적용 직후 스냅샷 — 저장 시 수정 여부 비교용 */
+export function createOcrApplySnapshot({
+  ocrSource = OCR_SOURCE.TESSERACT,
+  title = "",
+  apartmentName = "",
+  building = "",
+  unit = "",
+  confidence = null,
+} = {}) {
+  const parsed = parseTitleFields(title);
+  return {
+    id: `ocr-snap-${Date.now()}`,
+    ocrSource: ocrSource || OCR_SOURCE.TESSERACT,
+    title: String(title || "").trim(),
+    apartmentName: String(apartmentName || parsed.apartmentName || "").trim(),
+    building: String(building || parsed.building || "").trim(),
+    unit: String(unit || parsed.unit || "").trim(),
+    confidence: confidence != null ? Number(confidence) : null,
+  };
+}
+
+/** 저장 시 OCR 수정 이벤트 + 익명 교정 쌍 */
+export function reportOcrUserEdit(snapshot, finalState = {}) {
+  if (!snapshot) return;
+
+  const finalTitle = String(finalState.title || "").trim();
+  const parsedFinal = parseTitleFields(finalTitle);
+  const finalFields = {
+    apartmentName: String(finalState.apartmentName || parsedFinal.apartmentName || "").trim(),
+    building: String(finalState.building || parsedFinal.building || "").trim(),
+    unit: String(finalState.unit || parsedFinal.unit || "").trim(),
+  };
+
+  const userEditedTitle = finalTitle !== snapshot.title;
+  const userEditedBuilding = finalFields.building !== snapshot.building;
+  const userEditedUnit = finalFields.unit !== snapshot.unit;
+  const anyEdit = userEditedTitle || userEditedBuilding || userEditedUnit;
+
+  reportSiteMemoryEvent({
+    eventType: "ocr_edit",
+    ocrSource: snapshot.ocrSource,
+    success: true,
+    displayName: finalFields.apartmentName || snapshot.apartmentName,
+    canonicalKey: finalFields.apartmentName || snapshot.apartmentName,
+    building: finalFields.building || snapshot.building,
+    unit: finalFields.unit || snapshot.unit,
+    confidence: snapshot.confidence,
+    hasApartmentName: Boolean(finalFields.apartmentName || snapshot.apartmentName),
+    hasBuilding: Boolean(finalFields.building || snapshot.building),
+    hasUnit: Boolean(finalFields.unit || snapshot.unit),
+    userEdited: anyEdit,
+    userEditedTitle,
+    userEditedBuilding,
+    userEditedUnit,
+    ocrTitleOriginal: snapshot.title || null,
+    ocrTitleCorrected: userEditedTitle ? finalTitle : null,
+    siteNameRaw: snapshot.title,
+  });
+}
+
+export function ocrSourceFromVisionDiag(diag) {
+  return diag?.engine === "gemini-vision" ? OCR_SOURCE.VISION : OCR_SOURCE.TESSERACT;
+}

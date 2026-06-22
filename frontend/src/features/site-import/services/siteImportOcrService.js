@@ -9,6 +9,7 @@ import { parseVisionSiteImage } from "../../../api/visionParseApi";
 import { isAiVisionOcrEnabled } from "../utils/visionOcrPrefs";
 import { visionResponseToStructured } from "../utils/visionImportMapper";
 import { buildVisionOcrDiagFromStructured } from "../utils/visionOcrDiagModel";
+import { reportOcrAttemptFromVisionDiag, OCR_SOURCE } from "../utils/ocrAnalyticsReporter";
 
 export const SITE_IMPORT_OCR_STAGE = {
   SUCCESS: "success",
@@ -44,13 +45,15 @@ export async function runSiteImportOcr(fileOrFiles, options = {}) {
       if (structured.ok) {
         const { patch, applied } = structuredInfoToFormPatch(structured, "", options.selectedDateKey);
         if (applied) {
+          const visionOcrDiag = buildVisionOcrDiagFromStructured(structured, { visionSource: true });
+          reportOcrAttemptFromVisionDiag(visionOcrDiag);
           return {
             stage: SITE_IMPORT_OCR_STAGE.SUCCESS,
             structured,
             patch,
             visionSource: true,
             ocrResult: { source: "gemini-vision", visionData },
-            visionOcrDiag: buildVisionOcrDiagFromStructured(structured, { visionSource: true }),
+            visionOcrDiag,
           };
         }
       }
@@ -89,6 +92,7 @@ export async function runSiteImportOcr(fileOrFiles, options = {}) {
 
   const structured = await structureSiteInfo(text, {
     useGpt: options.useGpt !== false,
+    ocrSource: OCR_SOURCE.TESSERACT,
     referenceDate: options.referenceDate,
     selectedDateKey: options.selectedDateKey,
     activityRegions: options.activityRegions,

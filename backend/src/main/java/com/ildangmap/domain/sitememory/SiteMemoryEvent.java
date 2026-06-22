@@ -69,6 +69,36 @@ public class SiteMemoryEvent extends BaseTimeEntity {
     @Column(name = "payload_hash", length = 64)
     private String payloadHash;
 
+    /** gemini-vision | tesseract-fallback */
+    @Column(name = "ocr_source", length = 32)
+    private String ocrSource;
+
+    private Double confidence;
+
+    @Column(name = "has_apartment_name")
+    private Boolean hasApartmentName;
+
+    @Column(name = "has_building")
+    private Boolean hasBuilding;
+
+    @Column(name = "has_unit")
+    private Boolean hasUnit;
+
+    @Column(name = "user_edited_title")
+    private Boolean userEditedTitle;
+
+    @Column(name = "user_edited_building")
+    private Boolean userEditedBuilding;
+
+    @Column(name = "user_edited_unit")
+    private Boolean userEditedUnit;
+
+    @Column(name = "ocr_title_original", length = 200)
+    private String ocrTitleOriginal;
+
+    @Column(name = "ocr_title_corrected", length = 200)
+    private String ocrTitleCorrected;
+
     @Builder
     public SiteMemoryEvent(
             Long userId,
@@ -81,7 +111,17 @@ public class SiteMemoryEvent extends BaseTimeEntity {
             String unit,
             boolean success,
             boolean userEdited,
-            String payloadHash
+            String payloadHash,
+            String ocrSource,
+            Double confidence,
+            Boolean hasApartmentName,
+            Boolean hasBuilding,
+            Boolean hasUnit,
+            Boolean userEditedTitle,
+            Boolean userEditedBuilding,
+            Boolean userEditedUnit,
+            String ocrTitleOriginal,
+            String ocrTitleCorrected
     ) {
         this.userId = userId;
         this.eventType = eventType;
@@ -94,5 +134,15 @@ public class SiteMemoryEvent extends BaseTimeEntity {
         this.success = success;
         this.userEdited = userEdited;
         this.payloadHash = payloadHash;
+        this.ocrSource = ocrSource;
+        this.confidence = confidence;
+        this.hasApartmentName = hasApartmentName;
+        this.hasBuilding = hasBuilding;
+        this.hasUnit = hasUnit;
+        this.userEditedTitle = userEditedTitle;
+        this.userEditedBuilding = userEditedBuilding;
+        this.userEditedUnit = userEditedUnit;
+        this.ocrTitleOriginal = ocrTitleOriginal;
+        this.ocrTitleCorrected = ocrTitleCorrected;
     }
 }

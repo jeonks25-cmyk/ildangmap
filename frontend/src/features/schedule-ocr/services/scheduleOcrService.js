@@ -10,10 +10,16 @@ import { extractSiteLineCandidates } from "../parser/siteLineCandidateExtractor"
 import { isAiVisionOcrEnabled } from "../../site-import/utils/visionOcrPrefs";
 import { tryVisionScheduleImport } from "./visionOcrService";
 import { buildVisionOcrDiagFromTesseract } from "../../site-import/utils/visionOcrDiagModel";
+import { OCR_SOURCE, reportOcrAttemptFromChatResult } from "../../site-import/utils/ocrAnalyticsReporter";
 
 const DIAG_PREFIX = "[SCHEDULE-OCR]";
 
 function withTesseractVisionDiag(payload, chatResult, visionAttempted) {
+  if (chatResult) {
+    reportOcrAttemptFromChatResult(chatResult, {
+      ocrSource: OCR_SOURCE.TESSERACT,
+    });
+  }
   if (!chatResult) return payload;
   return {
     ...payload,

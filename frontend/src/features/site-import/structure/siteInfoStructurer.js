@@ -295,6 +295,11 @@ export async function structureSiteInfo(ocrText, options = {}) {
     success: Boolean(payload.ok),
     userEdited: false,
     siteNameRaw: normalization?.rawName || merged.apartmentName || "",
+    ocrSource: options.ocrSource || "tesseract-fallback",
+    confidence: payload.confidence,
+    hasApartmentName: Boolean(payload.apartmentName),
+    hasBuilding: Boolean(payload.building),
+    hasUnit: Boolean(payload.unit),
   });
 
   return {

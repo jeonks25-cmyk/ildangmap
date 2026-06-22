@@ -22,4 +22,14 @@ public class SiteMemoryEventCreateRequest {
     private String displayName;
     private String siteNameRaw;
     private String payloadHash;
+    private String ocrSource;
+    private Double confidence;
+    private Boolean hasApartmentName;
+    private Boolean hasBuilding;
+    private Boolean hasUnit;
+    private Boolean userEditedTitle;
+    private Boolean userEditedBuilding;
+    private Boolean userEditedUnit;
+    private String ocrTitleOriginal;
+    private String ocrTitleCorrected;
 }

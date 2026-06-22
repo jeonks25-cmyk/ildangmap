@@ -7,6 +7,11 @@ import { useUiStore } from "../../store/useUiStore";
 import { toDateKey } from "../../utils/fieldScheduleModel";
 import { markStructureSaved } from "../../features/site-import/parser/siteImportStructureMetrics";
 import { applyScheduleImportTitleToForm } from "../../features/schedule-ocr/utils/scheduleFormApplyTitle";
+import {
+  createOcrApplySnapshot,
+  ocrSourceFromVisionDiag,
+  reportOcrUserEdit,
+} from "../../features/site-import/utils/ocrAnalyticsReporter";
 
 const ENTRY_TYPES = [
   { id: "site", label: "현장 일정" },
@@ -59,11 +64,14 @@ export default function ScheduleEntryComposerSheet({
     const finalAppliedTitle = applyScheduleImportTitleToForm(result);
     const parserFinalTitle = String(result?.finalTitle || result?.title || "").trim();
 
-    importSnapshotRef.current = {
-      sessionId: result.metricsSessionId,
+    importSnapshotRef.current = createOcrApplySnapshot({
+      ocrSource: ocrSourceFromVisionDiag(result.visionOcrDiag),
       title: finalAppliedTitle,
-      structureOk: Boolean(result.structureOk),
-    };
+      apartmentName: result.structureTrace?.siteName,
+      building: result.structureTrace?.building,
+      unit: result.structureTrace?.unit,
+      confidence: result.parseDiagnostics?.confidence ?? result.visionOcrDiag?.confidence,
+    });
     pendingTitleApplyRef.current = {
       expected: finalAppliedTitle,
       parserFinalTitle,
@@ -144,11 +152,14 @@ export default function ScheduleEntryComposerSheet({
         await onSubmitSite?.({ ...payload, participantIds });
       }
       const snap = importSnapshotRef.current;
-      if (snap?.sessionId) {
-        markStructureSaved(snap.sessionId, {
-          savedWithoutEdit: snap.structureOk && snap.title === trimmedTitle,
-          finalTitle: trimmedTitle,
-        });
+      if (snap) {
+        reportOcrUserEdit(snap, { title: trimmedTitle });
+        if (snap.sessionId) {
+          markStructureSaved(snap.sessionId, {
+            savedWithoutEdit: snap.title === trimmedTitle,
+            finalTitle: trimmedTitle,
+          });
+        }
       }
       onClose?.();
     } catch (error) {

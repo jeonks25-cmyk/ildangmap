@@ -14,7 +14,7 @@ import SettingsProfileBanner from "../components/settings/SettingsProfileBanner"
 import AppTabHeader from "../components/layout/AppTabHeader";
 import MapNotificationOverlay from "../components/map/MapNotificationOverlay";
 import { useTabNotificationOverlay } from "../hooks/useTabNotificationOverlay";
-import { getVisibleSettingsMenuSections, SETTINGS_MENU_SECTIONS, SETTINGS_SUPPORT_EMAIL, SETTINGS_APP_VERSION, SETTINGS_BETA_SIMPLIFIED, BETA_FEEDBACK_ADMIN_MENU_ITEM, PLACE_REPORT_ADMIN_MENU_ITEM } from "../constants/settingsMenuMock";
+import { getVisibleSettingsMenuSections, SETTINGS_MENU_SECTIONS, SETTINGS_SUPPORT_EMAIL, SETTINGS_APP_VERSION, SETTINGS_BETA_SIMPLIFIED, BETA_FEEDBACK_ADMIN_MENU_ITEM, PLACE_REPORT_ADMIN_MENU_ITEM, OCR_ANALYTICS_ADMIN_MENU_ITEM } from "../constants/settingsMenuMock";
 import { getDisplayNickname } from "../utils/displayNickname";
 import "../styles/settings-tab-mobile.css";
 
@@ -37,7 +37,7 @@ export default function MyTabPage() {
       if (section.id !== "beta") return section;
       return {
         ...section,
-        items: [...section.items, BETA_FEEDBACK_ADMIN_MENU_ITEM, PLACE_REPORT_ADMIN_MENU_ITEM],
+        items: [...section.items, BETA_FEEDBACK_ADMIN_MENU_ITEM, PLACE_REPORT_ADMIN_MENU_ITEM, OCR_ANALYTICS_ADMIN_MENU_ITEM],
       };
     });
   }, [isFeedbackAdmin]);

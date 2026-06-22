@@ -379,3 +379,113 @@
   font-size: 0.85rem;
   font-weight: 600;
 }
+
+.beta-feedback-admin__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.beta-feedback-admin__back {
+  border: none;
+  background: transparent;
+  color: #374151;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.beta-feedback-admin__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.beta-feedback-admin__stat-card {
+  padding: 0.85rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+}
+
+.beta-feedback-admin__stat-label {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.beta-feedback-admin__stat-value {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.beta-feedback-admin__stat-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.beta-feedback-admin__section {
+  margin-bottom: 1.25rem;
+  padding: 0.85rem;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+}
+
+.beta-feedback-admin__section h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+}
+
+.beta-feedback-admin__group-list,
+.beta-feedback-admin__correction-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.beta-feedback-admin__group-list li,
+.beta-feedback-admin__correction-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.beta-feedback-admin__correction-list li {
+  flex-direction: column;
+}
+
+.beta-feedback-admin__correction-label {
+  display: inline-block;
+  min-width: 2.2rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.beta-feedback-admin__empty,
+.beta-feedback-admin__denied,
+.beta-feedback-admin__loading,
+.beta-feedback-admin__error {
+  color: #6b7280;
+}
+
+.beta-feedback-admin__refresh {
+  width: 100%;
+  margin-top: 0.5rem;
+  min-height: 44px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  font-weight: 700;
+}

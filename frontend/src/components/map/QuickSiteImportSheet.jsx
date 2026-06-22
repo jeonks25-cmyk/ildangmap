@@ -31,6 +31,12 @@ import {
   structureSiteInfo,
   structuredInfoToFormPatch,
 } from "../../features/site-import/services/siteImportOcrService";
+import {
+  createOcrApplySnapshot,
+  ocrSourceFromVisionDiag,
+  OCR_SOURCE,
+  reportOcrUserEdit,
+} from "../../features/site-import/utils/ocrAnalyticsReporter";
 
 function defaultTextForType(type) {
   if (type === MAP_ITEM_TYPE.FIELD) {
@@ -241,7 +247,7 @@ export default function QuickSiteImportSheet({
     return title.trim().length >= 2 || text.trim().length >= 2;
   }, [fieldDraft, isField, multiSchedules, ocrApplied, seedText, text, title]);
 
-  const applyStructuredResult = (structured, patch, rawText) => {
+  const applyStructuredResult = (structured, patch, rawText, visionDiag = null) => {
     setLastStructured(structured);
     setSiteNameCandidates(structured.siteNameCandidates || []);
     setSelectedSiteName("");
@@ -253,11 +259,14 @@ export default function QuickSiteImportSheet({
     }));
     if (patch.location?.fullAddress) setAddressQuery(patch.location.fullAddress);
     setBaseOcrPatch(patch);
-    ocrTitleSnapshotRef.current = {
-      sessionId: structured.metricsSessionId,
+    ocrTitleSnapshotRef.current = createOcrApplySnapshot({
+      ocrSource: visionDiag ? ocrSourceFromVisionDiag(visionDiag) : OCR_SOURCE.TESSERACT,
       title: patch.title || "",
-      structureOk: Boolean(structured.structureOk),
-    };
+      apartmentName: structured.apartmentName,
+      building: structured.building,
+      unit: structured.unit,
+      confidence: structured.confidence,
+    });
     setOcrChecklist(structured.checklist || []);
     setOcrApplied(true);
     setOcrError(structured.needsSiteNameSelection ? "현장명 후보 중 하나를 선택해 주세요" : "");
@@ -332,7 +341,7 @@ export default function QuickSiteImportSheet({
         result.stage === SITE_IMPORT_OCR_STAGE.MULTI
       ) {
         setText(result.ocrResult?.text || "");
-        applyStructuredResult(result.structured, result.patch, result.ocrResult?.text);
+        applyStructuredResult(result.structured, result.patch, result.ocrResult?.text, result.visionOcrDiag);
         if (result.multiSchedules?.length >= 2) {
           setMultiSchedules(result.multiSchedules);
         }
@@ -400,12 +409,14 @@ export default function QuickSiteImportSheet({
           title: fieldDraft?.title || siteNameSuggestions[0] || "",
         }) || createInitialJobPostDraft({ selectedDateKey, defaultCraft: seedCraft });
       const snap = ocrTitleSnapshotRef.current;
-      if (snap?.sessionId) {
-        markStructureSaved(snap.sessionId, {
-          savedWithoutEdit:
-            snap.structureOk && String(draft?.title || "").trim() === String(snap.title || "").trim(),
-          finalTitle: draft?.title || "",
-        });
+      if (snap) {
+        reportOcrUserEdit(snap, { title: draft?.title || "" });
+        if (snap.sessionId) {
+          markStructureSaved(snap.sessionId, {
+            savedWithoutEdit: String(draft?.title || "").trim() === String(snap.title || "").trim(),
+            finalTitle: draft?.title || "",
+          });
+        }
       }
       await Promise.resolve(
         onSubmitField?.({ draft, source: text.trim() ? "paste" : "capture", ocrText: text })
