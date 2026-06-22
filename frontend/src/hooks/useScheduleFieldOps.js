@@ -42,7 +42,8 @@ import {
 } from "../utils/fieldMemoryStorage";
 import { getFieldProfileFamilyKey, getFieldProfileKey } from "../utils/fieldHistoryModel";
 import { recordSiteMemoryFromRegistration } from "../features/site-import/memory";
-import { scheduleDiagSaveResult } from "../utils/scheduleSyncDiag";
+import { scheduleDiagSaveResult, scheduleDiagCurrentUser } from "../utils/scheduleSyncDiag";
+import { hasVisibleIldangmapSessionCookie } from "../utils/sessionBootstrapFlow";
 
 function parseDateKey(key) {
   const [y, m, d] = String(key).split("-").map(Number);
@@ -575,6 +576,15 @@ export function useScheduleFieldOps(selectedDateKey) {
 
   const handleSubmitSiteEntry = useCallback(
     async ({ id, title, dateKey, endDateKey, workDateStart, workDateEnd, startTime, endTime, color, memo, participantIds = [] }) => {
+      const session = useUserStore.getState().session;
+      const profile = useUserStore.getState().profile;
+      scheduleDiagCurrentUser({
+        userId: session?.user?.id ?? profile?.id ?? myUserId,
+        isAuthenticated: session?.isAuthenticated,
+        schedulesUserId: useSettlementStore.getState().schedulesUserId,
+        hasSessionCookie: hasVisibleIldangmapSessionCookie(),
+      });
+
       try {
         if (id) {
           await handleUpdateSiteEntry({
@@ -704,6 +714,16 @@ export function useScheduleFieldOps(selectedDateKey) {
                 workDateEnd: endDate,
               }
         );
+
+        try {
+          await useSettlementStore.getState().syncSchedulesToServer();
+        } catch (syncError) {
+          if (syncError?.status === 401 || syncError?.code === "SESSION_REQUIRED") {
+            showAppToast?.("로그인이 완료되지 않았습니다");
+            throw syncError;
+          }
+        }
+
         showAppToast?.(
           selectedContacts.length
             ? `현장 일정을 저장했습니다 · ${selectedContacts.length}명 배정`
@@ -726,7 +746,6 @@ export function useScheduleFieldOps(selectedDateKey) {
       inviteContactsToSchedule,
       memoById,
       myUserId,
-      profile,
       removedContactIds,
       showAppToast,
       updateSchedule,

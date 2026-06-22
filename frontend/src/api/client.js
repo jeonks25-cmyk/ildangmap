@@ -217,6 +217,22 @@ export async function request(path, { method = "GET", body, headers, ...rest } =
 
   markBackendReachable();
 
+  const finalUrl = String(response.url || requestUrl);
+  const redirectLocation = String(response.headers.get("Location") || "");
+  const oauthRedirect =
+    (response.redirected && /oauth2\/authorization|\/login\/oauth2/i.test(finalUrl)) ||
+    ((response.status === 302 || response.status === 301) &&
+      /oauth2\/authorization|\/login\/oauth2/i.test(redirectLocation || finalUrl));
+
+  if (oauthRedirect) {
+    throw createApiError("로그인이 완료되지 않았습니다", 401, {
+      code: "SESSION_REQUIRED",
+      type: API_ERROR_TYPE.AUTH,
+      details: { path, method, status: response.status, finalUrl, redirectLocation, redirected: response.redirected },
+      source: "response",
+    });
+  }
+
   const payload = await readResponsePayload(response);
 
   if (!response.ok) {

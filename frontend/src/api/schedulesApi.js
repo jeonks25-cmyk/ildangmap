@@ -145,6 +145,7 @@ export async function putSchedulesData(payload) {
     path: "/api/users/me/schedules",
     method: "PUT",
     body,
+    redirect: "manual",
     useMock: resolveUseMock(),
     mock: () => {
       const userId = readJsonStorage("ildangmap_user_store_v1", {})?.state?.profile?.id || 1;

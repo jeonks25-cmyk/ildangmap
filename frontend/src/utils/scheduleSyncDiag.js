@@ -47,3 +47,12 @@ export function scheduleDiagCalendarLoad({
     personalCount,
   });
 }
+
+export function scheduleDiagCurrentUser({ userId, isAuthenticated, schedulesUserId, hasSessionCookie }) {
+  scheduleDiag("currentUser", {
+    userId: userId != null ? String(userId) : null,
+    isAuthenticated: Boolean(isAuthenticated),
+    schedulesUserId: schedulesUserId != null ? String(schedulesUserId) : null,
+    hasSessionCookie: Boolean(hasSessionCookie),
+  });
+}

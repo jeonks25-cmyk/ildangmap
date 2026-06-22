@@ -158,22 +158,59 @@ export async function logoutSession() {
 /** OAuth 직후 일회용 bt 토큰으로 same-origin 세션 쿠키 발급 */
 export async function bootstrapSessionFromToken(bootstrapToken) {
   const token = String(bootstrapToken || "").trim();
-  if (!token) return false;
+  if (!token) {
+    return { ok: false, status: 0, reason: "no_token", body: null };
+  }
   const url = buildApiUrl(`/api/auth/session/bootstrap?bt=${encodeURIComponent(token)}`);
-  const response = await fetch(url, {
-    method: "POST",
-    credentials: "include",
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      credentials: "include",
+      redirect: "manual",
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      status: 0,
+      reason: error?.message || "network_error",
+      body: null,
+    };
+  }
+
   const contentType = String(response.headers.get("Content-Type") || "");
+  let body = null;
+  try {
+    body = await readResponseBody(response);
+  } catch {
+    body = null;
+  }
+
+  if (response.type === "opaqueredirect" || response.status === 302 || response.status === 301) {
+    return {
+      ok: false,
+      status: response.status,
+      reason: "redirect",
+      body,
+    };
+  }
+
   const ok = response.ok && contentType.includes("application/json");
   if (!ok) {
     console.warn("[AUTH-DIAG] bootstrap failed", {
       status: response.status,
       contentType,
       url,
+      body,
     });
   }
-  return ok;
+
+  return {
+    ok,
+    status: response.status,
+    reason: ok ? "success" : "http_error",
+    body,
+  };
 }
 
 /** Railway bootstrap API 배포 여부 확인 */

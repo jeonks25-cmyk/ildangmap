@@ -10,8 +10,8 @@ import NicknameSetupGate from "../onboarding/NicknameSetupGate";
 import LoginPromptSheet from "../auth/LoginPromptSheet";
 import AppToast from "../ui/AppToast";
 import PwaInstallBanner from "../pwa/PwaInstallBanner";
-import { bootstrapSessionFromToken } from "../../api/authApi";
 import { authDiag, authDiagStoreSnapshot } from "../../utils/authDiag";
+import { logIldangmapSessionCookie } from "../../utils/sessionBootstrapFlow";
 
 export default function AppShell() {
   useAppBootstrap();
@@ -29,29 +29,38 @@ export default function AppShell() {
   const hideNavForFieldDetail = /^\/schedule\/field\/.+/.test(location.pathname);
   const hideBottomNav = hideNavForChatRoom || hideNavForNotifDetail || hideNavForFieldDetail || nicknameGateVisible;
   const shellClass = "daangn-shell daangn-shell--oyaji daangn-shell--responsive";
+
   useEffect(() => {
     const sp = new URLSearchParams(location.search);
     if (sp.get("login") !== "success") return;
+
     const bootstrapToken = sp.get("bt");
+    if (bootstrapToken) {
+      authDiag("AppShell login=success — bt ignored (bootstrap는 AuthCallback 전용)", {
+        pathname: location.pathname,
+      });
+    }
+
     let cancelled = false;
     (async () => {
-      authDiag("AppShell login=success handler start", { pathname: location.pathname, hasBt: Boolean(bootstrapToken) });
+      authDiag("AppShell login=success handler start", {
+        pathname: location.pathname,
+        hasBt: Boolean(bootstrapToken),
+        note: "bootstrap 미호출 — /auth/callback에서만 수행",
+      });
+      logIldangmapSessionCookie("AppShell login=success");
+
       try {
-        if (bootstrapToken) {
-          await bootstrapSessionFromToken(bootstrapToken);
-        }
         await refreshCurrentUser({ waitForHydration: true, force: true });
       } catch (error) {
         authDiag("AppShell login=success refresh error", { message: error?.message });
       }
+
       if (cancelled) return;
+
       const { session, profile } = useUserStore.getState();
       authDiagStoreSnapshot(useUserStore.getState(), "AppShell after login=success refresh");
-      authDiag("AppShell toast decision", {
-        isAuthenticated: session?.isAuthenticated,
-        userId: session?.user?.id,
-        nicknameSetupRequired: profile?.nicknameSetupRequired,
-      });
+
       const nick = profile?.displayNickname || session?.user?.nickname || "";
       if (nick) {
         useUiStore.getState().showAppToast(`환영합니다, ${nick}님`);
@@ -60,8 +69,10 @@ export default function AppShell() {
       } else if (session?.isAuthenticated) {
         useUiStore.getState().showAppToast("환영합니다");
       }
+
       navigate({ pathname: location.pathname, search: "" }, { replace: true });
     })();
+
     return () => {
       cancelled = true;
     };
