@@ -4,7 +4,7 @@
  * 현장 카톡 공지: 제목(현장명+동·호) · 날짜(없으면 내일) · 나머지→메모
  */
 
-import { parseSiteFields, isNoiseLine, buildSiteTitle, pickPlausibleApartmentName } from "../features/site-import/parser/siteFieldParser";
+import { parseSiteFields, isNoiseLine, pickPlausibleApartmentName } from "../features/site-import/parser/siteFieldParser";
 import {
   isAddressLikeTitle,
   resolveScheduleTitleByPriority,
@@ -21,7 +21,6 @@ import {
 import { extractSiteInfo } from "../features/site-import/extractor/siteInfoExtractor";
 import {
   logScheduleStructurePipeline,
-  explainGarbageTitle,
 } from "../features/site-import/parser/siteImportDiag";
 
 export const SCHEDULE_IMPORT_SOURCE = {
