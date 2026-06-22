@@ -26,7 +26,6 @@ import { readAllFieldOps } from "../utils/scheduleFieldOpsStorage";
 import { mergeWorkerAssignmentsForInvite, syncScheduleParticipantSelection } from "../utils/workerAssignmentModel";
 import { createSafeJsonStorage, pickPersistedStoreState, resolveUpdater, runAsyncStoreAction } from "./storeUtils";
 import { useContactsStore } from "./useContactsStore";
-import { useUiStore } from "./useUiStore";
 import {
   emitScheduleCancelledNotification,
   emitScheduleCreatedNotification,
@@ -269,9 +268,6 @@ export const useSettlementStore = create(
           });
           const message = getApiErrorMessage(error, "일정을 저장하지 못했습니다.");
           set({ schedulesError: message });
-          if (error?.status === 401 || error?.code === "SESSION_REQUIRED") {
-            useUiStore.getState().showAppToast?.("로그인이 완료되지 않았습니다");
-          }
           throw error;
         } finally {
           set({ schedulesSyncing: false });

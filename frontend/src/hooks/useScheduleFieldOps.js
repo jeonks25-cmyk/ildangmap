@@ -732,20 +732,27 @@ export function useScheduleFieldOps(selectedDateKey) {
               }
         );
 
-        showAppToast?.(
-          selectedContacts.length
-            ? `현장 일정을 저장했습니다 · ${selectedContacts.length}명 배정`
-            : "현장 일정을 저장했습니다"
-        );
-
         const syncOutcome = await trySyncSchedulesToServer({
-          showAppToast,
           source: "handleSubmitSiteEntry",
         });
+
+        if (syncOutcome?.ok) {
+          showAppToast?.(
+            selectedContacts.length
+              ? `서버에 저장되었습니다 · ${selectedContacts.length}명 배정`
+              : "서버에 저장되었습니다"
+          );
+        } else if (syncOutcome?.reason === "no_server_session") {
+          showAppToast?.("로그인이 필요합니다");
+        } else {
+          showAppToast?.("서버 저장 실패");
+        }
+
         schedulePersistTrace("SAVE_SYNC_DONE", {
-          userId: (session?.user?.id ?? profile?.id ?? myUserId) != null
-            ? String(session?.user?.id ?? profile?.id ?? myUserId)
-            : null,
+          userId: syncOutcome?.serverUserId
+            ?? ((session?.user?.id ?? profile?.id ?? myUserId) != null
+              ? String(session?.user?.id ?? profile?.id ?? myUserId)
+              : null),
           scheduleId: latestSchedule?.id ?? null,
           saveSuccess: Boolean(syncOutcome?.ok),
           syncReason: syncOutcome?.reason ?? null,
