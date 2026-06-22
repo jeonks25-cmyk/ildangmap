@@ -76,6 +76,26 @@ describe("siteFieldParser", () => {
     expect(result.final.title).toBe("1109동 1402호");
   });
 
+  test("제목 우선순위 — 동·호가 OCR 첫 줄보다 우선", () => {
+    const { parseSchedulePasteText } = require("../../../utils/schedulePasteParser");
+    const result = parseSchedulePasteText(
+      `KT12:52SM@0627all&장재계룡QQhaCS
+장재계룡계룡1109동1402호
+공동비번 #1402 0507`,
+      { source: "ocr" }
+    );
+    expect(result.title).toBe("장재계룡 1109동 1402호");
+    expect(result.titleDiag.path).toMatch(/^priority1_/);
+    expect(result.structureOk).toBe(true);
+  });
+
+  test("제목 우선순위 — 동·호만 있으면 아파트명 없이 제목", () => {
+    const { parseSchedulePasteText } = require("../../../utils/schedulePasteParser");
+    const result = parseSchedulePasteText("1109동 1402호");
+    expect(result.title).toBe("1109동 1402호");
+    expect(result.titleDiag.path).toBe("priority1_dong_ho_only");
+  });
+
   test("garbage 제목 -6 방지 (schedule paste)", () => {
     const { parseSchedulePasteText } = require("../../../utils/schedulePasteParser");
     const result = parseSchedulePasteText(`KT 12:52
