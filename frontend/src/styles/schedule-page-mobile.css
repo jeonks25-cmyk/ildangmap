@@ -303,6 +303,62 @@
   line-height: 1.35;
 }
 
+.schedule-oyaji-list__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex: 0 0 auto;
+}
+
+.schedule-oyaji-list__filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  color: #374151;
+  cursor: pointer;
+}
+
+.schedule-oyaji-list__filter-chip.is-active {
+  border-color: #111827;
+  background: #f9fafb;
+  color: #111827;
+}
+
+.schedule-oyaji-list__filter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chip-text, #6b7280);
+  flex: 0 0 auto;
+}
+
+.schedule-oyaji-list__color-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 4px;
+  padding: 2px 8px 2px 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  width: fit-content;
+}
+
+.schedule-oyaji-list__color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
 /* ─── 일정 탭: 안드로이드형 단일 화면 (레거시) ─── */
 .schedule-tab-page--android {
   display: flex;
@@ -4417,6 +4473,140 @@
   box-shadow: 0 0 0 1px #111827;
 }
 
+.schedule-color-picker__legend-hint {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.schedule-color-picker__cell {
+  position: relative;
+}
+
+.schedule-color-picker__btn {
+  width: 100%;
+}
+
+.schedule-color-picker__edit {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 22px;
+  height: 22px;
+  border: 1px solid #e5e7eb;
+  border-radius: 50%;
+  background: #fff;
+  color: #374151;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  z-index: 1;
+}
+
+.schedule-color-alias-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.schedule-color-alias-modal {
+  width: min(100%, 360px);
+  padding: 18px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+}
+
+.schedule-color-alias-modal__head h2 {
+  margin: 10px 0 0;
+  font-size: 18px;
+  font-weight: 900;
+  color: #111827;
+}
+
+.schedule-color-alias-modal__head p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.schedule-color-alias-modal__swatch {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.schedule-color-alias-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.schedule-color-alias-modal__field span {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.schedule-color-alias-modal__field input {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.schedule-color-alias-modal__hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.schedule-color-alias-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.schedule-color-alias-modal__ghost,
+.schedule-color-alias-modal__primary {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.schedule-color-alias-modal__ghost {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: #374151;
+}
+
+.schedule-color-alias-modal__primary {
+  border: none;
+  background: #111827;
+  color: #fff;
+}
+
 .schedule-participant-picker {
   margin: 0 0 12px;
   padding: 0;
@@ -4616,6 +4806,23 @@
 
 .schedule-detail-sheet-panel__memo {
   white-space: pre-wrap;
+}
+
+.schedule-detail-sheet-panel__color-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.schedule-detail-sheet-panel__color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: 0 0 auto;
 }
 
 .schedule-detail-sheet-panel__board {

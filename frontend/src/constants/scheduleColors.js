@@ -28,6 +28,14 @@ export function getScheduleColorOption(colorId) {
   return COLOR_BY_ID[normalizeScheduleColorId(colorId)] || COLOR_BY_ID.gray;
 }
 
+/** 별칭이 있으면 별칭, 없으면 기본 색상명(빨강·파랑…) */
+export function getScheduleColorDisplayLabel(colorId, aliasesByColorId = {}) {
+  const id = normalizeScheduleColorId(colorId);
+  const alias = String(aliasesByColorId?.[id] || "").trim();
+  if (alias) return alias;
+  return getScheduleColorOption(id).label;
+}
+
 export function resolveFieldScheduleColor(schedule) {
   if (schedule?.calendarColor) return normalizeScheduleColorId(schedule.calendarColor);
   const craft = String(schedule?.craft || "").toLowerCase();

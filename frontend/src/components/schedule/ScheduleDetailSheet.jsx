@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { getScheduleColorOption } from "../../constants/scheduleColors";
+import { getScheduleColorDisplayLabel, getScheduleColorOption } from "../../constants/scheduleColors";
+import { useScheduleColorAliasStore } from "../../store/useScheduleColorAliasStore";
 import {
   entryKindLabel,
   formatEntryDateLabel,
@@ -34,6 +35,7 @@ export default function ScheduleDetailSheet({
   onToast,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const aliasesByColorId = useScheduleColorAliasStore((s) => s.aliasesByColorId);
   const briefingId = useMemo(
     () => (entry?.kind === "site" && entry?.schedule ? resolveScheduleBriefingId(entry.schedule) : ""),
     [entry]
@@ -53,6 +55,7 @@ export default function ScheduleDetailSheet({
   if (!open || !entry) return null;
 
   const tone = getScheduleColorOption(entry.colorId);
+  const colorLabel = getScheduleColorDisplayLabel(entry.colorId, aliasesByColorId);
   const participants = resolveEntryParticipantNames(entry);
   const dateLabel = formatEntryDateLabel(entry);
   const siteName = entry.kind === "site" ? entry.address || entry.title : "";
@@ -106,6 +109,13 @@ export default function ScheduleDetailSheet({
           ) : null}
           <dt>시간</dt>
           <dd>{entry.time}</dd>
+          <dt>색상</dt>
+          <dd>
+            <span className="schedule-detail-sheet-panel__color-tag" style={{ background: tone.bg, color: tone.text }}>
+              <span className="schedule-detail-sheet-panel__color-dot" style={{ background: tone.text }} aria-hidden />
+              {colorLabel}
+            </span>
+          </dd>
           <dt>등록</dt>
           <dd>{creatorLabel}</dd>
           {participants.length > 0 ? (

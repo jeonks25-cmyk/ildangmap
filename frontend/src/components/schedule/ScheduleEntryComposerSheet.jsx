@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { SCHEDULE_COLOR_OPTIONS } from "../../constants/scheduleColors";
 import { SCHEDULE_DEFAULT_END_TIME, SCHEDULE_DEFAULT_START_TIME } from "../../constants/scheduleDefaults";
 import SchedulePasteImportPanel from "./SchedulePasteImportPanel";
 import ScheduleParticipantPicker from "./ScheduleParticipantPicker";
+import ScheduleColorPicker from "./ScheduleColorPicker";
 import { useUiStore } from "../../store/useUiStore";
 import { toDateKey } from "../../utils/fieldScheduleModel";
 import { markStructureSaved } from "../../features/site-import/parser/siteImportStructureMetrics";
@@ -288,24 +288,7 @@ export default function ScheduleEntryComposerSheet({
           </p>
         ) : null}
 
-        <fieldset className="schedule-entry-composer__colors">
-          <legend>색상</legend>
-          <div className="schedule-entry-composer__color-grid">
-            {SCHEDULE_COLOR_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                className={`schedule-entry-composer__color-btn${color === opt.id ? " is-selected" : ""}`}
-                style={{ background: opt.bg, color: opt.text }}
-                aria-label={opt.label}
-                aria-pressed={color === opt.id}
-                onClick={() => setColor(opt.id)}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        <ScheduleColorPicker value={color} onChange={setColor} />
 
         <label className="schedule-entry-composer__field">
           <span>메모</span>

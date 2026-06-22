@@ -18,7 +18,8 @@ import { resolveDayEntryFromEventId } from "../utils/scheduleEntryHelpers";
 import { getDisplayNickname } from "../utils/displayNickname";
 import { getMyScheduleOwnerId, selectPersonalEventsForOwner, useFieldScheduleStore } from "../store/useFieldScheduleStore";
 import { useSettlementStore } from "../store/useSettlementStore";
-import { getScheduleColorOption } from "../constants/scheduleColors";
+import { getScheduleColorDisplayLabel, getScheduleColorOption } from "../constants/scheduleColors";
+import { useScheduleColorAliasStore } from "../store/useScheduleColorAliasStore";
 import { personalEventToIcsInput } from "../features/calendar-export";
 import "../styles/schedule-page-mobile.css";
 
@@ -42,6 +43,8 @@ export default function ScheduleMonthPage() {
   const [ocrReviewSaving, setOcrReviewSaving] = useState(false);
   const [shareEntry, setShareEntry] = useState(null);
   const [calendarExportEvents, setCalendarExportEvents] = useState(null);
+  const [colorFilterId, setColorFilterId] = useState("all");
+  const aliasesByColorId = useScheduleColorAliasStore((s) => s.aliasesByColorId);
   const ops = useScheduleFieldOps(selectedDateKey);
   const schedules = useSettlementStore((s) => s.schedules);
   const ownerId = getMyScheduleOwnerId();
@@ -66,7 +69,22 @@ export default function ScheduleMonthPage() {
 
   const onSelectDate = useCallback((dateKey) => {
     setSelectedDateKey(dateKey);
+    setColorFilterId("all");
   }, []);
+
+  const colorFilterOptions = useMemo(() => {
+    const ids = [...new Set(ops.dayEntries.map((entry) => entry.colorId))];
+    return ids.map((id) => ({
+      id,
+      label: getScheduleColorDisplayLabel(id, aliasesByColorId),
+      tone: getScheduleColorOption(id),
+    }));
+  }, [aliasesByColorId, ops.dayEntries]);
+
+  const visibleDayEntries = useMemo(() => {
+    if (colorFilterId === "all") return ops.dayEntries;
+    return ops.dayEntries.filter((entry) => entry.colorId === colorFilterId);
+  }, [colorFilterId, ops.dayEntries]);
 
   const handleOcrReview = useCallback((drafts) => {
     setOcrReviewDrafts(Array.isArray(drafts) ? drafts : []);
@@ -122,13 +140,41 @@ export default function ScheduleMonthPage() {
 
       <section className="schedule-oyaji-list" aria-label={formatListHeader(selectedDateKey)}>
         <h2 className="schedule-oyaji-list__title">{formatListHeader(selectedDateKey)}</h2>
+        {ops.dayEntries.length > 0 && colorFilterOptions.length > 0 ? (
+          <div className="schedule-oyaji-list__filters" role="tablist" aria-label="색상별 필터">
+            <button
+              type="button"
+              role="tab"
+              className={`schedule-oyaji-list__filter-chip${colorFilterId === "all" ? " is-active" : ""}`}
+              onClick={() => setColorFilterId("all")}
+            >
+              전체
+            </button>
+            {colorFilterOptions.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                role="tab"
+                className={`schedule-oyaji-list__filter-chip${colorFilterId === opt.id ? " is-active" : ""}`}
+                style={{ "--chip-bg": opt.tone.bg, "--chip-text": opt.tone.text }}
+                onClick={() => setColorFilterId(opt.id)}
+              >
+                <span className="schedule-oyaji-list__filter-dot" aria-hidden />
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div className="schedule-oyaji-list__scroll">
           {ops.dayEntries.length === 0 ? (
             <p className="schedule-oyaji-list__empty">등록된 일정이 없습니다.</p>
+          ) : visibleDayEntries.length === 0 ? (
+            <p className="schedule-oyaji-list__empty">선택한 색상 일정이 없습니다.</p>
           ) : (
             <ul className="schedule-oyaji-list__items">
-              {ops.dayEntries.map((entry) => {
+              {visibleDayEntries.map((entry) => {
                 const tone = getScheduleColorOption(entry.colorId);
+                const colorLabel = getScheduleColorDisplayLabel(entry.colorId, aliasesByColorId);
                 return (
                   <li key={entry.id} className="schedule-oyaji-list__item">
                     <button
@@ -136,6 +182,13 @@ export default function ScheduleMonthPage() {
                       className="schedule-oyaji-list__row"
                       onClick={() => ops.openEntryDetail(entry)}
                     >
+                      <span
+                        className="schedule-oyaji-list__color-tag"
+                        style={{ background: tone.bg, color: tone.text }}
+                      >
+                        <span className="schedule-oyaji-list__color-dot" style={{ background: tone.text }} aria-hidden />
+                        {colorLabel}
+                      </span>
                       <strong
                         className="schedule-oyaji-list__name"
                         style={{ borderLeftColor: tone.text, borderLeftWidth: 4, borderLeftStyle: "solid", paddingLeft: 8 }}

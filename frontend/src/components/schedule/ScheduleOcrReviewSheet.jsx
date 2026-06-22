@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
-import { SCHEDULE_COLOR_OPTIONS } from "../../constants/scheduleColors";
+import { SCHEDULE_COLOR_OPTIONS, getScheduleColorDisplayLabel } from "../../constants/scheduleColors";
+import { useScheduleColorAliasStore } from "../../store/useScheduleColorAliasStore";
 import { SCHEDULE_DEFAULT_END_TIME, SCHEDULE_DEFAULT_START_TIME } from "../../constants/scheduleDefaults";
 import { formatMonthDay } from "../../utils/fieldScheduleModel";
 import { createScheduleOcrDraft } from "../../features/schedule-ocr/generator/scheduleDraftModel";
@@ -19,6 +20,7 @@ export default function ScheduleOcrReviewSheet({
   const [defaultStart, setDefaultStart] = useState(SCHEDULE_DEFAULT_START_TIME);
   const [defaultEnd, setDefaultEnd] = useState(SCHEDULE_DEFAULT_END_TIME);
   const [defaultColor, setDefaultColor] = useState("blue");
+  const aliasesByColorId = useScheduleColorAliasStore((s) => s.aliasesByColorId);
 
   React.useEffect(() => {
     if (!open) return;
@@ -97,7 +99,7 @@ export default function ScheduleOcrReviewSheet({
             <select value={defaultColor} onChange={(e) => setDefaultColor(e.target.value)}>
               {SCHEDULE_COLOR_OPTIONS.map((opt) => (
                 <option key={opt.id} value={opt.id}>
-                  {opt.label}
+                  {getScheduleColorDisplayLabel(opt.id, aliasesByColorId)}
                 </option>
               ))}
             </select>
