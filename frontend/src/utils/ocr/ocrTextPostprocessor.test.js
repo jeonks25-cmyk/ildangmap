@@ -5,6 +5,7 @@ import {
   pickBestOcrResult,
   scoreOcrCandidate,
   sanitizeOcrGarbage,
+  filterSiteRelevantOcrText,
 } from "./ocrTextPostprocessor";
 
 describe("ocrTextPostprocessor", () => {
@@ -38,6 +39,15 @@ describe("ocrTextPostprocessor", () => {
       { text: "장재계룡 1109동 1402호\n공동비번 #1402", rawText: "장재계룡 1109동 1402호\n공동비번 #1402", confidence: 70 },
     ]);
     expect(winner.rawText).toContain("1109동");
+  });
+
+  test("링크 미리보기·타임스탬프 제거", () => {
+    const raw =
+      "KT12:52SM@0627all&장재계룡1109동1402호\n연락처 자세히 보기\n오전 11:51\n우리 1002동 2669호";
+    const filtered = filterSiteRelevantOcrText(raw);
+    expect(filtered).toContain("1109동");
+    expect(filtered).not.toContain("1002동");
+    expect(filtered).not.toContain("연락처");
   });
 
   test("scoreOcrCandidate 동호 가중치", () => {

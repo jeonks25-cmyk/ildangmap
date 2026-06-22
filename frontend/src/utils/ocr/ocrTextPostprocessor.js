@@ -206,6 +206,34 @@ export function postprocessOcrText(rawText) {
   };
 }
 
+const KAKAO_JUNK_LINE_RE =
+  /연락처|자세히\s*보기|인테리어|시티온|시대인|오전\s*\d{1,2}:\d{2}|오후\s*\d{1,2}:\d{2}|^우리\s+\d{3,4}\s*동|QQhaC|haCS/i;
+
+export function filterSiteRelevantOcrText(text) {
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .flatMap((line) => String(line || "").split(/[&]+/))
+    .map((line) => sanitizeOcrGarbage(line))
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const siteLines = lines.filter((line) => {
+    if (KAKAO_JUNK_LINE_RE.test(line)) return false;
+    if (/^(KT|SKT|LG)/i.test(line)) return false;
+    return (
+      /\d{3,4}\s*동\s*\d{2,4}\s*호/u.test(line) ||
+      /공동비번|세대비번|현관|#\d{4}/u.test(line) ||
+      (/[가-힣]{3,}/u.test(line) && /\d{6,}/.test(line.replace(/\s/g, "")))
+    );
+  });
+
+  if (siteLines.length) return siteLines.join("\n");
+
+  return lines
+    .filter((line) => /[가-힣]{2,}/u.test(line) && !KAKAO_JUNK_LINE_RE.test(line))
+    .join("\n");
+}
+
 export function sanitizeOcrGarbage(line) {
   let s = String(line || "").trim();
   if (!s) return "";
@@ -244,8 +272,8 @@ export function pickBestOcrResult(results = []) {
   return valid
     .slice()
     .sort((a, b) => {
-      const textA = postprocessOcrText(a.rawText || a.text).text;
-      const textB = postprocessOcrText(b.rawText || b.text).text;
+      const textA = filterSiteRelevantOcrText(postprocessOcrText(a.rawText || a.text).text);
+      const textB = filterSiteRelevantOcrText(postprocessOcrText(b.rawText || b.text).text);
       const scoreDiff = scoreOcrCandidate(textB) - scoreOcrCandidate(textA);
       if (scoreDiff !== 0) return scoreDiff;
       const lenDiff = (textB.length || 0) - (textA.length || 0);

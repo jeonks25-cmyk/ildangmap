@@ -1,4 +1,4 @@
-import { cropKakaoMessageRegion, cropKakaoBubbleFromCanvas, filterKakaoOcrLines } from "./kakaoScreenshotCrop";
+import { cropKakaoMessageRegion, cropKakaoBubblesFromCanvas, filterKakaoOcrLines } from "./kakaoScreenshotCrop";
 import {
   applyOcrPreprocessVariant,
   CHAT_OCR_VARIANTS,
@@ -9,6 +9,7 @@ import {
 import {
   pickBestOcrResult,
   postprocessOcrText,
+  filterSiteRelevantOcrText,
 } from "./ocr/ocrTextPostprocessor";
 import { buildSiteTitle, parseSiteFields } from "../features/site-import/parser/siteFieldParser";
 
@@ -162,14 +163,15 @@ async function prepareBaseCanvas(image, mode, options = {}) {
   let finalCanvas = canvas;
   let bubbleCrop = null;
   if (!isTable && useKakaoCrop) {
-    bubbleCrop = cropKakaoBubbleFromCanvas(canvas);
+    bubbleCrop = cropKakaoBubblesFromCanvas(canvas);
     if (bubbleCrop.cropped) {
-      finalCanvas = bubbleCrop.canvas;
+      finalCanvas = bubbleCrop.canvases[0];
       logScheduleOcrDiag("bubble_crop", {
         reason: bubbleCrop.reason,
+        bubbleCount: bubbleCrop.boxes.length,
         width: finalCanvas.width,
         height: finalCanvas.height,
-        cropBox: bubbleCrop.cropBox,
+        boxes: bubbleCrop.boxes,
       });
     }
   }
@@ -251,11 +253,19 @@ function logOcrConfidenceReport({
 }
 
 async function runChatOcrMultiPass(image, onProgress, options = {}) {
-  const { canvas, isDarkMode, bubbleCrop } = await prepareBaseCanvas(image, SCHEDULE_OCR_MODE.CHAT, options);
+  const { canvas, isDarkMode, bubbleCrop } = await prepareBaseCanvas(
+    image,
+    SCHEDULE_OCR_MODE.CHAT,
+    options
+  );
   if (!canvas) throw new Error("canvas_failed");
 
   const worker = await getOcrWorker(onProgress);
   const { PSM } = await import("tesseract.js");
+  const ocrTargets =
+    bubbleCrop?.cropped && bubbleCrop.canvases?.length
+      ? bubbleCrop.canvases.map((target, index) => ({ target, bubbleIndex: index }))
+      : [{ target: canvas, bubbleIndex: 0 }];
   const psmMode = bubbleCrop?.cropped ? PSM.SINGLE_BLOCK : PSM.AUTO;
   const variantAttempts = [];
 
@@ -264,22 +274,31 @@ async function runChatOcrMultiPass(image, onProgress, options = {}) {
     isDarkMode,
     psmMode,
     bubbleCrop: bubbleCrop?.reason || "none",
+    bubbleCount: ocrTargets.length,
     width: canvas.width,
     height: canvas.height,
   });
 
-  for (const variant of CHAT_OCR_VARIANTS) {
-    const variantCanvas = cloneCanvas(canvas);
-    applyOcrPreprocessVariant(variantCanvas, variant, { isDarkMode });
-    const data = await recognizeCanvas(worker, variantCanvas, psmMode);
-    const attempt = buildOcrAttemptFromData(data, variant, `chat_${variant}`);
-    variantAttempts.push(attempt);
-    logScheduleOcrDiag("variant_result", {
-      variant,
-      confidence: attempt.confidence,
-      charCount: attempt.charCount,
-      preview: attempt.rawText.slice(0, 200),
-    });
+  for (const { target, bubbleIndex } of ocrTargets) {
+    for (const variant of CHAT_OCR_VARIANTS) {
+      const variantCanvas = cloneCanvas(target);
+      applyOcrPreprocessVariant(variantCanvas, variant, { isDarkMode });
+      const data = await recognizeCanvas(worker, variantCanvas, psmMode);
+      const attempt = buildOcrAttemptFromData(
+        data,
+        variant,
+        `chat_${variant}_b${bubbleIndex}`
+      );
+      attempt.bubbleIndex = bubbleIndex;
+      variantAttempts.push(attempt);
+      logScheduleOcrDiag("variant_result", {
+        bubbleIndex,
+        variant,
+        confidence: attempt.confidence,
+        charCount: attempt.charCount,
+        preview: attempt.rawText.slice(0, 200),
+      });
+    }
   }
 
   const winner = pickBestOcrResult(variantAttempts);
@@ -303,6 +322,7 @@ async function runChatOcrMultiPass(image, onProgress, options = {}) {
   let text = normalizeOcrText(postprocessed.text);
   if (options.kakaoCrop !== false) {
     text = filterKakaoOcrLines(text);
+    text = filterSiteRelevantOcrText(text);
   }
 
   const voting = {

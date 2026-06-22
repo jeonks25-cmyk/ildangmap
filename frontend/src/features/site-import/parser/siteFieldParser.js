@@ -114,16 +114,31 @@ function scoreMatch({ building, unit, siteName, lineIndex, line, source }) {
   let score = 0;
   const bLen = building.length;
   const uLen = unit.length;
+  const uNum = parseInt(unit, 10);
   if (bLen >= 3 && bLen <= 4) score += 0.35;
   if (uLen >= 2 && uLen <= 4) score += 0.25;
+  if (Number.isFinite(uNum) && uNum >= 100 && uNum <= 1999) score += 0.15;
+  if (Number.isFinite(uNum) && uNum >= 2500) score -= 0.12;
   if (siteName && siteName.length >= 2) score += 0.2 + Math.min(0.15, siteName.length / 30);
   if (/[가-힣]{2,}/u.test(siteName)) score += 0.1;
+  if (!isPlausibleSiteName(siteName)) score -= 0.45;
   if (lineIndex === 0) score += 0.03;
   if (/(\d{3,4})동(\d{2,4})/u.test(compactBlob(line))) score += 0.1;
   if (source === "compact_dong_ho") score += 0.08;
-  if (source === "full_blob") score += 0.06;
-  if (source === "cross_line") score += 0.05;
+  if (source === "cross_line") score += 0.1;
+  if (source === "full_blob") score -= 0.08;
   return score;
+}
+
+export function isPlausibleSiteName(name) {
+  const n = String(name || "").trim();
+  if (n.length < 2 || n.length > 18) return false;
+  if (/^(KT|SKT|LG)/i.test(n)) return false;
+  if (/[@&]|QQ|haC|연락처|인테리어|오전|오후|자세히/i.test(n)) return false;
+  const hangul = (n.match(/[가-힣]/g) || []).length;
+  if (hangul < 2) return false;
+  if (hangul / n.length < 0.45) return false;
+  return true;
 }
 
 function pushMatch(matches, payload) {
@@ -131,6 +146,9 @@ function pushMatch(matches, payload) {
   if (!building || !unit) return;
   if (building.length < 3 || unit.length < 2) return;
   if (!siteName || siteName.length < 2) return;
+  if (!isPlausibleSiteName(siteName)) {
+    if (source === "full_blob" || source === "cross_line") return;
+  }
 
   matches.push({
     siteName,
@@ -222,8 +240,10 @@ export function parseSiteFields(text, options = {}) {
 
   const allMatches = [];
 
-  // 1) 전체 텍스트(줄바꿈 제거) — 붙어쓰기·OCR 분절 복구
-  allMatches.push(...collectMatchesFromText(compactBlob(lines.join("")), -1));
+  // 1) 전체 텍스트(줄바꿈 제거) — 붙어쓰기·OCR 분절 복구 (짧은 텍스트만)
+  if (compactBlob(lines.join("")).length <= 120) {
+    allMatches.push(...collectMatchesFromText(compactBlob(lines.join("")), -1));
+  }
   allMatches.push(...collectMatchesFromText(normalizedText, -1));
 
   // 2) 줄 단위
@@ -264,7 +284,9 @@ export function parseSiteFields(text, options = {}) {
     final: { siteName, building, unit, title },
     hasUnit: Boolean(building && unit),
     hasSiteName: Boolean(siteName && siteName.length >= 2),
-    structureOk: Boolean(siteName && building && unit),
+    structureOk: Boolean(
+      siteName && building && unit && isPlausibleSiteName(siteName) && (best?.score ?? 0) >= 0.55
+    ),
     matchCount: allMatches.length,
     debug: {
       matches: allMatches.slice(0, 10).map((m) => ({

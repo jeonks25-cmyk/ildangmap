@@ -96,57 +96,114 @@ function estimateBackgroundGray(data, width, height) {
  * 노란/회색 말풍선 bbox — 상태바·입력창 제외
  * @param {HTMLCanvasElement} canvas
  */
-export function detectKakaoBubbleBox(canvas) {
+export function detectKakaoBubbleBoxes(canvas, maxBoxes = 4) {
+  const clusters = findBubbleClusters(canvas);
+  return clusters
+    .filter((c) => c.w >= canvas.width * 0.12 && c.h >= Math.max(12, canvas.height * 0.015))
+    .sort((a, b) => b.pixelCount - a.pixelCount)
+    .slice(0, maxBoxes);
+}
+
+function findBubbleClusters(canvas) {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) return null;
+  if (!ctx) return [];
 
   const { width, height } = canvas;
   const { data } = ctx.getImageData(0, 0, width, height);
   const bgGray = estimateBackgroundGray(data, width, height);
-  const step = Math.max(2, Math.round(Math.min(width, height) / 400));
+  const scale = 4;
+  const sw = Math.ceil(width / scale);
+  const sh = Math.ceil(height / scale);
+  const visited = new Uint8Array(sw * sh);
+  const clusters = [];
 
-  let minX = width;
-  let minY = height;
-  let maxX = 0;
-  let maxY = 0;
-  let count = 0;
-  let yellowCount = 0;
+  const isBubbleAt = (sx, sy) => {
+    const x = Math.min(width - 1, sx * scale + Math.floor(scale / 2));
+    const y = Math.min(height - 1, sy * scale + Math.floor(scale / 2));
+    const i = (y * width + x) * 4;
+    return isKakaoBubblePixel(data[i], data[i + 1], data[i + 2], bgGray);
+  };
 
-  for (let y = 0; y < height; y += step) {
-    for (let x = 0; x < width; x += step) {
-      const i = (y * width + x) * 4;
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      if (!isKakaoBubblePixel(r, g, b, bgGray)) continue;
+  for (let sy = 0; sy < sh; sy++) {
+    for (let sx = 0; sx < sw; sx++) {
+      const start = sy * sw + sx;
+      if (visited[start] || !isBubbleAt(sx, sy)) continue;
 
-      minX = Math.min(minX, x);
-      minY = Math.min(minY, y);
-      maxX = Math.max(maxX, x);
-      maxY = Math.max(maxY, y);
-      count += 1;
-      if (r > 180 && g > 150 && b < 150) yellowCount += 1;
+      let minSx = sx;
+      let maxSx = sx;
+      let minSy = sy;
+      let maxSy = sy;
+      let size = 0;
+      const stack = [[sx, sy]];
+      visited[start] = 1;
+
+      while (stack.length) {
+        const [cx, cy] = stack.pop();
+        size += 1;
+        minSx = Math.min(minSx, cx);
+        maxSx = Math.max(maxSx, cx);
+        minSy = Math.min(minSy, cy);
+        maxSy = Math.max(maxSy, cy);
+
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = cx + dx;
+          const ny = cy + dy;
+          if (nx < 0 || ny < 0 || nx >= sw || ny >= sh) continue;
+          const ni = ny * sw + nx;
+          if (visited[ni] || !isBubbleAt(nx, ny)) continue;
+          visited[ni] = 1;
+          stack.push([nx, ny]);
+        }
+      }
+
+      if (size < 12) continue;
+
+      const pad = Math.max(6, Math.round(scale * 1.5));
+      const x = Math.max(0, minSx * scale - pad);
+      const y = Math.max(0, minSy * scale - pad);
+      const w = Math.min(width - x, (maxSx - minSx + 1) * scale + pad * 2);
+      const h = Math.min(height - y, (maxSy - minSy + 1) * scale + pad * 2);
+
+      clusters.push({ x, y, w, h, pixelCount: size });
     }
   }
 
-  const minPixels = Math.max(40, Math.round((width * height) / (step * step * 800)));
-  if (count < minPixels) return null;
+  return clusters;
+}
 
-  const pad = Math.max(8, Math.round(Math.min(width, height) * 0.015));
-  const box = {
-    x: Math.max(0, minX - pad),
-    y: Math.max(0, minY - pad),
-    w: Math.min(width - Math.max(0, minX - pad), maxX - minX + pad * 2),
-    h: Math.min(height - Math.max(0, minY - pad), maxY - minY + pad * 2),
-    pixelCount: count,
-    yellowRatio: count ? yellowCount / count : 0,
-    bgGray,
+export function canvasFromBubbleBox(canvas, box) {
+  const out = document.createElement("canvas");
+  out.width = box.w;
+  out.height = box.h;
+  const ctx = out.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return canvas;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, box.w, box.h);
+  ctx.drawImage(canvas, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+  return out;
+}
+
+/** @deprecated 단일 bbox — 다중 말풍선 시 첫 번째만 */
+export function detectKakaoBubbleBox(canvas) {
+  const boxes = detectKakaoBubbleBoxes(canvas, 1);
+  return boxes[0] || null;
+}
+
+/**
+ * 말풍선별 분리 크롭 — 다중 말풍선 OCR용
+ */
+export function cropKakaoBubblesFromCanvas(canvas) {
+  const boxes = detectKakaoBubbleBoxes(canvas);
+  if (!boxes.length) return { canvases: [canvas], cropped: false, reason: "no_bubble", boxes: [] };
+
+  const canvases = boxes.map((box) => canvasFromBubbleBox(canvas, box));
+  return {
+    canvases,
+    cropped: true,
+    reason: boxes.length > 1 ? "multi_bubble" : "single_bubble",
+    boxes,
   };
-
-  if (box.w < width * 0.08 || box.h < height * 0.04) return null;
-  if (box.w > width * 0.98 && box.h > height * 0.95) return null;
-
-  return box;
 }
 
 /**
@@ -154,24 +211,16 @@ export function detectKakaoBubbleBox(canvas) {
  * @param {HTMLCanvasElement} canvas
  */
 export function cropKakaoBubbleFromCanvas(canvas) {
-  const box = detectKakaoBubbleBox(canvas);
-  if (!box) return { canvas, cropped: false, reason: "no_bubble" };
-
-  const out = document.createElement("canvas");
-  out.width = box.w;
-  out.height = box.h;
-  const ctx = out.getContext("2d", { willReadFrequently: true });
-  if (!ctx) return { canvas, cropped: false, reason: "canvas_failed" };
-
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, box.w, box.h);
-  ctx.drawImage(canvas, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+  const multi = cropKakaoBubblesFromCanvas(canvas);
+  if (!multi.cropped) return { canvas, cropped: false, reason: multi.reason };
 
   return {
-    canvas: out,
+    canvas: multi.canvases[0],
     cropped: true,
-    reason: box.yellowRatio > 0.3 ? "yellow_bubble" : "gray_bubble",
-    cropBox: box,
+    reason: multi.reason,
+    cropBox: multi.boxes[0],
+    allBoxes: multi.boxes,
+    allCanvases: multi.canvases,
   };
 }
 
