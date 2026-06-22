@@ -63,8 +63,10 @@ export default function ScheduleEntryComposerSheet({
       setWorkDateStart(result.dateKey);
       setWorkDateEnd(result.dateKey);
     }
-    if (result.startTime) setStartTime(result.startTime);
-    if (result.endTime) setEndTime(result.endTime);
+    if (result.timeExtracted) {
+      if (result.startTime) setStartTime(result.startTime);
+      if (result.endTime) setEndTime(result.endTime);
+    }
     if (result.memo != null) {
       setMemo(result.memo);
     }

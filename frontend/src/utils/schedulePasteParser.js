@@ -4,8 +4,12 @@
  * 현장 카톡 공지: 제목(현장명+동·호) · 날짜(없으면 내일) · 나머지→메모
  */
 
-import { SCHEDULE_DEFAULT_END_TIME, SCHEDULE_DEFAULT_START_TIME } from "../constants/scheduleDefaults";
 import { parseSiteFields, isNoiseLine, buildSiteTitle } from "../features/site-import/parser/siteFieldParser";
+import {
+  extractExplicitWorkTimes,
+  isKakaoSendTimeLine,
+  isExplicitWorkTimeLine,
+} from "../features/site-import/parser/workTimeExtractor";
 import {
   recordStructureAttempt,
   isStructureDebugEnabled,
@@ -17,7 +21,6 @@ export const SCHEDULE_IMPORT_SOURCE = {
 };
 
 const TIME_RANGE_RE = /(\d{1,2}:\d{2})\s*[~\-–—]\s*(\d{1,2}:\d{2})/;
-const TIME_SINGLE_RE = /(?:^|\s)(\d{1,2}:\d{2})(?:\s|$)/;
 const CRAFT_TAIL_RE = /\s+(?:필름|도배|타일|전기|설비|페인트|기타)(?:\s*\d+\s*명?|\s*공사)?\s*$/u;
 
 /** 세대 표기 — 긴 패턴 우선 */
@@ -161,33 +164,27 @@ function extractDateFromLine(line, referenceDate) {
 
 function extractTimeFromLine(line) {
   const text = String(line || "").trim();
-  const range = text.match(TIME_RANGE_RE);
-  if (range) {
-    return {
-      startTime: normalizeTime(range[1]),
-      endTime: normalizeTime(range[2]),
-      remainder: text.replace(TIME_RANGE_RE, "").trim(),
-    };
-  }
-  const single = text.match(TIME_SINGLE_RE);
-  if (single && text.replace(single[0], "").trim().length <= 2) {
-    return {
-      startTime: normalizeTime(single[1]),
-      endTime: null,
-      remainder: "",
-    };
-  }
-  return null;
+  if (isKakaoSendTimeLine(text)) return null;
+  const explicit = extractExplicitWorkTimes(text);
+  if (!explicit.extracted) return null;
+  return {
+    startTime: explicit.startTime,
+    endTime: explicit.endTime,
+    remainder: text
+      .replace(TIME_RANGE_RE, "")
+      .replace(/(\d{1,2}:\d{2})\s*(?:시작|출근|입장|도착|합류|부터)/u, "")
+      .trim(),
+  };
+}
+
+function isPureTimeLine(line) {
+  if (isKakaoSendTimeLine(line)) return true;
+  return isExplicitWorkTimeLine(line);
 }
 
 function isPureDateLine(line, referenceDate) {
   const result = extractDateFromLine(line, referenceDate);
   return Boolean(result?.dateKey && !result.remainder);
-}
-
-function isPureTimeLine(line) {
-  const result = extractTimeFromLine(line);
-  return Boolean(result && (result.startTime || result.endTime) && !result.remainder);
 }
 
 /** 날짜·시간 토큰 제거 후 제목 후보 텍스트 */
@@ -334,6 +331,7 @@ export function parseSchedulePasteText(text, options = {}) {
     label: "schedule-paste",
     debug: isStructureDebugEnabled(),
   });
+  const timeParse = extractExplicitWorkTimes(rawText);
   const metricsSession = recordStructureAttempt({
     rawText,
     source,
@@ -349,6 +347,7 @@ export function parseSchedulePasteText(text, options = {}) {
   let startTime = null;
   let endTime = null;
   let dateFromText = false;
+  let timeExtracted = false;
 
   lines.forEach((line) => {
     if (!dateKey) {
@@ -358,19 +357,17 @@ export function parseSchedulePasteText(text, options = {}) {
         dateFromText = true;
       }
     }
-    const timeResult = extractTimeFromLine(line);
-    if (timeResult) {
-      if (!startTime && timeResult.startTime) startTime = timeResult.startTime;
-      if (!endTime && timeResult.endTime) endTime = timeResult.endTime;
-    }
   });
+
+  if (timeParse.extracted) {
+    startTime = timeParse.startTime;
+    endTime = timeParse.endTime;
+    timeExtracted = true;
+  }
 
   if (!dateKey) {
     dateKey = getDefaultImportDateKey(referenceDate);
   }
-
-  if (!startTime) startTime = SCHEDULE_DEFAULT_START_TIME;
-  if (!endTime) endTime = SCHEDULE_DEFAULT_END_TIME;
 
   let title = "";
   let titleRemainder = "";
@@ -436,8 +433,12 @@ export function parseSchedulePasteText(text, options = {}) {
     memoLines.push(line);
   });
 
-  const filledFields = ["dateKey", "startTime", "endTime"];
+  const filledFields = ["dateKey"];
   const warnings = [];
+
+  if (timeExtracted) {
+    filledFields.push("startTime", "endTime");
+  }
 
   if (title) {
     filledFields.push("title");
@@ -462,7 +463,13 @@ export function parseSchedulePasteText(text, options = {}) {
     filledFields,
     warnings,
     structureOk: fieldParse.structureOk,
-    structureTrace: fieldParse,
+    structureTrace: {
+      ...fieldParse,
+      timeCandidates: timeParse.candidates,
+      timeExtracted,
+      timeFinal: timeExtracted ? { startTime, endTime } : null,
+    },
+    timeExtracted,
     metricsSessionId: metricsSession.id,
     structureMetrics: {
       siteName: fieldParse.siteName,

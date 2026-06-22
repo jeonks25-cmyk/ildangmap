@@ -9,6 +9,8 @@ import { parseMultiSchedules } from "../extractor/multiScheduleParser";
 import { structureSiteInfoWithGpt } from "../../../api/siteImportApi";
 import { parsePastedFieldText } from "../../../utils/mapItemDraft";
 import { normalizeSiteName, AUTO_SELECT_THRESHOLD } from "../normalizer/siteNameNormalizer";
+import { extractExplicitWorkTimes } from "../parser/workTimeExtractor";
+import { joinWorkTimeParts } from "../../../utils/fieldSiteScheduleParser";
 import {
   applySiteMemoryCorrection,
   buildMemorySiteNameCandidates,
@@ -347,7 +349,10 @@ export function structuredInfoToFormPatch(structured, ocrText, selectedDateKey =
 
   if (pasted.workDate?.value) patch.workDate = pasted.workDate.value;
   if (pasted.workDateEnd?.value) patch.workDateEnd = pasted.workDateEnd.value;
-  if (pasted.workTime?.value) patch.workTime = pasted.workTime.value;
+  const explicitTime = extractExplicitWorkTimes(ocrText);
+  if (explicitTime.extracted && explicitTime.startTime && explicitTime.endTime) {
+    patch.workTime = joinWorkTimeParts(explicitTime.startTime, explicitTime.endTime);
+  }
   if (pasted.crewCount?.value) patch.crewCount = pasted.crewCount.value;
   if (pasted.payAmount?.value) patch.payAmount = pasted.payAmount.value;
 

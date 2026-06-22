@@ -93,6 +93,8 @@ export function isNoiseLine(line) {
   if (/Md&@p|»|·/.test(s) && !/[가-힣]{2,}/u.test(s) && !/\d{3,4}동/u.test(s)) return true;
   if (s.length <= 2 && !/\d{3,}/.test(s) && !/[가-힣]{2,}/u.test(s)) return true;
   if (/^[\W\d\s:]{1,12}$/.test(s) && !/\d{3,4}동/u.test(s)) return true;
+  if (/^(오전|오후)\s*\d{1,2}:\d{2}$/u.test(s)) return true;
+  if (/^\d{1,2}:\d{2}$/.test(s)) return true;
   return false;
 }
 

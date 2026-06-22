@@ -28,6 +28,21 @@ export default function SiteImportDebugPanel({ trace = null, title = "구조화 
           <dd>{(trace.unitCandidates || []).join(" · ") || "—"}</dd>
         </div>
         <div>
+          <dt>시간 후보</dt>
+          <dd>
+            {(trace.timeCandidates || [])
+              .map((c) => {
+                const time =
+                  c.startTime && c.endTime
+                    ? `${c.startTime}~${c.endTime}`
+                    : c.startTime || c.endTime || "";
+                const flag = c.accepted ? "✓" : "✗";
+                return `${flag} ${c.label}${time ? ` ${time}` : ""}${c.reason ? ` (${c.reason})` : ""}`;
+              })
+              .join("\n") || (trace.timeExtracted ? "명시적 작업 시간" : "— (자동 입력 안 함)")}
+          </dd>
+        </div>
+        <div>
           <dt>최종 선택</dt>
           <dd>
             {trace.final?.title ||

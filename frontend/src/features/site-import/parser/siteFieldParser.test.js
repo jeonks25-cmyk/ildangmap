@@ -90,4 +90,15 @@ a`);
     expect(result.title).not.toBe("-6");
     expect(result.structureOk).toBe(false);
   });
+
+  test("카카오 전송 시각은 일정 시간 자동 입력 안 함", () => {
+    const { parseSchedulePasteText } = require("../../../utils/schedulePasteParser");
+    const result = parseSchedulePasteText(`장재계룡계룡1109동1402호
+오후 12:51
+오후 5:51`);
+    expect(result.timeExtracted).toBe(false);
+    expect(result.startTime).toBeNull();
+    expect(result.endTime).toBeNull();
+    expect(result.title).toBe("장재계룡 1109동 1402호");
+  });
 });
