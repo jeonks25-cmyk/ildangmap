@@ -82,6 +82,34 @@ function extractDateFromLine(line, referenceDate) {
     return { dateKey: addDays(referenceDate, 2), remainder: text.replace(/모레/u, "").trim() };
   }
 
+  const weekdayMatch = text.match(/^(월|화|수|목|금|토|일)요일(?:\s+(.+))?$/u);
+  if (weekdayMatch) {
+    const weekdayMap = { 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6, 일: 0 };
+    const target = weekdayMap[weekdayMatch[1]];
+    const ref = referenceDate instanceof Date ? referenceDate : new Date();
+    const current = ref.getDay();
+    let diff = target - current;
+    if (diff <= 0) diff += 7;
+    return {
+      dateKey: addDays(ref, diff),
+      remainder: (weekdayMatch[2] || "").trim(),
+    };
+  }
+
+  const inlineWeekday = text.match(/^(월|화|수|목|금|토|일)요일\s+(.+)$/u);
+  if (inlineWeekday) {
+    const weekdayMap = { 월: 1, 화: 2, 수: 3, 목: 4, 금: 5, 토: 6, 일: 0 };
+    const target = weekdayMap[inlineWeekday[1]];
+    const ref = referenceDate instanceof Date ? referenceDate : new Date();
+    const current = ref.getDay();
+    let diff = target - current;
+    if (diff <= 0) diff += 7;
+    return {
+      dateKey: addDays(ref, diff),
+      remainder: inlineWeekday[2].trim(),
+    };
+  }
+
   let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})\s*(.*)$/);
   if (match) {
     return {
@@ -541,7 +569,7 @@ export function parseSchedulePasteText(text, options = {}) {
     label: "schedule-paste",
     debug: isStructureDebugEnabled(),
   });
-  const siteInfoSnap = source === SCHEDULE_IMPORT_SOURCE.OCR ? extractSiteInfo(rawText) : null;
+  const siteInfoSnap = extractSiteInfo(rawText);
   const apartmentName = pickPlausibleApartmentName(
     fieldParse.siteName,
     fieldParse.siteNameCandidates,
@@ -652,7 +680,12 @@ export function parseSchedulePasteText(text, options = {}) {
   if (dateFromText) filledFields.push("dateDetected");
   if (memoLines.length) filledFields.push("memo");
 
-  const ok = Boolean(title && dateKey);
+  const passwordMemo = [];
+  if (siteInfoSnap?.commonPassword) passwordMemo.push(`공동비밀번호: ${siteInfoSnap.commonPassword}`);
+  if (siteInfoSnap?.housePassword) passwordMemo.push(`세대비밀번호: ${siteInfoSnap.housePassword}`);
+  const memoWithPasswords = [memoLines.join("\n"), passwordMemo.join("\n")].filter(Boolean).join("\n");
+
+  const ok = Boolean((title || dateKey) && dateKey);
 
   const preTitle = {
     apartmentName,
@@ -692,7 +725,7 @@ export function parseSchedulePasteText(text, options = {}) {
     dateKey,
     startTime,
     endTime,
-    memo: memoLines.join("\n"),
+    memo: memoWithPasswords || memoLines.join("\n"),
     rawText,
     source,
     filledFields,
@@ -704,6 +737,10 @@ export function parseSchedulePasteText(text, options = {}) {
       building,
       unit,
       structureOk,
+      commonPassword: siteInfoSnap?.commonPassword || "",
+      housePassword: siteInfoSnap?.housePassword || "",
+      workItems: siteInfoSnap?.workItems || [],
+      craft: siteInfoSnap?.craft || "",
       timeCandidates: timeParse.candidates,
       timeExtracted,
       timeFinal: timeExtracted ? { startTime, endTime } : null,

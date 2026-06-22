@@ -183,7 +183,9 @@ export async function structureSiteInfo(ocrText, options = {}) {
   let merged = extracted;
   let source = memoryMatch ? "memory+rule" : "rule";
 
-  if (options.useGpt !== false && ocrText.trim().length >= 4) {
+  const ruleOk = Boolean(extracted.building && extracted.unit && (extracted.confidence || 0) >= MIN_UNIT_CONFIDENCE);
+
+  if (!ruleOk && options.useGpt !== false && ocrText.trim().length >= 4) {
     try {
       const gpt = await structureSiteInfoWithGpt({ text: ocrText, ruleHint: extracted });
       if (gpt?.ok) {
@@ -192,7 +194,7 @@ export async function structureSiteInfo(ocrText, options = {}) {
         source = gpt.source || "gpt";
       }
     } catch (_) {
-      /* GPT optional */
+      /* GPT optional — 규칙 실패 시에만 */
     }
   }
 

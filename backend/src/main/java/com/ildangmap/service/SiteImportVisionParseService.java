@@ -160,6 +160,7 @@ public class SiteImportVisionParseService {
                 .workItems(workItems)
                 .confidence(confidence)
                 .source("gemini-vision")
+                .rawGeminiJson(content.trim())
                 .build();
     }
 

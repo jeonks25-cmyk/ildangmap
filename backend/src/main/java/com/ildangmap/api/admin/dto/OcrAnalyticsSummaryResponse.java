@@ -11,6 +11,12 @@ public class OcrAnalyticsSummaryResponse {
 
     private long visionCount;
     private long tesseractFallbackCount;
+    private long textPasteCount;
+    private long textPasteSuccessCount;
+    private double textSuccessRate;
+    private long textEditCount;
+    private double textUserEditRate;
+    private long ocrRegistrationCount;
     private long ocrAttemptCount;
     private long ocrSuccessCount;
     private double ocrSuccessRate;

@@ -105,7 +105,7 @@ export default function OcrAnalyticsAdminPage() {
         <button type="button" className="beta-feedback-admin__back" onClick={() => navigate("/settings")}>
           ← 설정
         </button>
-        <h1>OCR KPI</h1>
+        <h1>등록 KPI</h1>
         <label className="beta-feedback-admin__filter">
           <span>기간</span>
           <select value={days} onChange={(e) => setDays(Number(e.target.value))}>
@@ -125,11 +125,13 @@ export default function OcrAnalyticsAdminPage() {
 
       {data ? (
         <>
-          <section className="beta-feedback-admin__stats" aria-label="OCR KPI">
-            <StatCard label="Vision 사용" value={data.visionCount ?? 0} hint="gemini-vision" />
-            <StatCard label="Tesseract Fallback" value={data.tesseractFallbackCount ?? 0} />
+          <section className="beta-feedback-admin__stats" aria-label="등록 KPI">
+            <StatCard label="텍스트 등록" value={data.textPasteCount ?? 0} hint="카톡 붙여넣기" />
+            <StatCard label="텍스트 성공률" value={pct(data.textSuccessRate)} hint={`${data.textPasteSuccessCount ?? 0} / ${data.textPasteCount ?? 0}`} />
+            <StatCard label="텍스트 수정률" value={pct(data.textUserEditRate)} hint={`수정 ${data.textEditCount ?? 0}건`} />
+            <StatCard label="OCR 등록" value={data.ocrRegistrationCount ?? 0} hint="Vision + Tesseract" />
+            <StatCard label="Vision (Beta)" value={data.visionCount ?? 0} />
             <StatCard label="OCR 성공률" value={pct(data.ocrSuccessRate)} hint={`${data.ocrSuccessCount ?? 0} / ${data.ocrAttemptCount ?? 0}`} />
-            <StatCard label="사용자 수정률" value={pct(data.userEditRate)} hint={`수정 ${data.ocrEditCount ?? 0}건`} />
           </section>
 
           <section className="beta-feedback-admin__section">

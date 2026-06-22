@@ -1,37 +1,43 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
-import { parseScheduleImport, SCHEDULE_IMPORT_SOURCE } from "../../utils/schedulePasteParser";
 import { releaseScheduleOcrWorker, SCHEDULE_OCR_MODE } from "../../utils/scheduleOcr";
 import {
   getScheduleOcrErrorMessage,
   runScheduleOcrImport,
   parseScheduleImportFromSiteCandidate,
+  parseSchedulePastePipeline,
   SCHEDULE_OCR_ERROR,
   SCHEDULE_OCR_STAGE,
 } from "../../features/schedule-ocr";
 import { formatOcrError } from "../../utils/scheduleOcr";
 import SiteImportDebugPanel from "../map/SiteImportDebugPanel";
 import VisionOcrDiagPanel from "../ocr/VisionOcrDiagPanel";
+import VisionOcrConfirmPanel from "../ocr/VisionOcrConfirmPanel";
 import ScheduleSiteCandidatePicker from "./ScheduleSiteCandidatePicker";
 import { isStructureDebugEnabled } from "../../features/site-import/parser/siteImportStructureMetrics";
 import { isAiVisionOcrEnabled } from "../../features/site-import/utils/visionOcrPrefs";
 import { buildVisionOcrDiagFromTesseract } from "../../features/site-import/utils/visionOcrDiagModel";
+import { visionDataToScheduleImport } from "../../features/site-import/utils/visionImportMapper";
+import { reportOcrAttemptFromVisionDiag } from "../../features/site-import/utils/ocrAnalyticsReporter";
+import { useUserStore } from "../../store/useUserStore";
+import { useSettlementStore } from "../../store/useSettlementStore";
 
-const EXAMPLE_TEXT = `성환부영 3차, 301동 105호.
-공용현관:5623
-세대비번:260403`;
+const EXAMPLE_TEXT = `수요일 쌍용동1303
+더본인테리어
+공동비번 1234
+세대비번 5678`;
 
 function buildPasteStatusMessage(result) {
-  if (result.ok) {
-    const parts = ["제목·날짜·메모를 채웠습니다."];
+  if (result.structureOk && result.title) {
+    const parts = ["현장명·동·호를 채웠습니다."];
     if (!result.filledFields.includes("dateDetected")) {
-      parts.push("날짜는 내일로 넣었습니다.");
+      parts.push("날짜는 내일(또는 요일 기준)로 넣었습니다.");
     }
     return { tone: "success", message: parts.join(" "), stage: "parse_success" };
   }
-  if (result.filledFields.includes("dateKey")) {
+  if (result.title || result.filledFields.includes("dateKey")) {
     return {
       tone: "warn",
-      message: result.warnings[0] || "제목만 확인해 주세요.",
+      message: result.warnings[0] || "제목을 확인한 뒤 저장해 주세요.",
       stage: "parse_partial",
     };
   }
@@ -42,7 +48,7 @@ function buildPasteStatusMessage(result) {
   };
 }
 
-/** 일정 추가 — 1차 붙여넣기 · 2차 캡처 OCR */
+/** 일정 추가 — 카톡 붙여넣기 우선 · OCR은 실험 기능 */
 export default function SchedulePasteImportPanel({
   open = true,
   onApply,
@@ -53,9 +59,12 @@ export default function SchedulePasteImportPanel({
   const tableModeId = useId();
   const fileInputRef = useRef(null);
   const previewUrlRef = useRef(null);
+  const userId = useUserStore((s) => s.session?.userId ?? s.profile?.userId ?? "me");
+  const schedules = useSettlementStore((s) => s.schedules);
 
   const [pasteText, setPasteText] = useState("");
   const [status, setStatus] = useState(null);
+  const [pasteBusy, setPasteBusy] = useState(false);
   const [ocrBusy, setOcrBusy] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -63,6 +72,7 @@ export default function SchedulePasteImportPanel({
   const [tableMode, setTableMode] = useState(false);
   const [structureTrace, setStructureTrace] = useState(null);
   const [visionOcrDiag, setVisionOcrDiag] = useState(null);
+  const [pendingVisionData, setPendingVisionData] = useState(null);
   const [siteCandidates, setSiteCandidates] = useState([]);
   const [selectedSiteLineId, setSelectedSiteLineId] = useState(null);
   const [pendingOcrText, setPendingOcrText] = useState("");
@@ -89,11 +99,13 @@ export default function SchedulePasteImportPanel({
     if (!open) return undefined;
     setPasteText("");
     setStatus(null);
+    setPasteBusy(false);
     setOcrBusy(false);
     setOcrProgress(0);
     setTableMode(false);
     setStructureTrace(null);
     setVisionOcrDiag(null);
+    setPendingVisionData(null);
     clearSiteCandidatePick();
     clearPreview();
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -102,14 +114,32 @@ export default function SchedulePasteImportPanel({
     };
   }, [open, clearPreview, clearSiteCandidatePick]);
 
-  const handleAutoFill = () => {
+  const handleAutoFill = async () => {
     const text = pasteText.trim();
+    if (!text || pasteBusy) return;
     setPasteText(text);
     clearSiteCandidatePick();
-    const result = parseScheduleImport({ source: SCHEDULE_IMPORT_SOURCE.PASTE, text }, { referenceDate });
-    setStructureTrace(result.structureTrace || null);
-    onApply?.(result);
-    setStatus(buildPasteStatusMessage(result));
+    setPasteBusy(true);
+    setStatus({ tone: "info", message: "카톡 내용을 분석하는 중입니다…", stage: "paste_running" });
+
+    try {
+      const result = await parseSchedulePastePipeline(text, {
+        referenceDate: referenceDate || new Date(),
+        userId,
+        schedules,
+      });
+      setStructureTrace(result.structureTrace || null);
+      onApply?.(result);
+      setStatus(buildPasteStatusMessage(result));
+    } catch (error) {
+      setStatus({
+        tone: "error",
+        message: error?.message || "붙여넣기 분석에 실패했습니다.",
+        stage: "parse_failed",
+      });
+    } finally {
+      setPasteBusy(false);
+    }
   };
 
   const applyFromSiteCandidate = async (candidate) => {
@@ -138,12 +168,39 @@ export default function SchedulePasteImportPanel({
     }
   };
 
+  const clearVisionReview = useCallback(() => {
+    setPendingVisionData(null);
+  }, []);
+
+  const applyVisionReview = useCallback(
+    (visionData) => {
+      const chatResult = visionDataToScheduleImport(visionData, {
+        referenceDate: referenceDate || new Date(),
+      });
+      if (visionOcrDiag) reportOcrAttemptFromVisionDiag(visionOcrDiag);
+      setStructureTrace(chatResult.structureTrace || null);
+      setPendingVisionData(null);
+      onApply?.(chatResult);
+      const structureNote = chatResult.title
+        ? "AI Vision 결과를 폼에 넣었습니다."
+        : "제목이 비어 있습니다. 직접 입력해 주세요.";
+      setStatus({
+        tone: chatResult.title ? "success" : "warn",
+        message: structureNote,
+        stage: SCHEDULE_OCR_STAGE.CHAT_PARSED,
+        structureOk: chatResult.structureOk,
+      });
+    },
+    [onApply, referenceDate, visionOcrDiag]
+  );
+
   const runOcr = async (file) => {
     if (!file || ocrBusy) return;
     setOcrBusy(true);
     setOcrProgress(0);
     clearSiteCandidatePick();
     setVisionOcrDiag(null);
+    setPendingVisionData(null);
     setStatus({
       tone: "info",
       message:
@@ -160,6 +217,17 @@ export default function SchedulePasteImportPanel({
         referenceDate: referenceDate || new Date(),
         onProgress: (progress) => setOcrProgress(Math.round((progress || 0) * 100)),
       });
+
+      if (result.stage === SCHEDULE_OCR_STAGE.VISION_REVIEW && result.visionData) {
+        setVisionOcrDiag(result.visionOcrDiag || null);
+        setPendingVisionData(result.visionData);
+        setStatus({
+          tone: "info",
+          message: "AI Vision 결과를 확인한 뒤 [적용]을 눌러 주세요.",
+          stage: SCHEDULE_OCR_STAGE.VISION_REVIEW,
+        });
+        return;
+      }
 
       if (result.ocrResult?.text) {
         setPasteText(result.ocrResult.text);
@@ -207,16 +275,12 @@ export default function SchedulePasteImportPanel({
         setVisionOcrDiag(result.visionOcrDiag || null);
         setStructureTrace(result.chatResult.structureTrace || null);
         onApply?.(result.chatResult);
-        const structureNote = result.visionSource
-          ? "AI Vision으로 현장 정보를 채웠습니다."
-          : result.chatResult.structureOk
-            ? "현장명·동·호를 인식했습니다."
-            : "제목을 확인해 주세요. (구조화 미완료)";
+        const structureNote = result.chatResult.structureOk
+          ? "현장명·동·호를 인식했습니다."
+          : "제목을 확인해 주세요.";
         setStatus({
           tone: result.chatResult.structureOk ? "success" : "warn",
-          message: result.visionSource
-            ? structureNote
-            : `캡처에서 일정 1건을 폼에 채웠습니다. ${structureNote}`,
+          message: `캡처 인식 결과를 폼에 넣었습니다. ${structureNote}`,
           stage: SCHEDULE_OCR_STAGE.CHAT_PARSED,
           ocrTextPreview: result.ocrResult?.text?.slice(0, 600),
           structureOk: result.chatResult.structureOk,
@@ -258,17 +322,21 @@ export default function SchedulePasteImportPanel({
     await runOcr(file);
   };
 
+  const busy = pasteBusy || ocrBusy;
+
   return (
-    <section className="schedule-paste-import" aria-label="카톡·문자·공정표 일정 가져오기">
+    <section className="schedule-paste-import" aria-label="카톡 일정 가져오기">
       <div className="schedule-paste-import__head">
-        <h3 className="schedule-paste-import__title">일정 가져오기</h3>
-        <p className="schedule-paste-import__lead">카톡·문자 공지 또는 월간 공정표 캡처를 올려 일정을 만듭니다.</p>
+        <h3 className="schedule-paste-import__title">카카오톡 일정 가져오기</h3>
+        <p className="schedule-paste-import__lead">
+          카톡 메시지를 복사해 붙여넣으면 10초 안에 일정 초안을 만듭니다.
+        </p>
       </div>
 
-      <div className="schedule-paste-import__section">
-        <p className="schedule-paste-import__section-label">1. 텍스트 붙여넣기</p>
+      <div className="schedule-paste-import__section schedule-paste-import__section--primary">
+        <p className="schedule-paste-import__section-label">카카오톡 내용 붙여넣기</p>
         <textarea
-          className="schedule-paste-import__textarea"
+          className="schedule-paste-import__textarea schedule-paste-import__textarea--primary"
           value={pasteText}
           onChange={(e) => {
             setPasteText(e.target.value);
@@ -276,37 +344,36 @@ export default function SchedulePasteImportPanel({
             clearSiteCandidatePick();
           }}
           placeholder={EXAMPLE_TEXT}
-          rows={4}
-          aria-label="일정 공지 붙여넣기"
+          rows={6}
+          aria-label="카카오톡 일정 공지 붙여넣기"
+          autoFocus
         />
         <div className="schedule-paste-import__actions">
           <button
             type="button"
-            className="schedule-paste-import__apply"
-            onClick={handleAutoFill}
-            disabled={!pasteText.trim() || ocrBusy}
+            className="schedule-paste-import__apply schedule-paste-import__apply--primary"
+            onClick={() => void handleAutoFill()}
+            disabled={!pasteText.trim() || busy}
           >
-            자동 입력
+            {pasteBusy ? "분석 중…" : "일정 만들기"}
           </button>
         </div>
       </div>
 
-      <div className="schedule-paste-import__divider" aria-hidden="true">
-        <span>또는</span>
-      </div>
-
-      <div className="schedule-paste-import__section">
-        <p className="schedule-paste-import__section-label">2. 캡처 이미지 업로드</p>
-        <p className="schedule-paste-import__section-hint">공정표·캘린더는 아래 옵션을 켜면 인식률이 좋아집니다.</p>
+      <details className="schedule-paste-import__experimental">
+        <summary className="schedule-paste-import__experimental-summary">이미지 인식 (Beta)</summary>
+        <p className="schedule-paste-import__section-hint">
+          캡처 이미지 OCR은 실험 기능입니다. 정확도 향상 작업은 이후 단계입니다.
+        </p>
         <label className="schedule-paste-import__table-mode" htmlFor={tableModeId}>
           <input
             id={tableModeId}
             type="checkbox"
             checked={tableMode}
             onChange={(e) => setTableMode(e.target.checked)}
-            disabled={ocrBusy}
+            disabled={busy}
           />
-          <span>공정표/캘린더 이미지 (작은 글자·표 형식)</span>
+          <span>공정표/캘린더 이미지 (표 형식)</span>
         </label>
         <input
           ref={fileInputRef}
@@ -315,11 +382,11 @@ export default function SchedulePasteImportPanel({
           type="file"
           accept="image/*"
           onChange={handleImageChange}
-          disabled={ocrBusy}
+          disabled={busy}
           aria-label="캡처 이미지 선택"
         />
-        <label htmlFor={fileInputId} className={`schedule-paste-import__upload${ocrBusy ? " is-busy" : ""}`}>
-          {ocrBusy ? "글자 읽는 중…" : "캡처 이미지 선택"}
+        <label htmlFor={fileInputId} className={`schedule-paste-import__upload schedule-paste-import__upload--beta${ocrBusy ? " is-busy" : ""}`}>
+          {ocrBusy ? "이미지 분석 중…" : "캡처 가져오기 (실험)"}
         </label>
 
         {ocrBusy ? (
@@ -334,7 +401,7 @@ export default function SchedulePasteImportPanel({
             {previewName ? <span className="schedule-paste-import__preview-name">{previewName}</span> : null}
           </div>
         ) : null}
-      </div>
+      </details>
 
       {siteCandidates.length > 0 ? (
         <ScheduleSiteCandidatePicker
@@ -343,6 +410,15 @@ export default function SchedulePasteImportPanel({
           busy={candidateBusy}
           onConfirm={applyFromSiteCandidate}
           onCancel={clearSiteCandidatePick}
+        />
+      ) : null}
+
+      {pendingVisionData ? (
+        <VisionOcrConfirmPanel
+          visionData={pendingVisionData}
+          visionOcrDiag={visionOcrDiag}
+          onApply={applyVisionReview}
+          onCancel={clearVisionReview}
         />
       ) : null}
 

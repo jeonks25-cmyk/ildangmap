@@ -27,6 +27,35 @@ public interface SiteMemoryEventRepository extends JpaRepository<SiteMemoryEvent
     @Query(
             """
             SELECT COUNT(e) FROM SiteMemoryEvent e
+            WHERE e.ocrSource = :ocrSource
+              AND e.eventType IN :types
+              AND e.success = true
+              AND e.createdAt >= :from
+              AND e.createdAt < :to
+            """)
+    long countSuccessByOcrSourceAndTypes(
+            @Param("ocrSource") String ocrSource,
+            @Param("types") List<SiteMemoryEventType> types,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    @Query(
+            """
+            SELECT COUNT(e) FROM SiteMemoryEvent e
+            WHERE e.eventType = com.ildangmap.domain.sitememory.SiteMemoryEventType.OCR_EDIT
+              AND e.ocrSource = :ocrSource
+              AND e.userEdited = true
+              AND e.createdAt >= :from
+              AND e.createdAt < :to
+            """)
+    long countEditsByOcrSource(
+            @Param("ocrSource") String ocrSource,
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    @Query(
+            """
+            SELECT COUNT(e) FROM SiteMemoryEvent e
             WHERE e.eventType IN :types
               AND e.success = true
               AND e.createdAt >= :from

@@ -6,6 +6,13 @@ export const OCR_SOURCE = {
   TESSERACT: "tesseract-fallback",
 };
 
+/** 일정 등록 경로 — Analytics KPI */
+export const IMPORT_SOURCE = {
+  TEXT_PASTE: "text-paste",
+  OCR_VISION: "gemini-vision",
+  OCR_TESSERACT: "tesseract-fallback",
+};
+
 export const OCR_RESULT_REASON = {
   OK: "ok",
   MISSING_APARTMENT: "missing_apartment",
@@ -89,6 +96,22 @@ export function reportOcrAttempt({
     ocrTitleExtracted: extractedTitle,
     ocrTitleOriginal: extractedTitle,
     resultReason,
+  });
+}
+
+export function reportTextPasteAttempt(chatResult) {
+  if (!chatResult) return;
+  const trace = chatResult.structureTrace || {};
+  const metrics = chatResult.structureMetrics || {};
+  reportOcrAttempt({
+    ocrSource: IMPORT_SOURCE.TEXT_PASTE,
+    success: Boolean(chatResult.structureOk),
+    apartmentName: trace.siteName || metrics.siteName || "",
+    building: trace.building || metrics.building || "",
+    unit: trace.unit || metrics.unit || "",
+    confidence: chatResult.parseDiagnostics?.confidence,
+    title: chatResult.title || "",
+    craft: trace.craft || chatResult.pasteMeta?.craft || "",
   });
 }
 
@@ -191,4 +214,10 @@ export function reportOcrUserEdit(snapshot, finalState = {}) {
 
 export function ocrSourceFromVisionDiag(diag) {
   return diag?.engine === "gemini-vision" ? OCR_SOURCE.VISION : OCR_SOURCE.TESSERACT;
+}
+
+export function importSourceFromResult(result) {
+  if (result?.importSource) return result.importSource;
+  if (result?.visionOcrDiag?.engine === "gemini-vision") return IMPORT_SOURCE.OCR_VISION;
+  return IMPORT_SOURCE.TEXT_PASTE;
 }

@@ -9,7 +9,7 @@ import { markStructureSaved } from "../../features/site-import/parser/siteImport
 import { applyScheduleImportTitleToForm } from "../../features/schedule-ocr/utils/scheduleFormApplyTitle";
 import {
   createOcrApplySnapshot,
-  ocrSourceFromVisionDiag,
+  importSourceFromResult,
   reportOcrUserEdit,
 } from "../../features/site-import/utils/ocrAnalyticsReporter";
 
@@ -65,7 +65,7 @@ export default function ScheduleEntryComposerSheet({
     const parserFinalTitle = String(result?.finalTitle || result?.title || "").trim();
 
     importSnapshotRef.current = createOcrApplySnapshot({
-      ocrSource: ocrSourceFromVisionDiag(result.visionOcrDiag),
+      ocrSource: importSourceFromResult(result),
       title: finalAppliedTitle,
       apartmentName: result.structureTrace?.siteName,
       building: result.structureTrace?.building,

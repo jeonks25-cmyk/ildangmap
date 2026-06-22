@@ -4,3 +4,4 @@ export { parseScheduleTable, parseScheduleTableText, generatePersonalDraftsFromT
 export { extractSiteLineCandidates, isExcludedSiteLine } from "./parser/siteLineCandidateExtractor";
 export { parseScheduleImportFromSiteCandidate } from "./parser/parseScheduleFromSiteCandidate";
 export { runScheduleOcrImport } from "./services/scheduleOcrService";
+export { parseSchedulePastePipeline } from "./services/pasteImportPipeline";

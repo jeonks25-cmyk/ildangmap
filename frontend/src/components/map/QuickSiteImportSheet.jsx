@@ -20,6 +20,7 @@ import SiteImportChecklist, {
 } from "./SiteImportChecklist";
 import SiteImportDebugPanel from "./SiteImportDebugPanel";
 import VisionOcrDiagPanel from "../ocr/VisionOcrDiagPanel";
+import VisionOcrConfirmPanel from "../ocr/VisionOcrConfirmPanel";
 import {
   isStructureDebugEnabled,
   markStructureSaved,
@@ -31,11 +32,13 @@ import {
   structureSiteInfo,
   structuredInfoToFormPatch,
 } from "../../features/site-import/services/siteImportOcrService";
+import { visionDataToFormPatch } from "../../features/site-import/utils/visionImportMapper";
 import {
   createOcrApplySnapshot,
   ocrSourceFromVisionDiag,
-  OCR_SOURCE,
+  IMPORT_SOURCE,
   reportOcrUserEdit,
+  reportOcrAttemptFromVisionDiag,
 } from "../../features/site-import/utils/ocrAnalyticsReporter";
 
 function defaultTextForType(type) {
@@ -109,6 +112,7 @@ export default function QuickSiteImportSheet({
   const [ocrError, setOcrError] = useState("");
   const [ocrApplied, setOcrApplied] = useState(false);
   const [visionOcrDiag, setVisionOcrDiag] = useState(null);
+  const [pendingVisionData, setPendingVisionData] = useState(null);
   const [multiSchedules, setMultiSchedules] = useState([]);
   const [baseOcrPatch, setBaseOcrPatch] = useState({});
   const [lastStructured, setLastStructured] = useState(null);
@@ -260,7 +264,7 @@ export default function QuickSiteImportSheet({
     if (patch.location?.fullAddress) setAddressQuery(patch.location.fullAddress);
     setBaseOcrPatch(patch);
     ocrTitleSnapshotRef.current = createOcrApplySnapshot({
-      ocrSource: visionDiag ? ocrSourceFromVisionDiag(visionDiag) : OCR_SOURCE.TESSERACT,
+      ocrSource: visionDiag ? ocrSourceFromVisionDiag(visionDiag) : IMPORT_SOURCE.TEXT_PASTE,
       title: patch.title || "",
       apartmentName: structured.apartmentName,
       building: structured.building,
@@ -298,7 +302,11 @@ export default function QuickSiteImportSheet({
   };
 
   const handlePasteStructure = async (rawText) => {
-    const structured = await structureSiteInfo(rawText, { useGpt: true, ...structureOptions });
+    const structured = await structureSiteInfo(rawText, {
+      useGpt: true,
+      ocrSource: IMPORT_SOURCE.TEXT_PASTE,
+      ...structureOptions,
+    });
     if (structured.multiSchedules?.length >= 2) {
       setMultiSchedules(structured.multiSchedules);
       const { patch } = structuredInfoToFormPatch(structured, rawText, selectedDateKey);
@@ -315,6 +323,20 @@ export default function QuickSiteImportSheet({
     const { patch } = structuredInfoToFormPatch(structured, rawText, selectedDateKey);
     setMultiSchedules([]);
     applyStructuredResult(structured, patch, rawText);
+  };
+
+  const applyVisionReview = (visionData) => {
+    const { patch, structured } = visionDataToFormPatch(visionData, selectedDateKey);
+    if (visionOcrDiag) reportOcrAttemptFromVisionDiag(visionOcrDiag);
+    setPendingVisionData(null);
+    setText("");
+    applyStructuredResult(structured, patch, "", visionOcrDiag);
+    if (!patch.title) {
+      setOcrError("제목이 비어 있습니다. 아래에서 직접 입력해 주세요.");
+      titleTouchedRef.current = false;
+    } else {
+      setOcrError("");
+    }
   };
 
   const handleOcrFiles = async (fileList) => {
@@ -336,6 +358,20 @@ export default function QuickSiteImportSheet({
     try {
       const result = await runSiteImportOcr(files, { useGpt: true, ...structureOptions });
       setVisionOcrDiag(result.visionOcrDiag || null);
+
+      if (result.stage === SITE_IMPORT_OCR_STAGE.VISION_REVIEW && result.visionData) {
+        setPendingVisionData(result.visionData);
+        setOcrError("");
+        setOcrChecklist([]);
+        setOcrApplied(false);
+        return;
+      }
+
+      if (result.stage === SITE_IMPORT_OCR_STAGE.VISION_FAILED) {
+        setOcrError(result.message || "AI Vision 처리에 실패했습니다.");
+        return;
+      }
+
       if (
         result.stage === SITE_IMPORT_OCR_STAGE.SUCCESS ||
         result.stage === SITE_IMPORT_OCR_STAGE.MULTI
@@ -470,7 +506,7 @@ export default function QuickSiteImportSheet({
               <p className="quick-site-import-sheet__eyebrow">{dateLabel || selectedDateKey}</p>
               <h2 className="quick-site-import-sheet__title">{isField ? "현장 일정 만들기" : `${label} 기록하기`}</h2>
               {isField ? (
-                <p className="quick-site-import-sheet__sub">카톡·문자·밴드 붙여넣기 / OCR → 자동 입력 → 수정 후 저장</p>
+                <p className="quick-site-import-sheet__sub">카톡 메시지 붙여넣기 → 자동 입력 → 수정 후 저장</p>
               ) : (
                 <p className="quick-site-import-sheet__sub">{defaultTextForType(type)}</p>
               )}
@@ -484,7 +520,7 @@ export default function QuickSiteImportSheet({
             <>
               <div className="quick-site-import-sheet__hero-actions" aria-label="카톡 내용 입력">
                 <label className="quick-site-import-sheet__hero-action quick-site-import-sheet__hero-action--paste">
-                  <span className="quick-site-import-sheet__hero-label">문자 붙여넣기</span>
+                  <span className="quick-site-import-sheet__hero-label">카카오톡 붙여넣기</span>
                   <textarea
                     className="quick-site-import-sheet__hero-textarea"
                     value={text}
@@ -500,12 +536,12 @@ export default function QuickSiteImportSheet({
                         setOcrChecklist([]);
                       }
                     }}
-                    placeholder="카톡·문자 내용 그대로 붙여넣기"
+                    placeholder={`수요일 쌍용동1303\n더본인테리어\n공동비번 1234\n세대비번 5678`}
                     rows={showPasteInput ? 4 : 2}
                   />
                 </label>
                 <label className="quick-site-import-sheet__hero-action quick-site-import-sheet__hero-action--photo">
-                  <span className="quick-site-import-sheet__hero-label">OCR 이미지</span>
+                  <span className="quick-site-import-sheet__hero-label">이미지 인식 (Beta)</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -522,7 +558,7 @@ export default function QuickSiteImportSheet({
                       ? "OCR 분석 중…"
                       : captureFileName
                         ? `${captureFileName} 선택됨`
-                        : "사진 선택하기"}
+                        : "캡처 가져오기 (실험)"}
                   </span>
                 </label>
               </div>
@@ -535,6 +571,15 @@ export default function QuickSiteImportSheet({
 
               {ocrChecklist.length ? (
                 <SiteImportChecklist checklist={ocrChecklist} title="인식 결과" />
+              ) : null}
+
+              {pendingVisionData ? (
+                <VisionOcrConfirmPanel
+                  visionData={pendingVisionData}
+                  visionOcrDiag={visionOcrDiag}
+                  onApply={applyVisionReview}
+                  onCancel={() => setPendingVisionData(null)}
+                />
               ) : null}
 
               <VisionOcrDiagPanel diag={visionOcrDiag} />

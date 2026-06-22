@@ -4192,6 +4192,48 @@
   white-space: pre-wrap;
 }
 
+.schedule-paste-import__section--primary {
+  margin-bottom: 12px;
+}
+
+.schedule-paste-import__textarea--primary {
+  min-height: 140px;
+  font-size: 15px;
+}
+
+.schedule-paste-import__apply--primary {
+  width: 100%;
+  font-size: 16px;
+  padding: 12px 16px;
+}
+
+.schedule-paste-import__experimental {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.schedule-paste-import__experimental-summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  list-style: none;
+}
+
+.schedule-paste-import__experimental-summary::-webkit-details-marker {
+  display: none;
+}
+
+.schedule-paste-import__upload--beta {
+  margin-top: 8px;
+  background: #f3f4f6;
+  color: #4b5563;
+  border: 1px dashed #d1d5db;
+}
+
 .vision-ocr-diag {
   margin-top: 10px;
   padding: 12px;

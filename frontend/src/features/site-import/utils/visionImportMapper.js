@@ -11,6 +11,48 @@ function buildTitle(apartmentName, building, unit) {
 }
 
 /**
+ * Gemini Vision 응답 → 사용자 확인 후 폼 패치
+ */
+export function visionDataToFormPatch(visionData, selectedDateKey = "") {
+  const structured = visionResponseToStructured(visionData);
+  const title = String(structured.title || "").trim();
+  const workDesc = (structured.workItems || []).filter(Boolean).join(" · ");
+
+  const patch = {
+    title,
+    accessPassword: structured.commonPassword || "",
+    housePassword: structured.housePassword || "",
+    requiredItems: workDesc || undefined,
+  };
+
+  if (title) {
+    patch.location = {
+      fullAddress: title,
+      shortRegion: title.split(/\s+/).slice(0, 2).join(" "),
+      siteKind: "아파트",
+    };
+  }
+
+  void selectedDateKey;
+  return { patch, structured };
+}
+
+/**
+ * Gemini Vision 응답 → 일정 붙여넣기 결과 (제목 없어도 적용 가능)
+ */
+export function visionDataToScheduleImport(data, { referenceDate } = {}) {
+  const result = visionResponseToScheduleImport(data, { referenceDate });
+  return {
+    ...result,
+    title: result.title || "",
+    finalTitle: result.title || "",
+    resolvedTitle: result.title || "",
+    ok: true,
+    warnings: result.title ? result.warnings : ["제목을 직접 입력해 주세요."],
+  };
+}
+
+/**
  * Gemini Vision 응답 → 일정 붙여넣기/OCR 파서 결과 형태
  */
 export function visionResponseToScheduleImport(data, { referenceDate } = {}) {
@@ -33,7 +75,7 @@ export function visionResponseToScheduleImport(data, { referenceDate } = {}) {
   if (structureOk) filledFields.push("structureOk");
 
   return {
-    ok: structureOk || Boolean(title),
+    ok: Boolean(title) || structureOk,
     title,
     finalTitle: title,
     resolvedTitle: title,

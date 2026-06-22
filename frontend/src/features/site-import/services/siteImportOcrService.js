@@ -5,11 +5,10 @@ import {
   structuredInfoToFormPatch,
   structureSiteInfo,
 } from "../structure/siteInfoStructurer";
-import { parseVisionSiteImage } from "../../../api/visionParseApi";
 import { isAiVisionOcrEnabled } from "../utils/visionOcrPrefs";
-import { visionResponseToStructured } from "../utils/visionImportMapper";
 import { buildVisionOcrDiagFromStructured } from "../utils/visionOcrDiagModel";
-import { reportOcrAttemptFromVisionDiag, OCR_SOURCE } from "../utils/ocrAnalyticsReporter";
+import { OCR_SOURCE } from "../utils/ocrAnalyticsReporter";
+import { fetchVisionSiteData } from "../../schedule-ocr/services/visionOcrService";
 
 export const SITE_IMPORT_OCR_STAGE = {
   SUCCESS: "success",
@@ -17,6 +16,8 @@ export const SITE_IMPORT_OCR_STAGE = {
   NO_SITE_INFO: "no_site_info",
   ENGINE_FAILED: "engine_failed",
   EMPTY_TEXT: "empty_text",
+  VISION_REVIEW: "vision_review",
+  VISION_FAILED: "vision_failed",
 };
 
 async function ocrSingleFile(file, onProgress) {
@@ -40,25 +41,24 @@ export async function runSiteImportOcr(fileOrFiles, options = {}) {
   const visionAttempted = visionEnabled;
   if (visionEnabled) {
     try {
-      const visionData = await parseVisionSiteImage(files[0]);
-      const structured = visionResponseToStructured(visionData);
-      if (structured.ok) {
-        const { patch, applied } = structuredInfoToFormPatch(structured, "", options.selectedDateKey);
-        if (applied) {
-          const visionOcrDiag = buildVisionOcrDiagFromStructured(structured, { visionSource: true });
-          reportOcrAttemptFromVisionDiag(visionOcrDiag);
-          return {
-            stage: SITE_IMPORT_OCR_STAGE.SUCCESS,
-            structured,
-            patch,
-            visionSource: true,
-            ocrResult: { source: "gemini-vision", visionData },
-            visionOcrDiag,
-          };
-        }
-      }
+      const { visionData, visionOcrDiag } = await fetchVisionSiteData(files[0]);
+      return {
+        stage: SITE_IMPORT_OCR_STAGE.VISION_REVIEW,
+        visionData,
+        visionOcrDiag,
+        ocrResult: { source: "gemini-vision", visionData },
+      };
     } catch (error) {
-      console.warn("[VISION-OCR] site import failed — fallback", error?.message || error);
+      console.warn("[VISION-OCR] site import failed", error?.message || error);
+      return {
+        stage: SITE_IMPORT_OCR_STAGE.VISION_FAILED,
+        message: error?.message || "AI Vision 처리에 실패했습니다.",
+        error,
+        visionOcrDiag: buildVisionOcrDiagFromStructured(
+          { apartmentName: "", building: "", unit: "", confidence: 0 },
+          { visionAttempted: true }
+        ),
+      };
     }
   }
 

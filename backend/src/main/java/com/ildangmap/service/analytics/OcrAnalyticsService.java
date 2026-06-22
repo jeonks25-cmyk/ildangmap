@@ -22,6 +22,7 @@ public class OcrAnalyticsService {
             List.of(SiteMemoryEventType.OCR_ATTEMPT, SiteMemoryEventType.OCR_SUCCESS);
     private static final String SOURCE_VISION = "gemini-vision";
     private static final String SOURCE_TESSERACT = "tesseract-fallback";
+    private static final String SOURCE_TEXT_PASTE = "text-paste";
     private static final Map<String, String> REASON_LABELS =
             Map.of(
                     "ok", "동·호 추출 완료",
@@ -43,12 +44,21 @@ public class OcrAnalyticsService {
                 eventRepository.countByOcrSourceAndTypes(SOURCE_VISION, OCR_ATTEMPT_TYPES, from, to);
         long tesseractCount =
                 eventRepository.countByOcrSourceAndTypes(SOURCE_TESSERACT, OCR_ATTEMPT_TYPES, from, to);
+        long textPasteCount =
+                eventRepository.countByOcrSourceAndTypes(SOURCE_TEXT_PASTE, OCR_ATTEMPT_TYPES, from, to);
+        long textPasteSuccess =
+                eventRepository.countSuccessByOcrSourceAndTypes(SOURCE_TEXT_PASTE, OCR_ATTEMPT_TYPES, from, to);
+        long textPasteEditCount = eventRepository.countEditsByOcrSource(SOURCE_TEXT_PASTE, from, to);
         long attemptCount = eventRepository.countByTypes(OCR_ATTEMPT_TYPES, from, to);
         long successCount = eventRepository.countSuccessByTypes(OCR_ATTEMPT_TYPES, from, to);
         long editCount = eventRepository.countOcrEdits(from, to);
 
         double successRate = attemptCount > 0 ? (double) successCount / attemptCount : 0.0;
         double editRate = successCount > 0 ? (double) editCount / successCount : 0.0;
+        double textSuccessRate = textPasteCount > 0 ? (double) textPasteSuccess / textPasteCount : 0.0;
+        double textEditRate =
+                textPasteSuccess > 0 ? (double) textPasteEditCount / textPasteSuccess : 0.0;
+        long ocrRegistrationCount = visionCount + tesseractCount;
 
         List<OcrAnalyticsSummaryResponse.NamedCount> topSiteNames = new ArrayList<>();
         for (Object[] row : eventRepository.topCanonicalKeys(OCR_ATTEMPT_TYPES, from, to)) {
@@ -77,6 +87,12 @@ public class OcrAnalyticsService {
         return OcrAnalyticsSummaryResponse.builder()
                 .visionCount(visionCount)
                 .tesseractFallbackCount(tesseractCount)
+                .textPasteCount(textPasteCount)
+                .textPasteSuccessCount(textPasteSuccess)
+                .textSuccessRate(textSuccessRate)
+                .textEditCount(textPasteEditCount)
+                .textUserEditRate(textEditRate)
+                .ocrRegistrationCount(ocrRegistrationCount)
                 .ocrAttemptCount(attemptCount)
                 .ocrSuccessCount(successCount)
                 .ocrSuccessRate(successRate)
@@ -154,6 +170,9 @@ public class OcrAnalyticsService {
         }
         if (SOURCE_TESSERACT.equals(source)) {
             return "Tesseract Fallback";
+        }
+        if (SOURCE_TEXT_PASTE.equals(source)) {
+            return "텍스트 붙여넣기";
         }
         return source.isBlank() ? "—" : source;
     }

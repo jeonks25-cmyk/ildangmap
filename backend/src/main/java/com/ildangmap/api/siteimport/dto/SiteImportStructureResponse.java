@@ -19,6 +19,8 @@ public class SiteImportStructureResponse {
     private List<String> workItems = new ArrayList<>();
     private double confidence;
     private String source;
+    /** Gemini가 반환한 JSON 원문 (파싱 전 text) */
+    private String rawGeminiJson;
 
     public boolean hasUnit() {
         return building != null && !building.isBlank() && unit != null && !unit.isBlank();

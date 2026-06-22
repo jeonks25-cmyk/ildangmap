@@ -8,7 +8,7 @@ import { resolveFailureStage } from "../../site-import/parser/siteImportDiag";
 import { applyScheduleImportTitleToForm } from "../utils/scheduleFormApplyTitle";
 import { extractSiteLineCandidates } from "../parser/siteLineCandidateExtractor";
 import { isAiVisionOcrEnabled } from "../../site-import/utils/visionOcrPrefs";
-import { tryVisionScheduleImport } from "./visionOcrService";
+import { fetchVisionSiteData } from "./visionOcrService";
 import { buildVisionOcrDiagFromTesseract } from "../../site-import/utils/visionOcrDiagModel";
 import { OCR_SOURCE, reportOcrAttemptFromChatResult } from "../../site-import/utils/ocrAnalyticsReporter";
 
@@ -100,18 +100,22 @@ export async function runScheduleOcrImport(file, options = {}) {
       tableMode: forceTable,
       aiVisionOcr: isAiVisionOcrEnabled(),
     });
-    const visionResult = await tryVisionScheduleImport(file, {
-      referenceDate,
-      defaults: options.defaults,
-    });
-    if (visionResult) {
-      console.log(`${DIAG_PREFIX} Vision OCR 성공`, {
-        title: visionResult.chatResult?.title,
-        structureOk: visionResult.chatResult?.structureOk,
-      });
-      return visionResult;
+    try {
+      const { visionData, visionOcrDiag } = await fetchVisionSiteData(file);
+      return {
+        stage: SCHEDULE_OCR_STAGE.VISION_REVIEW,
+        visionData,
+        visionOcrDiag,
+        ocrResult: { source: "gemini-vision", visionData },
+      };
+    } catch (error) {
+      console.warn(`${DIAG_PREFIX} Vision OCR 실패`, error?.message || error);
+      return {
+        errorCode: SCHEDULE_OCR_ERROR.VISION_FAILED,
+        message: error?.message,
+        visionOcrDiag: buildVisionOcrDiagFromTesseract(null, { visionAttempted: true }),
+      };
     }
-    console.warn(`${DIAG_PREFIX} Vision OCR 실패 — Tesseract fallback`);
   }
 
   async function runOcr(kakaoCrop) {
