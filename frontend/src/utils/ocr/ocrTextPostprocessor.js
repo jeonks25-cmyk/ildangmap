@@ -18,6 +18,7 @@ const SITE_NAME_OCR_FIXES = [
   [/장제계룡/g, "장재계룡"],
   [/장재계룡개룡/g, "장재계룡"],
   [/장재개룡/g, "장재계룡"],
+  [/장재열/g, "장재계룡"],
   [/개룡/g, "계룡"],
 ];
 
@@ -205,28 +206,50 @@ export function postprocessOcrText(rawText) {
   };
 }
 
+export function sanitizeOcrGarbage(line) {
+  let s = String(line || "").trim();
+  if (!s) return "";
+
+  s = s.replace(/^(KT|SKT|LG\s*U\+)[\w\d:APM@&%.]+/i, "");
+  s = s.replace(/^[\d:APM@&\w%.]{3,24}(?=[가-힣])/u, "");
+  s = s.replace(/^[M@&:.\d]+(?=[가-힣])/u, "");
+  s = s.replace(/[=]+$/, "").replace(/^[=]+/, "");
+  s = s.replace(/\s+/g, " ").trim();
+  return s;
+}
+
 export function scoreOcrCandidate(text) {
   const t = String(text || "");
   const hangul = (t.match(/[가-힣]/g) || []).length;
   const digits = (t.match(/\d/g) || []).length;
+  const latin = (t.match(/[A-Za-z]/g) || []).length;
   const dongHo = /(\d{3,4})\s*동\s*(\d{2,4})\s*호/u.test(t) ? 120 : 0;
-  return t.length + hangul * 2 + digits + dongHo;
+  let score = t.length + hangul * 3 + digits + dongHo;
+
+  if (/^(KT|SKT|LG)/i.test(t)) score -= 200;
+  if (/KT\d|@\d{3,}/.test(t) && !dongHo) score -= 120;
+  if (latin > hangul * 1.5 && !dongHo) score -= 80;
+  if (hangul >= 2 && /공동비번|세대비번/u.test(t)) score += 40;
+
+  return score;
 }
 
 /**
  * 가장 긴 결과 우선 → 동·호·한글 가중치 → confidence
  */
 export function pickBestOcrResult(results = []) {
-  const valid = results.filter((r) => String(r?.text || "").trim());
+  const valid = results.filter((r) => String(r?.text || r?.rawText || "").trim());
   if (!valid.length) return null;
 
   return valid
     .slice()
     .sort((a, b) => {
-      const lenDiff = (b.text?.length || 0) - (a.text?.length || 0);
-      if (lenDiff !== 0) return lenDiff;
-      const scoreDiff = scoreOcrCandidate(b.text) - scoreOcrCandidate(a.text);
+      const textA = postprocessOcrText(a.rawText || a.text).text;
+      const textB = postprocessOcrText(b.rawText || b.text).text;
+      const scoreDiff = scoreOcrCandidate(textB) - scoreOcrCandidate(textA);
       if (scoreDiff !== 0) return scoreDiff;
+      const lenDiff = (textB.length || 0) - (textA.length || 0);
+      if (lenDiff !== 0) return lenDiff;
       return (b.confidence || 0) - (a.confidence || 0);
     })[0];
 }

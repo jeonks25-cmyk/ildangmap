@@ -1,4 +1,4 @@
-import { cropKakaoMessageRegion, filterKakaoOcrLines } from "./kakaoScreenshotCrop";
+import { cropKakaoMessageRegion, cropKakaoBubbleFromCanvas, filterKakaoOcrLines } from "./kakaoScreenshotCrop";
 import {
   applyOcrPreprocessVariant,
   CHAT_OCR_VARIANTS,
@@ -159,7 +159,22 @@ async function prepareBaseCanvas(image, mode, options = {}) {
   const probe = ctx.getImageData(0, 0, targetW, targetH);
   const isDarkMode = detectDarkModeImage(probe);
 
-  return { canvas, isDarkMode };
+  let finalCanvas = canvas;
+  let bubbleCrop = null;
+  if (!isTable && useKakaoCrop) {
+    bubbleCrop = cropKakaoBubbleFromCanvas(canvas);
+    if (bubbleCrop.cropped) {
+      finalCanvas = bubbleCrop.canvas;
+      logScheduleOcrDiag("bubble_crop", {
+        reason: bubbleCrop.reason,
+        width: finalCanvas.width,
+        height: finalCanvas.height,
+        cropBox: bubbleCrop.cropBox,
+      });
+    }
+  }
+
+  return { canvas: finalCanvas, isDarkMode, bubbleCrop };
 }
 
 async function getOcrWorker(onProgress) {
@@ -236,16 +251,19 @@ function logOcrConfidenceReport({
 }
 
 async function runChatOcrMultiPass(image, onProgress, options = {}) {
-  const { canvas, isDarkMode } = await prepareBaseCanvas(image, SCHEDULE_OCR_MODE.CHAT, options);
+  const { canvas, isDarkMode, bubbleCrop } = await prepareBaseCanvas(image, SCHEDULE_OCR_MODE.CHAT, options);
   if (!canvas) throw new Error("canvas_failed");
 
   const worker = await getOcrWorker(onProgress);
   const { PSM } = await import("tesseract.js");
+  const psmMode = bubbleCrop?.cropped ? PSM.SINGLE_BLOCK : PSM.AUTO;
   const variantAttempts = [];
 
   logScheduleOcrDiag("multi_pass_start", {
     variants: CHAT_OCR_VARIANTS,
     isDarkMode,
+    psmMode,
+    bubbleCrop: bubbleCrop?.reason || "none",
     width: canvas.width,
     height: canvas.height,
   });
@@ -253,7 +271,7 @@ async function runChatOcrMultiPass(image, onProgress, options = {}) {
   for (const variant of CHAT_OCR_VARIANTS) {
     const variantCanvas = cloneCanvas(canvas);
     applyOcrPreprocessVariant(variantCanvas, variant, { isDarkMode });
-    const data = await recognizeCanvas(worker, variantCanvas, PSM.AUTO);
+    const data = await recognizeCanvas(worker, variantCanvas, psmMode);
     const attempt = buildOcrAttemptFromData(data, variant, `chat_${variant}`);
     variantAttempts.push(attempt);
     logScheduleOcrDiag("variant_result", {

@@ -271,6 +271,10 @@ function isGarbageTitle(value) {
   if (t.length <= 2 && !/\d{3,}/.test(t) && !/[가-힣]{2,}/u.test(t)) return true;
   if (/^[\W\d\s:»]{1,24}$/.test(t) && !/[가-힣]{2,}/u.test(t)) return true;
   if (/^(KT|SKT|LG\s*U\+)/i.test(t)) return true;
+  if (/KT\d|@\d{3,}/.test(t) && !/\d{3,4}\s*동/u.test(t)) return true;
+  const hangul = (t.match(/[가-힣]/g) || []).length;
+  const latin = (t.match(/[A-Za-z]/g) || []).length;
+  if (hangul > 0 && latin > hangul && !/\d{3,4}\s*동/u.test(t)) return true;
   if (/Md&@p|»/.test(t) && !/[가-힣]{2,}/u.test(t)) return true;
   return false;
 }

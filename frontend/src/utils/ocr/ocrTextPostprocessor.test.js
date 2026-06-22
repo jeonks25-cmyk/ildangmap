@@ -4,6 +4,7 @@ import {
   correctSiteNameOcr,
   pickBestOcrResult,
   scoreOcrCandidate,
+  sanitizeOcrGarbage,
 } from "./ocrTextPostprocessor";
 
 describe("ocrTextPostprocessor", () => {
@@ -26,12 +27,17 @@ describe("ocrTextPostprocessor", () => {
     expect(correctSiteNameOcr("장재계룡개룡")).toBe("장재계룡");
   });
 
-  test("OCR voting — 더 긴·한글 많은 결과 선택", () => {
+  test("KT 상태바 노이즈 제거", () => {
+    expect(sanitizeOcrGarbage("KT12:525M@0627all&장재계룡1109동1402호")).toContain("장재계룡");
+    expect(sanitizeOcrGarbage("KT12:525M@0627all&장재계룡1109동1402호")).not.toMatch(/^KT/i);
+  });
+
+  test("OCR voting — UI 노이즈보다 정상 텍스트 선택", () => {
     const winner = pickBestOcrResult([
-      { text: "ZAZA", confidence: 90 },
-      { text: "장재계룡 1109동 1402호\n공동비번 #1402", confidence: 70 },
+      { text: "KT12:525M@0627all&장재열QQhaCS", rawText: "KT12:525M@0627all&장재열QQhaCS", confidence: 90 },
+      { text: "장재계룡 1109동 1402호\n공동비번 #1402", rawText: "장재계룡 1109동 1402호\n공동비번 #1402", confidence: 70 },
     ]);
-    expect(winner.text).toContain("1109동");
+    expect(winner.rawText).toContain("1109동");
   });
 
   test("scoreOcrCandidate 동호 가중치", () => {
