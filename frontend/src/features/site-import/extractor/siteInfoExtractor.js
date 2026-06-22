@@ -4,8 +4,11 @@
 
 import { inferCraftFromText } from "./craftInference";
 import { APT_COMPLEX_BRANDS as DICT_APT_BRANDS } from "../normalizer/siteNameDictionary";
+import { parseSiteFields, dedupeRepeatedSuffix } from "../parser/siteFieldParser";
+import { recordStructureAttempt } from "../parser/siteImportStructureMetrics";
 
 export { APT_COMPLEX_BRANDS } from "../normalizer/siteNameDictionary";
+export { dedupeRepeatedSuffix } from "../parser/siteFieldParser";
 
 export const SITE_BRAND_NAMES = [
   "영림",
@@ -68,19 +71,6 @@ function isDateOrPasswordLine(line) {
   if (/^\d{1,2}\s*[/.월]\s*\d{1,2}/.test(s)) return true;
   if (/(?:공비|세비|공동|세대|비번|비밀번호)/.test(s)) return true;
   return false;
-}
-
-/** 반복 접미사 제거: 장재계룡계룡 → 장재계룡 */
-export function dedupeRepeatedSuffix(name) {
-  let s = String(name || "").trim();
-  if (s.length < 4) return s;
-  for (let len = 2; len <= Math.min(6, Math.floor(s.length / 2)); len++) {
-    const tail = s.slice(-len);
-    if (s.endsWith(tail + tail)) {
-      return s.slice(0, -len).trim();
-    }
-  }
-  return s;
 }
 
 /** 브랜드명 기준 토큰 결합 */
@@ -242,16 +232,24 @@ function extractWorkItems(lines, blob) {
  */
 export function extractSiteInfo(text) {
   const rawText = String(text || "").trim();
+  const fieldParse = parseSiteFields(rawText, { label: "site-extractor" });
   const blob = normalizeText(rawText);
   const lines = rawText
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);
 
-  const dongHo = findPrimaryDongHo(blob, lines);
-  const apartmentName = extractApartmentName(dongHo, lines, blob);
-  const building = dongHo?.building || "";
-  const unitNo = dongHo?.unit || "";
+  let apartmentName = fieldParse.siteName || "";
+  let building = fieldParse.building || "";
+  let unitNo = fieldParse.unit || "";
+
+  if (!fieldParse.structureOk) {
+    const dongHo = findPrimaryDongHo(blob, lines);
+    apartmentName = extractApartmentName(dongHo, lines, blob);
+    building = dongHo?.building || "";
+    unitNo = dongHo?.unit || "";
+  }
+
   const { commonPassword, housePassword } = extractPasswords(rawText);
   const brands = detectBrands(blob);
   const workItems = extractWorkItems(lines, blob);
@@ -269,6 +267,19 @@ export function extractSiteInfo(text) {
     confidence = 0.35;
   }
 
+  const structureOk = fieldParse.structureOk || Boolean(apartmentName && building && unitNo);
+  const metricsSession = recordStructureAttempt({
+    rawText,
+    source: "site-import",
+    parsed: {
+      siteName: apartmentName,
+      apartmentName,
+      building,
+      unit: unitNo,
+      structureOk,
+    },
+  });
+
   return {
     apartmentName,
     building,
@@ -282,6 +293,9 @@ export function extractSiteInfo(text) {
     craftMatched: craftResult.matched,
     confidence,
     hasUnit: Boolean(building && unitNo),
+    structureOk,
+    structureTrace: { ...fieldParse, metricsSessionId: metricsSession.id },
+    metricsSessionId: metricsSession.id,
     rawText,
   };
 }

@@ -8,6 +8,8 @@ import {
   SCHEDULE_OCR_STAGE,
 } from "../../features/schedule-ocr";
 import { formatOcrError } from "../../utils/scheduleOcr";
+import SiteImportDebugPanel from "../map/SiteImportDebugPanel";
+import { isStructureDebugEnabled } from "../../features/site-import/parser/siteImportStructureMetrics";
 
 const EXAMPLE_TEXT = `성환부영 3차, 301동 105호.
 공용현관:5623
@@ -54,6 +56,8 @@ export default function SchedulePasteImportPanel({
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewName, setPreviewName] = useState("");
   const [tableMode, setTableMode] = useState(false);
+  const [structureTrace, setStructureTrace] = useState(null);
+  const showStructureDebug = isStructureDebugEnabled();
 
   const clearPreview = useCallback(() => {
     if (previewUrlRef.current) {
@@ -71,6 +75,7 @@ export default function SchedulePasteImportPanel({
     setOcrBusy(false);
     setOcrProgress(0);
     setTableMode(false);
+    setStructureTrace(null);
     clearPreview();
     if (fileInputRef.current) fileInputRef.current.value = "";
     return () => {
@@ -82,6 +87,7 @@ export default function SchedulePasteImportPanel({
     const text = pasteText.trim();
     setPasteText(text);
     const result = parseScheduleImport({ source: SCHEDULE_IMPORT_SOURCE.PASTE, text }, { referenceDate });
+    setStructureTrace(result.structureTrace || null);
     onApply?.(result);
     setStatus(buildPasteStatusMessage(result));
   };
@@ -128,6 +134,7 @@ export default function SchedulePasteImportPanel({
       }
 
       if (result.useComposer && result.drafts?.length === 1 && result.chatResult) {
+        setStructureTrace(result.chatResult.structureTrace || null);
         onApply?.(result.chatResult);
         setStatus({
           tone: "success",
@@ -259,6 +266,9 @@ export default function SchedulePasteImportPanel({
               <summary>OCR로 읽은 텍스트 미리보기</summary>
               <pre>{status.ocrTextPreview}</pre>
             </details>
+          ) : null}
+          {showStructureDebug && structureTrace ? (
+            <SiteImportDebugPanel trace={structureTrace} title="구조화 파서 (일정 가져오기)" />
           ) : null}
         </div>
       ) : null}

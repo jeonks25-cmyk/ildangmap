@@ -18,6 +18,11 @@ import SiteImportChecklist, {
   SiteMemoryRecommendation,
   SiteNameCandidatePicker,
 } from "./SiteImportChecklist";
+import SiteImportDebugPanel from "./SiteImportDebugPanel";
+import {
+  isStructureDebugEnabled,
+  markStructureSaved,
+} from "../../features/site-import/parser/siteImportStructureMetrics";
 import {
   multiScheduleRowToFormPatch,
   runSiteImportOcr,
@@ -103,6 +108,8 @@ export default function QuickSiteImportSheet({
   const [selectedSiteName, setSelectedSiteName] = useState("");
   const [memoryRecommendation, setMemoryRecommendation] = useState(null);
   const titleTouchedRef = useRef(false);
+  const ocrTitleSnapshotRef = useRef(null);
+  const showStructureDebug = isStructureDebugEnabled();
 
   const profileRegions = useUserStore((s) => s.profile?.regions ?? s.profile?.region);
   const userId = useUserStore((s) => s.session?.userId ?? s.profile?.userId ?? "me");
@@ -243,6 +250,11 @@ export default function QuickSiteImportSheet({
     }));
     if (patch.location?.fullAddress) setAddressQuery(patch.location.fullAddress);
     setBaseOcrPatch(patch);
+    ocrTitleSnapshotRef.current = {
+      sessionId: structured.metricsSessionId,
+      title: patch.title || "",
+      structureOk: Boolean(structured.structureOk),
+    };
     setOcrChecklist(structured.checklist || []);
     setOcrApplied(true);
     setOcrError(structured.needsSiteNameSelection ? "현장명 후보 중 하나를 선택해 주세요" : "");
@@ -382,6 +394,14 @@ export default function QuickSiteImportSheet({
         normalizeFieldDraft(fieldDraft || createInitialJobPostDraft({ selectedDateKey, defaultCraft: seedCraft }), {
           title: fieldDraft?.title || siteNameSuggestions[0] || "",
         }) || createInitialJobPostDraft({ selectedDateKey, defaultCraft: seedCraft });
+      const snap = ocrTitleSnapshotRef.current;
+      if (snap?.sessionId) {
+        markStructureSaved(snap.sessionId, {
+          savedWithoutEdit:
+            snap.structureOk && String(draft?.title || "").trim() === String(snap.title || "").trim(),
+          finalTitle: draft?.title || "",
+        });
+      }
       await Promise.resolve(
         onSubmitField?.({ draft, source: text.trim() ? "paste" : "capture", ocrText: text })
       );
@@ -499,6 +519,10 @@ export default function QuickSiteImportSheet({
 
               {ocrChecklist.length ? (
                 <SiteImportChecklist checklist={ocrChecklist} title="인식 결과" />
+              ) : null}
+
+              {showStructureDebug && lastStructured?.structureTrace ? (
+                <SiteImportDebugPanel trace={lastStructured.structureTrace} title="구조화 파서 (현장 등록)" />
               ) : null}
 
               {siteNameCandidates.length >= 2 ? (

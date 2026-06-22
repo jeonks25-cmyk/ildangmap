@@ -5,6 +5,11 @@
  */
 
 import { SCHEDULE_DEFAULT_END_TIME, SCHEDULE_DEFAULT_START_TIME } from "../constants/scheduleDefaults";
+import { parseSiteFields, isNoiseLine } from "../features/site-import/parser/siteFieldParser";
+import {
+  recordStructureAttempt,
+  isStructureDebugEnabled,
+} from "../features/site-import/parser/siteImportStructureMetrics";
 
 export const SCHEDULE_IMPORT_SOURCE = {
   PASTE: "paste",
@@ -265,6 +270,12 @@ export function extractSiteTitleFromLine(line) {
   return { title: text, titleRemainder: "" };
 }
 
+function isSiteInfoLine(line, fieldParse) {
+  if (!fieldParse?.structureOk) return false;
+  const compact = String(line || "").replace(/\s+/g, "");
+  return compact.includes(`${fieldParse.building}동${fieldParse.unit}호`);
+}
+
 /**
  * @typedef {Object} ScheduleImportResult
  * @property {boolean} ok
@@ -310,6 +321,21 @@ export function parseSchedulePasteText(text, options = {}) {
     .map((line) => line.trim())
     .filter(Boolean);
 
+  const fieldParse = parseSiteFields(rawText, {
+    label: "schedule-paste",
+    debug: isStructureDebugEnabled(),
+  });
+  const metricsSession = recordStructureAttempt({
+    rawText,
+    source,
+    parsed: {
+      siteName: fieldParse.siteName,
+      building: fieldParse.building,
+      unit: fieldParse.unit,
+      structureOk: fieldParse.structureOk,
+    },
+  });
+
   let dateKey = null;
   let startTime = null;
   let endTime = null;
@@ -337,14 +363,32 @@ export function parseSchedulePasteText(text, options = {}) {
   if (!startTime) startTime = SCHEDULE_DEFAULT_START_TIME;
   if (!endTime) endTime = SCHEDULE_DEFAULT_END_TIME;
 
-  let titleLineIndex = 0;
-  let titleSource = stripDateAndTimeFromLine(lines[0], referenceDate);
-  if (!titleSource && lines.length > 1) {
-    titleLineIndex = 1;
-    titleSource = stripDateAndTimeFromLine(lines[1], referenceDate);
-  }
+  let title = "";
+  let titleRemainder = "";
+  let titleLineIndex = -1;
 
-  let { title, titleRemainder } = extractSiteTitleFromLine(titleSource);
+  if (fieldParse.structureOk) {
+    title = fieldParse.final.title;
+    titleLineIndex = lines.findIndex((line) => isSiteInfoLine(line, fieldParse));
+    if (titleLineIndex < 0) {
+      titleLineIndex = fieldParse.debug?.matches?.[0]?.lineIndex ?? 0;
+    }
+  } else {
+    titleLineIndex = 0;
+    let titleSource = stripDateAndTimeFromLine(lines[0], referenceDate);
+    if ((!titleSource || isNoiseLine(lines[0])) && lines.length > 1) {
+      for (let i = 0; i < Math.min(lines.length, 6); i++) {
+        if (isNoiseLine(lines[i])) continue;
+        const candidate = stripDateAndTimeFromLine(lines[i], referenceDate);
+        if (candidate) {
+          titleLineIndex = i;
+          titleSource = candidate;
+          break;
+        }
+      }
+    }
+    ({ title, titleRemainder } = extractSiteTitleFromLine(titleSource));
+  }
 
   const mergedUnitLineIndexes = new Set();
   if (title && !hasUnitInTitle(title)) {
@@ -362,6 +406,8 @@ export function parseSchedulePasteText(text, options = {}) {
   lines.forEach((line, index) => {
     if (index === titleLineIndex) return;
     if (mergedUnitLineIndexes.has(index)) return;
+    if (isSiteInfoLine(line, fieldParse)) return;
+    if (isNoiseLine(line)) return;
     if (isPureDateLine(line, referenceDate)) return;
     if (isPureTimeLine(line)) return;
     memoLines.push(line);
@@ -375,6 +421,7 @@ export function parseSchedulePasteText(text, options = {}) {
   } else {
     warnings.push("제목을 찾지 못했습니다. 직접 입력해 주세요.");
   }
+  if (fieldParse.structureOk) filledFields.push("structureOk");
   if (dateFromText) filledFields.push("dateDetected");
   if (memoLines.length) filledFields.push("memo");
 
@@ -391,6 +438,14 @@ export function parseSchedulePasteText(text, options = {}) {
     source,
     filledFields,
     warnings,
+    structureOk: fieldParse.structureOk,
+    structureTrace: fieldParse,
+    metricsSessionId: metricsSession.id,
+    structureMetrics: {
+      siteName: fieldParse.siteName,
+      building: fieldParse.building,
+      unit: fieldParse.unit,
+    },
   };
 }
 

@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { SCHEDULE_COLOR_OPTIONS } from "../../constants/scheduleColors";
 import { SCHEDULE_DEFAULT_END_TIME, SCHEDULE_DEFAULT_START_TIME } from "../../constants/scheduleDefaults";
 import SchedulePasteImportPanel from "./SchedulePasteImportPanel";
 import ScheduleParticipantPicker from "./ScheduleParticipantPicker";
 import { useUiStore } from "../../store/useUiStore";
 import { toDateKey } from "../../utils/fieldScheduleModel";
+import { markStructureSaved } from "../../features/site-import/parser/siteImportStructureMetrics";
 
 const ENTRY_TYPES = [
   { id: "site", label: "현장 일정" },
@@ -32,6 +33,7 @@ export default function ScheduleEntryComposerSheet({
   const [saving, setSaving] = useState(false);
   const [participantIds, setParticipantIds] = useState([]);
   const showAppToast = useUiStore((s) => s.showAppToast);
+  const importSnapshotRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -47,9 +49,15 @@ export default function ScheduleEntryComposerSheet({
     setMemo(seed.memo || "");
     setSaving(false);
     setParticipantIds(Array.isArray(seed.participantIds) ? seed.participantIds.map(String) : []);
+    importSnapshotRef.current = null;
   }, [open, initial, dateKey]);
 
   const handlePasteApply = useCallback((result) => {
+    importSnapshotRef.current = {
+      sessionId: result.metricsSessionId,
+      title: result.title || "",
+      structureOk: Boolean(result.structureOk),
+    };
     if (result.title) setTitle(result.title);
     if (result.dateKey) {
       setWorkDateStart(result.dateKey);
@@ -109,6 +117,13 @@ export default function ScheduleEntryComposerSheet({
         await onSubmitPersonal?.(payload);
       } else {
         await onSubmitSite?.({ ...payload, participantIds });
+      }
+      const snap = importSnapshotRef.current;
+      if (snap?.sessionId) {
+        markStructureSaved(snap.sessionId, {
+          savedWithoutEdit: snap.structureOk && snap.title === trimmedTitle,
+          finalTitle: trimmedTitle,
+        });
       }
       onClose?.();
     } catch (error) {

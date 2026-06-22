@@ -4038,6 +4038,44 @@
   color: #2563eb;
 }
 
+.site-import-debug {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f4f6f8;
+  border: 1px solid #e2e6ea;
+  font-size: 12px;
+}
+
+.site-import-debug__title {
+  margin: 0 0 8px;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.site-import-debug__list {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.site-import-debug__list div {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+}
+
+.site-import-debug__list dt {
+  margin: 0;
+  color: #6b7280;
+}
+
+.site-import-debug__list dd {
+  margin: 0;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
 .schedule-entry-composer-backdrop {
   position: fixed;
   inset: 0;

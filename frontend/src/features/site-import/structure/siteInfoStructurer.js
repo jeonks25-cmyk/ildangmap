@@ -297,6 +297,9 @@ export async function structureSiteInfo(ocrText, options = {}) {
 
   return {
     ...payload,
+    structureTrace: extracted.structureTrace || null,
+    structureOk: extracted.structureOk || Boolean(payload.ok),
+    metricsSessionId: extracted.metricsSessionId || null,
     siteMemoryRecommendation: recommendation,
     globalMemoryMatch,
     matchSource,
