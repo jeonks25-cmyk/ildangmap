@@ -5,7 +5,7 @@
  */
 
 import { SCHEDULE_DEFAULT_END_TIME, SCHEDULE_DEFAULT_START_TIME } from "../constants/scheduleDefaults";
-import { parseSiteFields, isNoiseLine } from "../features/site-import/parser/siteFieldParser";
+import { parseSiteFields, isNoiseLine, buildSiteTitle } from "../features/site-import/parser/siteFieldParser";
 import {
   recordStructureAttempt,
   isStructureDebugEnabled,
@@ -270,6 +270,15 @@ export function extractSiteTitleFromLine(line) {
   return { title: text, titleRemainder: "" };
 }
 
+function isGarbageTitle(value) {
+  const t = String(value || "").trim();
+  if (!t) return true;
+  if (/^-?\d{1,3}$/.test(t)) return true;
+  if (t.length <= 2 && !/\d{3,}/.test(t) && !/[가-힣]{2,}/u.test(t)) return true;
+  if (/^[\W\d\s:]{1,8}$/.test(t)) return true;
+  return false;
+}
+
 function isSiteInfoLine(line, fieldParse) {
   if (!fieldParse?.structureOk) return false;
   const compact = String(line || "").replace(/\s+/g, "");
@@ -373,6 +382,16 @@ export function parseSchedulePasteText(text, options = {}) {
     if (titleLineIndex < 0) {
       titleLineIndex = fieldParse.debug?.matches?.[0]?.lineIndex ?? 0;
     }
+  } else if (fieldParse.building && fieldParse.unit) {
+    title = buildSiteTitle({
+      siteName: fieldParse.siteName,
+      building: fieldParse.building,
+      unit: fieldParse.unit,
+    });
+    titleLineIndex = lines.findIndex((line) => isSiteInfoLine(line, fieldParse));
+    if (titleLineIndex < 0) {
+      titleLineIndex = fieldParse.debug?.matches?.[0]?.lineIndex ?? -1;
+    }
   } else {
     titleLineIndex = 0;
     let titleSource = stripDateAndTimeFromLine(lines[0], referenceDate);
@@ -388,6 +407,10 @@ export function parseSchedulePasteText(text, options = {}) {
       }
     }
     ({ title, titleRemainder } = extractSiteTitleFromLine(titleSource));
+    if (isGarbageTitle(title)) {
+      title = "";
+      titleRemainder = titleSource || "";
+    }
   }
 
   const mergedUnitLineIndexes = new Set();

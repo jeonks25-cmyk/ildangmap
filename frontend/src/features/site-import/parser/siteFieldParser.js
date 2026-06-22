@@ -8,11 +8,16 @@ import { isStructureDebugEnabled } from "./siteImportStructureMetrics";
 
 const DONG_HO_COMPACT_RE = /(\d{3,4})동(\d{2,4})호/gu;
 const DONG_HO_SPACED_RE = /(\d{3,4})\s*동\s*(\d{2,4})\s*호/gu;
+const DONG_UNIT_COMPACT_RE = /(\d{3,4})동(\d{2,4})(?!\d)/gu;
+const DONG_UNIT_SPACED_RE = /(\d{3,4})\s*동\s*(\d{2,4})(?!\d)/gu;
+const DONG_UNIT_LINE_RE = /^(\d{3,4})\s*동\s*(\d{2,4})\s*호?\.?$/u;
 const APT_SUFFIX_RE = /(아파트|APT|apt|오피스텔|빌라|빌딩|타워|단지)/iu;
 const OCR_NOISE_LINE_RE =
   /^(KT|SKT|LG\s*U\+|5G|LTE|Wi-Fi|WiFi|Md&@p|[\W_]{1,6})$/i;
+const STATUS_BAR_RE = /^(KT|SKT|LG\s*U\+).*\d{1,2}:\d{2}/i;
 const STATUS_TIME_RE = /^(\d{1,2}:\d{2}|오전\s*\d|오후\s*\d|»)/;
 const KEYBOARD_GARBAGE_RE = /^[a-z]{1,3}$/i;
+const HANGUL_SITE_LINE_RE = /^[가-힣A-Za-z0-9]{2,24}$/u;
 
 /** 반복 접미사 제거: 장재계룡계룡 → 장재계룡 */
 export function dedupeRepeatedSuffix(name) {
@@ -27,16 +32,26 @@ export function dedupeRepeatedSuffix(name) {
   return s;
 }
 
-export function normalizeOcrBlob(text) {
+/** OCR 흔한 오인식 정규화 */
+export function normalizeOcrSiteText(text) {
   return String(text || "")
     .replace(/\r/g, "")
-    .replace(/[|｜»]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/[｜|»·•]/g, " ")
+    .replace(/[东同둥冬]/g, "동")
+    .replace(/(\d{2,4})\s*(?:호|흐|Ho|HO)(?!\d)/gi, "$1호")
+    .replace(/(\d{3,4})\s*동/g, "$1동")
+    .replace(/(\d)l(\d)/gi, "$11$2")
+    .replace(/(\d)[|I](\d)/g, "$11$2")
+    .replace(/[oO](\d{3})(동)/g, "0$1$2");
+}
+
+export function normalizeOcrBlob(text) {
+  return normalizeOcrSiteText(text).replace(/\s+/g, " ").trim();
 }
 
 export function compactBlob(text) {
-  return normalizeOcrBlob(text).replace(/\s+/g, "");
+  return normalizeOcrSiteText(text).replace(/\s+/g, "");
 }
 
 export function stripSiteSuffix(value) {
@@ -68,12 +83,16 @@ export function normalizeSiteNamePrefix(prefix) {
 export function isNoiseLine(line) {
   const s = String(line || "").trim();
   if (!s) return true;
+  if (STATUS_BAR_RE.test(s)) return true;
   if (OCR_NOISE_LINE_RE.test(s)) return true;
   if (STATUS_TIME_RE.test(s)) return true;
   if (/^\d{1,3}\s*%$/.test(s)) return true;
   if (KEYBOARD_GARBAGE_RE.test(s)) return true;
   if (/^[ㄱ-ㅎㅏ-ㅣ]+$/u.test(s)) return true;
   if (/^(메시지\s*입력|전송|검색|카메라|갤러리)$/u.test(s)) return true;
+  if (/Md&@p|»|·/.test(s) && !/[가-힣]{2,}/u.test(s) && !/\d{3,4}동/u.test(s)) return true;
+  if (s.length <= 2 && !/\d{3,}/.test(s) && !/[가-힣]{2,}/u.test(s)) return true;
+  if (/^[\W\d\s:]{1,12}$/.test(s) && !/\d{3,4}동/u.test(s)) return true;
   return false;
 }
 
@@ -89,7 +108,7 @@ function digitsOnly(value) {
   return String(value || "").replace(/\D/g, "");
 }
 
-function scoreMatch({ building, unit, siteName, lineIndex, line }) {
+function scoreMatch({ building, unit, siteName, lineIndex, line, source }) {
   let score = 0;
   const bLen = building.length;
   const uLen = unit.length;
@@ -97,69 +116,123 @@ function scoreMatch({ building, unit, siteName, lineIndex, line }) {
   if (uLen >= 2 && uLen <= 4) score += 0.25;
   if (siteName && siteName.length >= 2) score += 0.2 + Math.min(0.15, siteName.length / 30);
   if (/[가-힣]{2,}/u.test(siteName)) score += 0.1;
-  if (lineIndex === 0) score += 0.05;
-  if (/(\d{3,4})동(\d{2,4})호/u.test(compactBlob(line))) score += 0.1;
+  if (lineIndex === 0) score += 0.03;
+  if (/(\d{3,4})동(\d{2,4})/u.test(compactBlob(line))) score += 0.1;
+  if (source === "compact_dong_ho") score += 0.08;
+  if (source === "full_blob") score += 0.06;
+  if (source === "cross_line") score += 0.05;
   return score;
 }
 
-function collectMatchesFromText(text, lineIndex = -1) {
+function pushMatch(matches, payload) {
+  const { siteName, building, unit, lineIndex, line, source } = payload;
+  if (!building || !unit) return;
+  if (building.length < 3 || unit.length < 2) return;
+  if (!siteName || siteName.length < 2) return;
+
+  matches.push({
+    siteName,
+    building,
+    unit,
+    lineIndex,
+    line,
+    source,
+    score: scoreMatch(payload),
+  });
+}
+
+function collectFromRegex(text, lineIndex, patterns, source) {
   const matches = [];
   const compact = compactBlob(text);
   if (!compact) return matches;
 
-  for (const re of [DONG_HO_COMPACT_RE, DONG_HO_SPACED_RE]) {
+  for (const re of patterns) {
     re.lastIndex = 0;
     let m;
     while ((m = re.exec(compact)) !== null) {
       const building = digitsOnly(m[1]);
       const unit = digitsOnly(m[2]);
-      if (building.length < 3 || unit.length < 2) continue;
-
       const prefix = compact.slice(0, m.index);
       const siteName = normalizeSiteNamePrefix(prefix);
-      if (!siteName || siteName.length < 2) continue;
-
-      matches.push({
+      pushMatch(matches, {
         siteName,
         building,
         unit,
         lineIndex,
         line: text,
-        score: scoreMatch({ building, unit, siteName, lineIndex, line: text }),
-        source: "compact_dong_ho",
+        source,
       });
     }
   }
-
   return matches;
+}
+
+function collectCrossLineMatches(lines) {
+  const matches = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (isNoiseLine(line)) continue;
+    const compact = compactBlob(line);
+    const m = compact.match(DONG_UNIT_LINE_RE) || compact.match(/^(\d{3,4})동(\d{2,4})호?$/u);
+    if (!m) continue;
+
+    let siteName = "";
+    for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
+      const prev = lines[j];
+      if (isNoiseLine(prev)) continue;
+      if (/\d{3,4}\s*동/u.test(prev)) continue;
+      const prevCompact = compactBlob(prev);
+      if (HANGUL_SITE_LINE_RE.test(prevCompact) || /[가-힣]{2,}/u.test(prevCompact)) {
+        siteName = normalizeSiteNamePrefix(prevCompact);
+        if (siteName.length >= 2) break;
+      }
+    }
+
+    pushMatch(matches, {
+      siteName,
+      building: digitsOnly(m[1]),
+      unit: digitsOnly(m[2]),
+      lineIndex: i,
+      line: line,
+      source: "cross_line",
+    });
+  }
+  return matches;
+}
+
+function collectMatchesFromText(text, lineIndex = -1) {
+  const patterns = [DONG_HO_COMPACT_RE, DONG_HO_SPACED_RE, DONG_UNIT_COMPACT_RE, DONG_UNIT_SPACED_RE];
+  return collectFromRegex(text, lineIndex, patterns, lineIndex < 0 ? "full_blob" : "compact_dong_ho");
 }
 
 /**
  * @param {string} text
- * @returns {{
- *   rawText: string,
- *   normalizedText: string,
- *   filteredLines: string[],
- *   siteName: string,
- *   building: string,
- *   unit: string,
- *   siteNameCandidates: string[],
- *   buildingCandidates: string[],
- *   unitCandidates: string[],
- *   final: { siteName: string, building: string, unit: string, title: string },
- *   debug: object,
- * }}
  */
 export function parseSiteFields(text, options = {}) {
   const rawText = String(text || "").trim();
   const normalizedText = normalizeOcrBlob(rawText);
-  const filteredLines = options.skipFilter ? normalizedText.split(/\n/).map((l) => l.trim()).filter(Boolean) : filterSiteLines(rawText);
-  const lines = filteredLines.length ? filteredLines : rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const filteredLines = options.skipFilter
+    ? normalizedText.split(/\n/).map((l) => l.trim()).filter(Boolean)
+    : filterSiteLines(rawText);
+  const lines = filteredLines.length
+    ? filteredLines
+    : rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
 
   const allMatches = [];
+
+  // 1) 전체 텍스트(줄바꿈 제거) — 붙어쓰기·OCR 분절 복구
+  allMatches.push(...collectMatchesFromText(compactBlob(lines.join("")), -1));
+  allMatches.push(...collectMatchesFromText(normalizedText, -1));
+
+  // 2) 줄 단위
   lines.forEach((line, index) => {
     allMatches.push(...collectMatchesFromText(line, index));
   });
+
+  // 3) 인접 줄 — 현장명 / 동호 분리
+  allMatches.push(...collectCrossLineMatches(lines));
+
+  // 4) 원문 fallback
   if (!allMatches.length) {
     allMatches.push(...collectMatchesFromText(compactBlob(rawText), -1));
   }
@@ -192,12 +265,13 @@ export function parseSiteFields(text, options = {}) {
     structureOk: Boolean(siteName && building && unit),
     matchCount: allMatches.length,
     debug: {
-      matches: allMatches.slice(0, 8).map((m) => ({
+      matches: allMatches.slice(0, 10).map((m) => ({
         siteName: m.siteName,
         building: m.building,
         unit: m.unit,
         score: Number(m.score.toFixed(3)),
         lineIndex: m.lineIndex,
+        source: m.source,
         line: m.line?.slice(0, 80),
       })),
       bestScore: best?.score ?? 0,

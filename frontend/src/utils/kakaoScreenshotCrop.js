@@ -145,6 +145,8 @@ export function filterKakaoOcrLines(text) {
     .filter(Boolean)
     .filter((line) => {
       if (/^(KT|SKT|LG\s*U\+|5G|LTE|Wi-Fi|WiFi)$/i.test(line)) return false;
+      if (/^(KT|SKT|LG\s*U\+).*\d{1,2}:\d{2}/i.test(line)) return false;
+      if (/Md&@p|»/.test(line) && !/[가-힣]{2,}/u.test(line)) return false;
       if (/^\d{1,2}:\d{2}$/.test(line)) return false;
       if (/^(오전|오후)\s*\d{1,2}:\d{2}$/.test(line)) return false;
       if (/^\d{1,3}\s*%$/.test(line)) return false;

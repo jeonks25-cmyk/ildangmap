@@ -136,10 +136,15 @@ export default function SchedulePasteImportPanel({
       if (result.useComposer && result.drafts?.length === 1 && result.chatResult) {
         setStructureTrace(result.chatResult.structureTrace || null);
         onApply?.(result.chatResult);
+        const structureNote = result.chatResult.structureOk
+          ? "현장명·동·호를 인식했습니다."
+          : "제목을 확인해 주세요. (구조화 미완료)";
         setStatus({
-          tone: "success",
-          message: "캡처에서 일정 1건을 폼에 채웠습니다.",
+          tone: result.chatResult.structureOk ? "success" : "warn",
+          message: `캡처에서 일정 1건을 폼에 채웠습니다. ${structureNote}`,
           stage: SCHEDULE_OCR_STAGE.CHAT_PARSED,
+          ocrTextPreview: result.ocrResult?.text?.slice(0, 600),
+          structureOk: result.chatResult.structureOk,
         });
         return;
       }

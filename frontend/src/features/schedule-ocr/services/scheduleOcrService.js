@@ -25,12 +25,17 @@ export async function runScheduleOcrImport(file, options = {}) {
   const referenceDate = options.referenceDate || new Date();
   const forceTable = options.mode === SCHEDULE_OCR_MODE.TABLE || options.tableMode;
 
-  let ocrResult;
-  try {
-    ocrResult = await extractTextFromScheduleImage(file, {
+  async function runOcr(kakaoCrop) {
+    return extractTextFromScheduleImage(file, {
       mode: forceTable ? SCHEDULE_OCR_MODE.TABLE : options.mode || SCHEDULE_OCR_MODE.AUTO,
+      kakaoCrop,
       onProgress: options.onProgress,
     });
+  }
+
+  let ocrResult;
+  try {
+    ocrResult = await runOcr(true);
   } catch (error) {
     return {
       stage: SCHEDULE_OCR_ERROR.ENGINE_FAILED,
@@ -76,14 +81,50 @@ export async function runScheduleOcrImport(file, options = {}) {
     { referenceDate }
   );
 
-  if (chatResult.ok || chatResult.filledFields?.length) {
-    const draft = chatResultToDraft(chatResult, options.defaults);
+  let finalOcrResult = ocrResult;
+  let finalChatResult = chatResult;
+
+  if (!forceTable && !finalChatResult.structureOk) {
+    try {
+      const retryOcr = await runOcr(false);
+      if (retryOcr?.text?.trim()) {
+        const retryChat = parseScheduleImport(
+          { source: SCHEDULE_IMPORT_SOURCE.OCR, text: retryOcr.text },
+          { referenceDate }
+        );
+        const retryScore = retryChat.structureTrace?.matchCount || 0;
+        const firstScore = finalChatResult.structureTrace?.matchCount || 0;
+        if (
+          retryChat.structureOk ||
+          (retryScore > firstScore && retryChat.title && !/^-?\d{1,3}$/.test(retryChat.title))
+        ) {
+          finalOcrResult = retryOcr;
+          finalChatResult = retryChat;
+        }
+      }
+    } catch (_) {
+      /* crop 없이 재시도 실패 시 원본 유지 */
+    }
+  }
+
+  ocrResult = finalOcrResult;
+  const resolvedChatResult = finalChatResult;
+
+  if (!resolvedChatResult.structureOk && resolvedChatResult.structureTrace) {
+    console.warn("[schedule-ocr] structure parse failed", {
+      textPreview: ocrResult.text?.slice(0, 400),
+      trace: resolvedChatResult.structureTrace?.debug,
+    });
+  }
+
+  if (resolvedChatResult.ok || resolvedChatResult.filledFields?.length) {
+    const draft = chatResultToDraft(resolvedChatResult, options.defaults);
     if (draft) {
       return {
         stage: SCHEDULE_OCR_STAGE.CHAT_PARSED,
         drafts: [draft],
         ocrResult,
-        chatResult,
+        chatResult: resolvedChatResult,
         useComposer: true,
       };
     }
@@ -97,7 +138,7 @@ export async function runScheduleOcrImport(file, options = {}) {
         : SCHEDULE_OCR_ERROR.TABLE_PARSE_FAILED,
       ocrResult,
       tableResult,
-      chatResult,
+      chatResult: resolvedChatResult,
     };
   }
 
@@ -106,6 +147,6 @@ export async function runScheduleOcrImport(file, options = {}) {
     errorCode: SCHEDULE_OCR_ERROR.UNSUPPORTED_FORMAT,
     ocrResult,
     tableResult,
-    chatResult,
+    chatResult: resolvedChatResult,
   };
 }

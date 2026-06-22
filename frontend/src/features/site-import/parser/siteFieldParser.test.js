@@ -46,7 +46,29 @@ describe("siteFieldParser", () => {
     })).toBe("장재계룡 1109동 1402호");
   });
 
-  test("schedule paste parser — OCR 노이즈 + 붙은 현장명", () => {
+  test("현장명·동호가 줄 분리된 경우", () => {
+    const result = parseSiteFields("장재계룡계룡\n1109동1402호", { debug: false });
+    expect(result.siteName).toBe("장재계룡");
+    expect(result.building).toBe("1109");
+    expect(result.unit).toBe("1402");
+    expect(result.structureOk).toBe(true);
+  });
+
+  test("호 없이 동·호수만 있는 경우", () => {
+    const result = parseSiteFields("장재계룡계룡1109동1402", { debug: false });
+    expect(result.siteName).toBe("장재계룡");
+    expect(result.building).toBe("1109");
+    expect(result.unit).toBe("1402");
+  });
+
+  test("OCR 동 오인식 (东)", () => {
+    const result = parseSiteFields("장재계룡계룡1109东1402호", { debug: false });
+    expect(result.siteName).toBe("장재계룡");
+    expect(result.building).toBe("1109");
+    expect(result.unit).toBe("1402");
+  });
+
+  test("garbage 제목 -6 방지 (schedule paste)", () => {
     const { parseSchedulePasteText } = require("../../../utils/schedulePasteParser");
     const result = parseSchedulePasteText(`KT 12:52
 장재계룡계룡1109동1402호
@@ -58,5 +80,14 @@ describe("siteFieldParser", () => {
       building: "1109",
       unit: "1402",
     });
+  });
+
+  test("OCR 노이즈만 있고 현장 줄 없으면 -6 제목 방지", () => {
+    const { parseSchedulePasteText } = require("../../../utils/schedulePasteParser");
+    const result = parseSchedulePasteText(`KT 12:52 » Md&@p
+ih
+a`);
+    expect(result.title).not.toBe("-6");
+    expect(result.structureOk).toBe(false);
   });
 });
