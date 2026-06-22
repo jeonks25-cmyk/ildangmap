@@ -4,6 +4,9 @@ import { SCHEDULE_DEFAULT_END_TIME, SCHEDULE_DEFAULT_START_TIME } from "../../..
 import { SCHEDULE_OCR_ERROR, SCHEDULE_OCR_STAGE } from "../errors/scheduleOcrErrors";
 import { createScheduleOcrDraft } from "../generator/scheduleDraftModel";
 import { generatePersonalDraftsFromTable, parseScheduleTable } from "../parser/tableParser";
+import { resolveFailureStage } from "../../site-import/parser/siteImportDiag";
+
+const DIAG_PREFIX = "[SCHEDULE-OCR]";
 
 function chatResultToDraft(result, defaults = {}) {
   if (!result?.title && !result?.dateKey) return null;
@@ -17,9 +20,37 @@ function chatResultToDraft(result, defaults = {}) {
   });
 }
 
+function logOcrEngineResult(ocrResult, label = "primary") {
+  console.groupCollapsed(`${DIAG_PREFIX} OCR 엔진 결과 (${label})`);
+  console.log("rawText (원문 전체):", ocrResult?.rawText ?? "—");
+  console.log("text (필터 후):", ocrResult?.text ?? "—");
+  console.log("confidence:", ocrResult?.confidence);
+  console.log("lineCount:", ocrResult?.lineCount);
+  console.log("charCount:", ocrResult?.charCount);
+  console.log("mode:", ocrResult?.mode);
+  console.groupEnd();
+}
+
+function logParseOutcome(ocrResult, chatResult, label = "primary") {
+  const failure = resolveFailureStage({
+    ocrText: ocrResult?.text,
+    fieldParse: chatResult?.structureTrace,
+    title: chatResult?.title,
+    titleDiag: chatResult?.titleDiag,
+  });
+  console.warn(`${DIAG_PREFIX} parse outcome (${label}):`, {
+    failureStage: failure.stage,
+    failureLabel: failure.label,
+    structureOk: chatResult?.structureOk,
+    title: chatResult?.title,
+    titlePath: chatResult?.titleDiag?.path,
+    garbageRejected: chatResult?.parseDiagnostics?.garbageRejected,
+    rejectedTitle: chatResult?.parseDiagnostics?.rejectedTitle,
+  });
+}
+
 /**
  * 공정표/캡처 OCR → 개인 일정 draft 배열
- * @returns {Promise<{ stage: string, drafts?: import('../generator/scheduleDraftModel').ScheduleOcrDraft[], errorCode?: string, ocrResult?: object, tableResult?: object, chatResult?: object }>}
  */
 export async function runScheduleOcrImport(file, options = {}) {
   const referenceDate = options.referenceDate || new Date();
@@ -37,6 +68,7 @@ export async function runScheduleOcrImport(file, options = {}) {
   try {
     ocrResult = await runOcr(true);
   } catch (error) {
+    console.warn(`${DIAG_PREFIX} OCR 엔진 실패`, error);
     return {
       stage: SCHEDULE_OCR_ERROR.ENGINE_FAILED,
       errorCode: SCHEDULE_OCR_ERROR.ENGINE_FAILED,
@@ -45,7 +77,12 @@ export async function runScheduleOcrImport(file, options = {}) {
     };
   }
 
+  logOcrEngineResult(ocrResult, "kakao_crop");
+
   if (!ocrResult?.text?.trim()) {
+    console.warn(`${DIAG_PREFIX} OCR 실패 — 필터 후 텍스트 없음`, {
+      rawText: ocrResult?.rawText,
+    });
     return {
       stage: SCHEDULE_OCR_ERROR.EMPTY_TEXT,
       errorCode: SCHEDULE_OCR_ERROR.EMPTY_TEXT,
@@ -77,45 +114,59 @@ export async function runScheduleOcrImport(file, options = {}) {
   }
 
   const chatResult = parseScheduleImport(
-    { source: SCHEDULE_IMPORT_SOURCE.OCR, text: ocrResult.text },
+    {
+      source: SCHEDULE_IMPORT_SOURCE.OCR,
+      text: ocrResult.text,
+      ocrRawText: ocrResult.rawText,
+    },
     { referenceDate }
   );
+
+  logParseOutcome(ocrResult, chatResult, "kakao_crop");
 
   let finalOcrResult = ocrResult;
   let finalChatResult = chatResult;
 
   if (!forceTable && !finalChatResult.structureOk) {
+    console.warn(`${DIAG_PREFIX} 구조화 실패 — 크롭 없이 OCR 재시도`);
     try {
       const retryOcr = await runOcr(false);
+      logOcrEngineResult(retryOcr, "no_crop_retry");
       if (retryOcr?.text?.trim()) {
         const retryChat = parseScheduleImport(
-          { source: SCHEDULE_IMPORT_SOURCE.OCR, text: retryOcr.text },
+          {
+            source: SCHEDULE_IMPORT_SOURCE.OCR,
+            text: retryOcr.text,
+            ocrRawText: retryOcr.rawText,
+          },
           { referenceDate }
         );
+        logParseOutcome(retryOcr, retryChat, "no_crop_retry");
         const retryScore = retryChat.structureTrace?.matchCount || 0;
         const firstScore = finalChatResult.structureTrace?.matchCount || 0;
         if (
           retryChat.structureOk ||
           (retryScore > firstScore && retryChat.title && !/^-?\d{1,3}$/.test(retryChat.title))
         ) {
+          console.log(`${DIAG_PREFIX} 재시도 결과 채택`, {
+            retryStructureOk: retryChat.structureOk,
+            retryTitle: retryChat.title,
+            retryScore,
+            firstScore,
+          });
           finalOcrResult = retryOcr;
           finalChatResult = retryChat;
+        } else {
+          console.warn(`${DIAG_PREFIX} 재시도 결과 미채택 — 1차 결과 유지`);
         }
       }
-    } catch (_) {
-      /* crop 없이 재시도 실패 시 원본 유지 */
+    } catch (retryError) {
+      console.warn(`${DIAG_PREFIX} 크롭 없이 재시도 실패`, retryError);
     }
   }
 
   ocrResult = finalOcrResult;
   const resolvedChatResult = finalChatResult;
-
-  if (!resolvedChatResult.structureOk && resolvedChatResult.structureTrace) {
-    console.warn("[schedule-ocr] structure parse failed", {
-      textPreview: ocrResult.text?.slice(0, 400),
-      trace: resolvedChatResult.structureTrace?.debug,
-    });
-  }
 
   if (resolvedChatResult.ok || resolvedChatResult.filledFields?.length) {
     const draft = chatResultToDraft(resolvedChatResult, options.defaults);
@@ -128,6 +179,10 @@ export async function runScheduleOcrImport(file, options = {}) {
         useComposer: true,
       };
     }
+    console.warn(`${DIAG_PREFIX} draft 생성 실패`, {
+      title: resolvedChatResult.title,
+      dateKey: resolvedChatResult.dateKey,
+    });
   }
 
   if (forceTable || ocrResult.profile?.likelyTable) {

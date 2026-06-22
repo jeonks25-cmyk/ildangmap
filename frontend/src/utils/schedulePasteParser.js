@@ -14,6 +14,11 @@ import {
   recordStructureAttempt,
   isStructureDebugEnabled,
 } from "../features/site-import/parser/siteImportStructureMetrics";
+import { extractSiteInfo } from "../features/site-import/extractor/siteInfoExtractor";
+import {
+  logScheduleStructurePipeline,
+  explainGarbageTitle,
+} from "../features/site-import/parser/siteImportDiag";
 
 export const SCHEDULE_IMPORT_SOURCE = {
   PASTE: "paste",
@@ -35,14 +40,6 @@ const STANDALONE_UNIT_LINE_RE = /^(\d+\s*동(?:\s*\d+\s*호)?|[Bb]\d+\s*-\s*\d+|
 
 function pad2(value) {
   return String(value).padStart(2, "0");
-}
-
-function normalizeTime(value) {
-  const match = String(value || "").match(/(\d{1,2}):(\d{2})/);
-  if (!match) return null;
-  const hour = Math.min(23, Math.max(0, Number(match[1])));
-  const minute = Math.min(59, Math.max(0, Number(match[2])));
-  return `${pad2(hour)}:${pad2(minute)}`;
 }
 
 function toDateKey(year, month, day) {
@@ -272,7 +269,9 @@ function isGarbageTitle(value) {
   if (!t) return true;
   if (/^-?\d{1,3}$/.test(t)) return true;
   if (t.length <= 2 && !/\d{3,}/.test(t) && !/[가-힣]{2,}/u.test(t)) return true;
-  if (/^[\W\d\s:]{1,8}$/.test(t)) return true;
+  if (/^[\W\d\s:»]{1,24}$/.test(t) && !/[가-힣]{2,}/u.test(t)) return true;
+  if (/^(KT|SKT|LG\s*U\+)/i.test(t)) return true;
+  if (/Md&@p|»/.test(t) && !/[가-힣]{2,}/u.test(t)) return true;
   return false;
 }
 
@@ -372,41 +371,79 @@ export function parseSchedulePasteText(text, options = {}) {
   let title = "";
   let titleRemainder = "";
   let titleLineIndex = -1;
+  const titleDiag = { path: null, steps: [] };
 
   if (fieldParse.structureOk) {
+    titleDiag.path = "site_field_parser";
+    titleDiag.steps.push({ step: "fieldParse.structureOk", title: fieldParse.final.title });
     title = fieldParse.final.title;
     titleLineIndex = lines.findIndex((line) => isSiteInfoLine(line, fieldParse));
     if (titleLineIndex < 0) {
       titleLineIndex = fieldParse.debug?.matches?.[0]?.lineIndex ?? 0;
     }
   } else if (fieldParse.building && fieldParse.unit) {
+    titleDiag.path = "partial_dong_ho";
     title = buildSiteTitle({
       siteName: fieldParse.siteName,
       building: fieldParse.building,
       unit: fieldParse.unit,
+    });
+    titleDiag.steps.push({
+      step: "buildSiteTitle_partial",
+      siteName: fieldParse.siteName,
+      building: fieldParse.building,
+      unit: fieldParse.unit,
+      title,
     });
     titleLineIndex = lines.findIndex((line) => isSiteInfoLine(line, fieldParse));
     if (titleLineIndex < 0) {
       titleLineIndex = fieldParse.debug?.matches?.[0]?.lineIndex ?? -1;
     }
   } else {
-    titleLineIndex = 0;
-    let titleSource = stripDateAndTimeFromLine(lines[0], referenceDate);
-    if ((!titleSource || isNoiseLine(lines[0])) && lines.length > 1) {
-      for (let i = 0; i < Math.min(lines.length, 6); i++) {
-        if (isNoiseLine(lines[i])) continue;
-        const candidate = stripDateAndTimeFromLine(lines[i], referenceDate);
-        if (candidate) {
-          titleLineIndex = i;
-          titleSource = candidate;
-          break;
-        }
+    titleDiag.path = "legacy_fallback";
+    titleLineIndex = -1;
+    let titleSource = "";
+
+    for (let i = 0; i < Math.min(lines.length, 8); i++) {
+      if (isNoiseLine(lines[i])) {
+        titleDiag.steps.push({ step: "skip_noise_line", lineIndex: i, line: lines[i] });
+        continue;
+      }
+      const candidate = stripDateAndTimeFromLine(lines[i], referenceDate);
+      titleDiag.steps.push({
+        step: "try_line",
+        lineIndex: i,
+        line: lines[i],
+        candidate,
+      });
+      if (candidate && !isGarbageTitle(candidate)) {
+        titleLineIndex = i;
+        titleSource = candidate;
+        break;
       }
     }
-    ({ title, titleRemainder } = extractSiteTitleFromLine(titleSource));
-    if (isGarbageTitle(title)) {
+
+    if (!titleSource) {
+      titleDiag.steps.push({ step: "no_valid_title_line" });
       title = "";
-      titleRemainder = titleSource || "";
+    } else {
+      titleDiag.titleSourceLine = titleLineIndex;
+      titleDiag.titleSourceText = titleSource;
+      const extracted = extractSiteTitleFromLine(titleSource);
+      titleDiag.steps.push({ step: "extractSiteTitleFromLine", input: titleSource, output: extracted });
+      ({ title, titleRemainder } = extracted);
+      if (isGarbageTitle(title)) {
+        titleDiag.garbageRejected = true;
+        titleDiag.rejectedTitle = title;
+        titleDiag.garbageReason = explainGarbageTitle(title, titleLineIndex, titleSource);
+        titleDiag.steps.push({
+          step: "garbage_title_rejected",
+          rejectedTitle: title,
+          reason: titleDiag.garbageReason,
+        });
+        title = "";
+        titleRemainder = titleSource || "";
+      }
     }
   }
 
@@ -451,6 +488,34 @@ export function parseSchedulePasteText(text, options = {}) {
 
   const ok = Boolean(title && dateKey);
 
+  const siteInfoSnap = source === SCHEDULE_IMPORT_SOURCE.OCR ? extractSiteInfo(rawText) : null;
+  const preTitle = {
+    apartmentName: fieldParse.siteName || siteInfoSnap?.apartmentName || "",
+    building: fieldParse.building || siteInfoSnap?.building || "",
+    unit: fieldParse.unit || siteInfoSnap?.unit || "",
+    commonPassword: siteInfoSnap?.commonPassword || "",
+    housePassword: siteInfoSnap?.housePassword || "",
+    confidence: siteInfoSnap?.confidence ?? null,
+  };
+
+  logScheduleStructurePipeline({
+    source,
+    ocrRawText: options.ocrRawText || rawText,
+    ocrFilteredText: rawText,
+    structureInput: rawText,
+    fieldParse,
+    siteInfo: siteInfoSnap,
+    preTitle,
+    titleDiag,
+    finalTitle: title || null,
+    dateKey,
+    timeExtracted,
+    startTime,
+    endTime,
+    ok,
+    warnings,
+  });
+
   return {
     ok,
     title: title || null,
@@ -476,6 +541,12 @@ export function parseSchedulePasteText(text, options = {}) {
       building: fieldParse.building,
       unit: fieldParse.unit,
     },
+    titleDiag,
+    parseDiagnostics: {
+      titlePath: titleDiag.path,
+      garbageRejected: Boolean(titleDiag.garbageRejected),
+      rejectedTitle: titleDiag.rejectedTitle || null,
+    },
   };
 }
 
@@ -485,5 +556,9 @@ export function parseSchedulePasteText(text, options = {}) {
 export function parseScheduleImport(input, options = {}) {
   const source = input?.source || SCHEDULE_IMPORT_SOURCE.PASTE;
   const text = input?.text || "";
-  return parseSchedulePasteText(text, { ...options, source });
+  return parseSchedulePasteText(text, {
+    ...options,
+    source,
+    ocrRawText: input?.ocrRawText || options.ocrRawText,
+  });
 }
