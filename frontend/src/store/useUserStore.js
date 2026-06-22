@@ -30,6 +30,7 @@ import {
 } from "./storeUtils";
 import { useContactsStore } from "./useContactsStore";
 import { useSettlementStore } from "./useSettlementStore";
+import { scheduleDiag } from "../utils/scheduleSyncDiag";
 import { bootstrapBoardNotifications } from "../utils/boardNotificationBootstrap";
 import { useSiteBoardStore } from "./useSiteBoardStore";
 import { useNotificationStore } from "./useNotificationStore";
@@ -901,7 +902,29 @@ export const useUserStore = create(
         });
       },
 
-      logout: () => {
+      logout: async () => {
+        const settlement = useSettlementStore.getState();
+        const sessionUserId = get().session?.user?.id ?? get().profile?.id ?? null;
+        const scheduleCount = Array.isArray(settlement.schedules) ? settlement.schedules.length : 0;
+        if (get().session?.isAuthenticated && scheduleCount > 0) {
+          scheduleDiag("logout flush schedules start", {
+            userId: sessionUserId != null ? String(sessionUserId) : null,
+            scheduleCount,
+          });
+          try {
+            await settlement.flushSchedulesSync();
+            scheduleDiag("logout flush schedules OK", {
+              userId: sessionUserId != null ? String(sessionUserId) : null,
+              scheduleCount,
+            });
+          } catch (error) {
+            scheduleDiag("logout flush schedules failed", {
+              userId: sessionUserId != null ? String(sessionUserId) : null,
+              message: error?.message,
+              status: error?.status,
+            });
+          }
+        }
         logoutSession().catch(() => {
           /* noop */
         });

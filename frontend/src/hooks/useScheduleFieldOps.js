@@ -716,12 +716,23 @@ export function useScheduleFieldOps(selectedDateKey) {
         );
 
         try {
-          await useSettlementStore.getState().syncSchedulesToServer();
+          const syncResult = await useSettlementStore.getState().syncSchedulesToServer();
+          const isAuthenticated = Boolean(useUserStore.getState().session?.isAuthenticated);
+          if (isAuthenticated && syncResult == null) {
+            throw Object.assign(new Error("일정을 서버에 저장하지 못했습니다."), {
+              code: "SCHEDULE_SYNC_SKIPPED",
+            });
+          }
         } catch (syncError) {
           if (syncError?.status === 401 || syncError?.code === "SESSION_REQUIRED") {
             showAppToast?.("로그인이 완료되지 않았습니다");
             throw syncError;
           }
+          if (syncError?.code === "SCHEDULE_SYNC_SKIPPED") {
+            showAppToast?.("일정을 서버에 저장하지 못했습니다");
+            throw syncError;
+          }
+          throw syncError;
         }
 
         showAppToast?.(

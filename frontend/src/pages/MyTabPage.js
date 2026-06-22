@@ -101,8 +101,8 @@ export default function MyTabPage() {
     }
   };
 
-  const onLogout = useCallback(() => {
-    logout();
+  const onLogout = useCallback(async () => {
+    await logout();
     showAppToast("로그아웃했습니다.");
   }, [logout, showAppToast]);
 

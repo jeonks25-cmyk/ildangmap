@@ -45,13 +45,24 @@ function normalizeSchedules(scheduleList) {
   return (Array.isArray(scheduleList) ? scheduleList : []).map((schedule) => migrateSchedule(schedule)).filter(Boolean);
 }
 
+function bindSchedulesSyncContextIfAuthenticated() {
+  const userState = useUserStore.getState();
+  const sessionUserId = userState.session?.user?.id ?? userState.profile?.id ?? null;
+  const isAuthenticated = Boolean(userState.session?.isAuthenticated);
+  if (!isAuthenticated || sessionUserId == null || sessionUserId === "") return null;
+  const uid = String(sessionUserId);
+  const state = useSettlementStore.getState();
+  if (state.schedulesUserId !== uid || !state.schedulesLoaded) {
+    useSettlementStore.setState({ schedulesUserId: uid, schedulesLoaded: true });
+    scheduleDiag("bind sync context", { userId: uid });
+  }
+  return uid;
+}
+
 function scheduleSyncDebouncedImpl() {
   const state = useSettlementStore.getState();
-  const sessionUserId =
-    useUserStore.getState().session?.user?.id ?? useUserStore.getState().profile?.id ?? null;
-  const canSync =
-    state.schedulesLoaded &&
-    (state.schedulesUserId || (sessionUserId != null && sessionUserId !== ""));
+  const sessionUserId = bindSchedulesSyncContextIfAuthenticated();
+  const canSync = state.schedulesLoaded && (state.schedulesUserId || sessionUserId);
   if (schedulesSyncPaused || !canSync) {
     scheduleDiag("sync debounced skipped", {
       schedulesSyncPaused,
@@ -182,14 +193,17 @@ export const useSettlementStore = create(
         });
       },
 
-      syncSchedulesToServer: async () => {
-        const sessionUserId =
-          useUserStore.getState().session?.user?.id ?? useUserStore.getState().profile?.id ?? null;
-        let userId = get().schedulesUserId;
-        if (!userId && sessionUserId != null && sessionUserId !== "") {
-          userId = String(sessionUserId);
-          set({ schedulesUserId: userId, schedulesLoaded: true });
+      flushSchedulesSync: async () => {
+        if (schedulesSyncTimer) {
+          clearTimeout(schedulesSyncTimer);
+          schedulesSyncTimer = null;
         }
+        return get().syncSchedulesToServer();
+      },
+
+      syncSchedulesToServer: async () => {
+        const sessionUserId = bindSchedulesSyncContextIfAuthenticated();
+        const userId = get().schedulesUserId || sessionUserId;
         if (!userId || !get().schedulesLoaded) {
           scheduleDiag("syncToServer skipped", {
             schedulesUserId: get().schedulesUserId,
@@ -365,6 +379,7 @@ export const useSettlementStore = create(
 
       addSchedule: (schedule) => {
         const viewerId = useUserStore.getState().session?.user?.id ?? useUserStore.getState().profile?.applicantUserId;
+        const syncUserId = bindSchedulesSyncContextIfAuthenticated();
         const next = migrateSchedule({
           ...schedule,
           briefingId: ensureScheduleBriefingIdValue(schedule),
@@ -377,6 +392,7 @@ export const useSettlementStore = create(
           return {
             schedules,
             summary: buildLocalSummary(schedules, state.briefingData),
+            ...(syncUserId ? { schedulesUserId: syncUserId, schedulesLoaded: true } : {}),
           };
         });
         emitScheduleCreatedNotification({ schedule: next });
@@ -385,6 +401,7 @@ export const useSettlementStore = create(
 
       addScheduleFromJobMatch: (job, overrides = {}) => {
         const viewerId = useUserStore.getState().session?.user?.id ?? useUserStore.getState().profile?.applicantUserId;
+        const syncUserId = bindSchedulesSyncContextIfAuthenticated();
         const schedule = migrateSchedule({
           ...createScheduleFromJobMatch(job, overrides),
           briefingId: createScheduleBriefingId(),
@@ -397,6 +414,7 @@ export const useSettlementStore = create(
           return {
             schedules,
             summary: buildLocalSummary(schedules, state.briefingData),
+            ...(syncUserId ? { schedulesUserId: syncUserId, schedulesLoaded: true } : {}),
           };
         });
         emitScheduleCreatedNotification({ schedule });
