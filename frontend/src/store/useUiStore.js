@@ -27,6 +27,9 @@ function createInitialState() {
       message: true,
       team: true,
     },
+    importSettings: {
+      aiVisionOcr: true,
+    },
   };
 }
 
@@ -150,6 +153,18 @@ export const useUiStore = create(
             },
           };
         }),
+
+      toggleImportSetting: (key) =>
+        set((state) => {
+          if (!key) return state;
+          const current = state.importSettings?.[key] !== false;
+          return {
+            importSettings: {
+              ...state.importSettings,
+              [key]: !current,
+            },
+          };
+        }),
     }),
     {
       name: STORE_KEY,
@@ -162,6 +177,7 @@ export const useUiStore = create(
           "selectedCardId",
           "notificationReadIds",
           "notificationSettings",
+          "importSettings",
         ]),
     }
   )

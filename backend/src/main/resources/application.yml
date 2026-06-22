@@ -86,6 +86,8 @@ app:
         base-dir: ${APP_FEEDBACK_STORAGE_DIR:uploads/feedback}
   openai-api-key: ${OPENAI_API_KEY:}
   openai-model: ${OPENAI_MODEL:gpt-4o-mini}
+  gemini-api-key: ${GEMINI_API_KEY:}
+  gemini-model: ${GEMINI_MODEL:gemini-2.5-flash}
 
 # --- 카카오 개발자 콘솔 (앱 > 플랫폼 Web 도메인 localhost 등록) ---
 # Redirect URI (Spring OAuth2): http://localhost:8080/login/oauth2/code/kakao

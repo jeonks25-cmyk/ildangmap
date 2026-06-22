@@ -9,6 +9,7 @@ import { useUserStore } from "../store/useUserStore";
 import { runNextFieldFlowSim } from "../utils/fieldFlowSimulator";
 import { useUserProfile } from "../context/UserProfileContext";
 import SettingsMenuSection from "../components/settings/SettingsMenuSection";
+import SettingsImportSection from "../components/settings/SettingsImportSection";
 import SettingsProfileBanner from "../components/settings/SettingsProfileBanner";
 import AppTabHeader from "../components/layout/AppTabHeader";
 import MapNotificationOverlay from "../components/map/MapNotificationOverlay";
@@ -162,6 +163,8 @@ export default function MyTabPage() {
             ) : null}
           </section>
         ) : null}
+
+        <SettingsImportSection />
 
         <div className="settings-menu-hub">
           {menuSections.map((section) => (

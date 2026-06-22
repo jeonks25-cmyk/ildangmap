@@ -5,6 +5,9 @@ import {
   structuredInfoToFormPatch,
   structureSiteInfo,
 } from "../structure/siteInfoStructurer";
+import { parseVisionSiteImage } from "../../../api/visionParseApi";
+import { isAiVisionOcrEnabled } from "../utils/visionOcrPrefs";
+import { visionResponseToStructured } from "../utils/visionImportMapper";
 
 export const SITE_IMPORT_OCR_STAGE = {
   SUCCESS: "success",
@@ -29,6 +32,28 @@ export async function runSiteImportOcr(fileOrFiles, options = {}) {
   const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles].filter(Boolean);
   if (!files.length) {
     return { stage: SITE_IMPORT_OCR_STAGE.EMPTY_TEXT, message: "현장 정보를 찾지 못했습니다" };
+  }
+
+  const visionEnabled = options.useVisionOcr !== false && isAiVisionOcrEnabled() && files.length === 1;
+  if (visionEnabled) {
+    try {
+      const visionData = await parseVisionSiteImage(files[0]);
+      const structured = visionResponseToStructured(visionData);
+      if (structured.ok) {
+        const { patch, applied } = structuredInfoToFormPatch(structured, "", options.selectedDateKey);
+        if (applied) {
+          return {
+            stage: SITE_IMPORT_OCR_STAGE.SUCCESS,
+            structured,
+            patch,
+            visionSource: true,
+            ocrResult: { source: "gemini-vision", visionData },
+          };
+        }
+      }
+    } catch (error) {
+      console.warn("[VISION-OCR] site import failed — fallback", error?.message || error);
+    }
   }
 
   const textParts = [];

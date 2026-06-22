@@ -12,6 +12,7 @@ import { formatOcrError } from "../../utils/scheduleOcr";
 import SiteImportDebugPanel from "../map/SiteImportDebugPanel";
 import ScheduleSiteCandidatePicker from "./ScheduleSiteCandidatePicker";
 import { isStructureDebugEnabled } from "../../features/site-import/parser/siteImportStructureMetrics";
+import { isAiVisionOcrEnabled } from "../../features/site-import/utils/visionOcrPrefs";
 
 const EXAMPLE_TEXT = `성환부영 3차, 301동 105호.
 공용현관:5623
@@ -137,7 +138,14 @@ export default function SchedulePasteImportPanel({
     setOcrBusy(true);
     setOcrProgress(0);
     clearSiteCandidatePick();
-    setStatus({ tone: "info", message: "캡처에서 글자를 읽는 중입니다…", stage: "ocr_running" });
+    setStatus({
+      tone: "info",
+      message:
+        tableMode || !isAiVisionOcrEnabled()
+          ? "캡처에서 글자를 읽는 중입니다…"
+          : "AI Vision으로 현장 정보를 읽는 중입니다…",
+      stage: "ocr_running",
+    });
 
     try {
       const result = await runScheduleOcrImport(file, {
@@ -190,12 +198,16 @@ export default function SchedulePasteImportPanel({
       if (result.useComposer && result.drafts?.length === 1 && result.chatResult) {
         setStructureTrace(result.chatResult.structureTrace || null);
         onApply?.(result.chatResult);
-        const structureNote = result.chatResult.structureOk
-          ? "현장명·동·호를 인식했습니다."
-          : "제목을 확인해 주세요. (구조화 미완료)";
+        const structureNote = result.visionSource
+          ? "AI Vision으로 현장 정보를 채웠습니다."
+          : result.chatResult.structureOk
+            ? "현장명·동·호를 인식했습니다."
+            : "제목을 확인해 주세요. (구조화 미완료)";
         setStatus({
           tone: result.chatResult.structureOk ? "success" : "warn",
-          message: `캡처에서 일정 1건을 폼에 채웠습니다. ${structureNote}`,
+          message: result.visionSource
+            ? structureNote
+            : `캡처에서 일정 1건을 폼에 채웠습니다. ${structureNote}`,
           stage: SCHEDULE_OCR_STAGE.CHAT_PARSED,
           ocrTextPreview: result.ocrResult?.text?.slice(0, 600),
           structureOk: result.chatResult.structureOk,
