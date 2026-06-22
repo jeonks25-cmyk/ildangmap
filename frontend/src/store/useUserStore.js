@@ -30,6 +30,7 @@ import {
 } from "./storeUtils";
 import { useContactsStore } from "./useContactsStore";
 import { useSettlementStore } from "./useSettlementStore";
+import { bootstrapBoardNotifications } from "../utils/boardNotificationBootstrap";
 import { useSiteBoardStore } from "./useSiteBoardStore";
 import { useNotificationStore } from "./useNotificationStore";
 import { useUiStore } from "./useUiStore";
@@ -638,8 +639,8 @@ export const useUserStore = create(
                     await useSettlementStore.getState().bootstrapSchedules(syncUserId).catch(() => {
                       /* schedulesError in store */
                     });
-                    await useSiteBoardStore.getState().bootstrapSiteBoards(syncUserId).catch(() => {
-                      /* siteBoardError in store */
+                    await bootstrapBoardNotifications().catch(() => {
+                      /* board notifications best-effort */
                     });
                   } else {
                     useContactsStore.getState().resetContacts();

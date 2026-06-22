@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { compressImageFileToDataUrl } from "../../utils/briefingImageCompress";
 
-const POST_TYPES = [
-  { value: "general", label: "공지" },
+const ALL_POST_TYPES = [
+  { value: "notice", label: "공지", ownerOnly: true },
   { value: "question", label: "질문" },
   { value: "worklog", label: "작업일지" },
   { value: "photo", label: "작업사진" },
@@ -12,27 +12,34 @@ const POST_TYPES = [
 export default function FieldScheduleBoardComposeSheet({
   open,
   siteTitle = "",
+  isOwner = false,
   onClose,
   onSubmit,
   onToast,
 }) {
-  const [postType, setPostType] = useState("general");
+  const postTypes = useMemo(
+    () => ALL_POST_TYPES.filter((t) => !t.ownerOnly || isOwner),
+    [isOwner]
+  );
+  const defaultType = postTypes[0]?.value || "question";
+
+  const [postType, setPostType] = useState(defaultType);
   const [body, setBody] = useState("");
-  const [imageDataUrl, setImageDataUrl] = useState("");
+  const [imageDataUrls, setImageDataUrls] = useState([]);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setPostType("general");
+    setPostType(defaultType);
     setBody("");
-    setImageDataUrl("");
+    setImageDataUrls([]);
     setSubmitting(false);
-  }, [open]);
+  }, [open, defaultType]);
 
   if (!open) return null;
 
   const needsPhoto = postType === "photo";
-  const canSubmit = Boolean(body.trim() || (needsPhoto && imageDataUrl));
+  const canSubmit = Boolean(body.trim() || (needsPhoto && imageDataUrls.length));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -42,13 +49,28 @@ export default function FieldScheduleBoardComposeSheet({
       await onSubmit?.({
         body: body.trim(),
         postType,
-        imageDataUrl: imageDataUrl || undefined,
+        imageDataUrl: imageDataUrls[0] || undefined,
+        imageDataUrls: imageDataUrls.length ? imageDataUrls : undefined,
       });
       onClose?.();
     } catch (err) {
       onToast?.(err?.message || "게시에 실패했습니다");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const addPhoto = async (file) => {
+    if (!file) return;
+    if (imageDataUrls.length >= 8) {
+      onToast?.("사진은 최대 8장까지 등록할 수 있습니다.");
+      return;
+    }
+    try {
+      const data = await compressImageFileToDataUrl(file);
+      setImageDataUrls((prev) => [...prev, data]);
+    } catch (_) {
+      onToast?.("이미지를 불러올 수 없습니다");
     }
   };
 
@@ -65,7 +87,7 @@ export default function FieldScheduleBoardComposeSheet({
         {siteTitle ? <p className="site-board-compose__site">{siteTitle}</p> : null}
 
         <div className="field-board-compose__types" role="tablist" aria-label="게시글 유형">
-          {POST_TYPES.map((opt) => (
+          {postTypes.map((opt) => (
             <button
               key={opt.value}
               type="button"
@@ -96,26 +118,35 @@ export default function FieldScheduleBoardComposeSheet({
           autoFocus
         />
 
-        {needsPhoto || imageDataUrl ? (
-          <label className="field-board-compose__photo">
-            <span>{imageDataUrl ? "사진 변경" : "작업사진 첨부"}</span>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                try {
-                  const data = await compressImageFileToDataUrl(file);
-                  setImageDataUrl(data);
-                  if (postType !== "photo") setPostType("photo");
-                } catch (_) {
-                  onToast?.("이미지를 불러올 수 없습니다");
-                }
-              }}
-            />
-            {imageDataUrl ? <img className="field-board-compose__preview" src={imageDataUrl} alt="" /> : null}
-          </label>
+        {needsPhoto || imageDataUrls.length ? (
+          <div className="field-board-compose__photo">
+            <label>
+              <span>{imageDataUrls.length ? "사진 추가" : "작업사진 첨부"}</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple={needsPhoto}
+                onChange={async (e) => {
+                  const files = Array.from(e.target.files || []);
+                  for (const file of files) {
+                    await addPhoto(file);
+                  }
+                  e.target.value = "";
+                  if (postType !== "photo" && files.length) setPostType("photo");
+                }}
+              />
+            </label>
+            {imageDataUrls.length ? (
+              <p className="field-board-compose__photo-count">사진 {imageDataUrls.length}장 선택됨</p>
+            ) : null}
+            {imageDataUrls.length ? (
+              <div className="field-board-compose__previews">
+                {imageDataUrls.map((src, idx) => (
+                  <img key={`${idx}-${src.slice(0, 24)}`} className="field-board-compose__preview" src={src} alt="" />
+                ))}
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         <p className="site-board-compose__hint">공지 · 질문 · 작업일지 · 작업사진을 남길 수 있습니다.</p>

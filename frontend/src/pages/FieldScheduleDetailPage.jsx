@@ -22,11 +22,13 @@ import {
   ensureScheduleBriefingIdValue,
   getScheduleBoardAccess,
   isLegacySyntheticBriefingId,
+  BOARD_ACCESS_ROLE,
 } from "../utils/scheduleBoardAccess";
 import { buildUrgentHelpJobFromSchedule } from "../utils/urgentHelpFromSchedule";
 import ScheduleEditSheet from "../components/schedule/ScheduleEditSheet";
 import CalendarSaveButton from "../components/schedule/CalendarSaveButton";
 import FieldScheduleNoticeBoard from "../components/schedule/FieldScheduleNoticeBoard";
+import { fetchScheduleBoardSummaryForSchedule } from "../api/scheduleBriefingApi";
 import FieldScheduleDailyRoster from "../components/schedule/FieldScheduleDailyRoster";
 import FieldTeamRosterSheet from "../components/map/FieldTeamRosterSheet";
 import { formatSchedulePeriodLabel } from "../utils/workerAssignmentModel";
@@ -37,7 +39,7 @@ import "../styles/field-schedule-detail.css";
 
 const DETAIL_TABS = [
   { key: "info", label: "현장정보" },
-  { key: "board", label: "현장게시판" },
+  { key: "board", label: "현장 게시판" },
   { key: "schedule", label: "일정" },
   { key: "history", label: "변경이력" },
 ];
@@ -88,6 +90,11 @@ export default function FieldScheduleDetailPage() {
   const [rosterOpen, setRosterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(location.state?.action === "notice" ? "board" : "info");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [boardSummary, setBoardSummary] = useState({
+    unreadNoticeCount: 0,
+    unreadPostCount: 0,
+    unreadTotalCount: 0,
+  });
 
   const schedule = useMemo(() => {
     void refreshKey;
@@ -104,6 +111,29 @@ export default function FieldScheduleDetailPage() {
     () => getScheduleBoardAccess({ briefingId, scheduleId, schedule }),
     [briefingId, schedule, scheduleId]
   );
+
+  const refreshBoardSummary = useCallback(async () => {
+    if (!schedule?.id || !boardAccess.canRead) {
+      setBoardSummary({ unreadNoticeCount: 0, unreadPostCount: 0, unreadTotalCount: 0 });
+      return;
+    }
+    try {
+      const summary = await fetchScheduleBoardSummaryForSchedule(schedule.id, briefingId);
+      setBoardSummary({
+        unreadNoticeCount: Number(summary?.unreadNoticeCount) || 0,
+        unreadPostCount: Number(summary?.unreadPostCount) || 0,
+        unreadTotalCount: Number(summary?.unreadTotalCount) || 0,
+      });
+    } catch (_) {
+      /* summary optional */
+    }
+  }, [boardAccess.canRead, briefingId, schedule?.id]);
+
+  useEffect(() => {
+    refreshBoardSummary();
+    const timer = setInterval(refreshBoardSummary, 30_000);
+    return () => clearInterval(timer);
+  }, [refreshBoardSummary]);
 
   useEffect(() => {
     if (!schedule?.id) return;
@@ -356,7 +386,22 @@ export default function FieldScheduleDetailPage() {
             className={`field-detail-tabs__btn${activeTab === t.key ? " is-active" : ""}`}
             onClick={() => setActiveTab(t.key)}
           >
-            {t.label}
+            <span className="field-detail-tabs__label">
+              {t.label}
+              {t.key === "board" && boardSummary.unreadTotalCount > 0 ? (
+                <span className="field-detail-tabs__badge" aria-label={`미확인 ${boardSummary.unreadTotalCount}건`}>
+                  🔴{boardSummary.unreadTotalCount}
+                </span>
+              ) : null}
+            </span>
+            {t.key === "board" && boardAccess.canRead && (boardSummary.unreadNoticeCount > 0 || boardSummary.unreadPostCount > 0) ? (
+              <span className="field-detail-tabs__board-meta">
+                {boardSummary.unreadNoticeCount > 0 ? (
+                  <span>미확인 공지 {boardSummary.unreadNoticeCount}</span>
+                ) : null}
+                {boardSummary.unreadPostCount > 0 ? <span>새 글 {boardSummary.unreadPostCount}</span> : null}
+              </span>
+            ) : null}
           </button>
         ))}
       </nav>
@@ -457,6 +502,8 @@ export default function FieldScheduleDetailPage() {
               canWrite={boardAccess.canWrite}
               canRead={boardAccess.canRead}
               accessRole={boardAccess.role}
+              isOwner={boardAccess.role === BOARD_ACCESS_ROLE.OWNER}
+              onBoardChange={refreshBoardSummary}
               onToast={showAppToast}
             />
           </div>

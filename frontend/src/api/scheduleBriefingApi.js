@@ -1,8 +1,16 @@
 import { createApiError, getApiErrorMessage } from "./client";
+import {
+  createScheduleBoardComment,
+  createScheduleBoardPost,
+  fetchScheduleBoardComments,
+  fetchScheduleBoardPosts,
+  fetchScheduleBoardSummary,
+  markScheduleBoardPostRead,
+  uiPostType,
+  wirePostType,
+} from "./scheduleBoardApi";
 import { mergeStoredScheduleBriefingPostsWithDemo } from "../utils/demoFieldOpsSeeds";
 import { isDemoMode } from "../utils/demoMode";
-import { useSiteBoardStore } from "../store/useSiteBoardStore";
-import { useUserStore } from "../store/useUserStore";
 import {
   assertScheduleBoardRead,
   assertScheduleBoardWrite,
@@ -12,28 +20,7 @@ import {
 } from "../utils/scheduleBoardAccess";
 
 function normalizeWirePostType(t) {
-  const s = String(t || "general").toLowerCase();
-  if (s === "change" || s === "changed" || s === "change_request") return "change";
-  if (s === "help_request" || s === "help") return "help_request";
-  if (s === "notice" || s === "announcement" || s === "공지") return "general";
-  if (s === "question" || s === "질문") return "question";
-  if (s === "worklog" || s === "work_log" || s === "작업내용" || s === "작업일지") return "worklog";
-  if (s === "photo" || s === "work_photo" || s === "작업사진") return "photo";
-  return "general";
-}
-
-async function ensureSiteBoardReady() {
-  const store = useSiteBoardStore.getState();
-  if (store.siteBoardLoaded) return;
-  const userId =
-    useUserStore.getState().session?.user?.id ??
-    useUserStore.getState().profile?.applicantUserId ??
-    useUserStore.getState().profile?.id;
-  if (userId != null) {
-    await store.bootstrapSiteBoards(userId).catch(() => {
-      /* bootstrapSiteBoards stores error in siteBoardError */
-    });
-  }
+  return uiPostType(t);
 }
 
 function mapPost(p) {
@@ -49,7 +36,18 @@ function mapPost(p) {
     createdAt: p.createdAt,
     updatedAt: p.updatedAt || p.createdAt,
     imageDataUrl: p.imageDataUrl || null,
+    imageCount: Number(p.imageCount) || (p.imageDataUrl ? 1 : 0),
+    commentCount: Number(p.commentCount) || 0,
+    isRead: p.isRead === true,
   };
+}
+
+function resolveScheduleId(scheduleId, briefingId) {
+  const direct = String(scheduleId || "").trim();
+  if (direct) return direct;
+  const rows = findSchedulesByBriefingId(briefingId);
+  const schedule = pickCanonicalSchedule(rows);
+  return schedule?.id ? String(schedule.id) : "";
 }
 
 function buildRoomFromSchedule(schedule) {
@@ -115,65 +113,101 @@ export async function fetchScheduleBriefingRoom(briefingId, scheduleId) {
   return buildRoomFromSchedule(pickCanonicalSchedule(rows));
 }
 
+export async function fetchScheduleBoardSummaryForSchedule(scheduleId, briefingId) {
+  const sid = resolveScheduleId(scheduleId, briefingId);
+  if (!sid) return { unreadNoticeCount: 0, unreadPostCount: 0, unreadTotalCount: 0 };
+  assertScheduleBoardRead({ briefingId, scheduleId: sid });
+  return fetchScheduleBoardSummary(sid);
+}
+
 export async function fetchScheduleBriefingPosts(briefingId, scheduleId) {
   const id = String(briefingId || "").trim();
-  if (!id) return [];
-  assertScheduleBoardRead({ briefingId: id, scheduleId });
-  await ensureSiteBoardReady();
-  const store = useSiteBoardStore.getState();
-  const board = await store.refreshBoard(id);
-  const posts = Array.isArray(board?.posts) ? board.posts : store.getBoardSlice(id).posts;
-  const merged = isDemoMode() ? mergeStoredScheduleBriefingPostsWithDemo(id, posts, new Date()) : posts;
-  return merged.map(mapPost);
+  const sid = resolveScheduleId(scheduleId, id);
+  if (!sid) return [];
+  assertScheduleBoardRead({ briefingId: id, scheduleId: sid });
+  try {
+    const posts = await fetchScheduleBoardPosts(sid);
+    const merged = isDemoMode() ? mergeStoredScheduleBriefingPostsWithDemo(id, posts, new Date()) : posts;
+    return merged.map(mapPost);
+  } catch (error) {
+    throw createApiError(
+      mapBoardApiErrorMessage(error, getApiErrorMessage(error, "게시판을 불러오지 못했습니다.")),
+      error?.status || 500
+    );
+  }
 }
 
 export async function fetchScheduleBriefingComments(briefingId, postId, scheduleId) {
   const id = String(briefingId || "").trim();
-  if (!id || !postId) return [];
-  assertScheduleBoardRead({ briefingId: id, scheduleId });
-  await ensureSiteBoardReady();
-  const store = useSiteBoardStore.getState();
-  await store.refreshBoard(id);
-  const slice = store.getBoardSlice(id);
-  return slice.commentsByPostId?.[String(postId)] || [];
+  const sid = resolveScheduleId(scheduleId, id);
+  if (!sid || postId == null) return [];
+  assertScheduleBoardRead({ briefingId: id, scheduleId: sid });
+  try {
+    return await fetchScheduleBoardComments(sid, postId);
+  } catch (error) {
+    throw createApiError(
+      mapBoardApiErrorMessage(error, getApiErrorMessage(error, "댓글을 불러오지 못했습니다.")),
+      error?.status || 500
+    );
+  }
 }
 
-export async function createScheduleBriefingPost(briefingId, { body, postType, imageDataUrl, scheduleId } = {}) {
+export async function markScheduleBriefingPostRead(briefingId, postId, scheduleId) {
+  const sid = resolveScheduleId(scheduleId, briefingId);
+  if (!sid || postId == null) return null;
+  assertScheduleBoardRead({ briefingId, scheduleId: sid });
+  return markScheduleBoardPostRead(sid, postId);
+}
+
+export async function createScheduleBriefingPost(briefingId, { body, postType, imageDataUrl, imageDataUrls, scheduleId } = {}) {
   const id = String(briefingId || "").trim();
-  if (!id) throw createApiError("일정을 찾을 수 없습니다.", 404);
-  const safeImage =
-    imageDataUrl && String(imageDataUrl).trim().startsWith("data:image/") ? String(imageDataUrl).trim() : null;
-  if (safeImage && safeImage.length > 200_000) {
-    throw createApiError("이미지 용량이 너무 큽니다.", 400);
+  const sid = resolveScheduleId(scheduleId, id);
+  if (!sid) throw createApiError("일정을 찾을 수 없습니다.", 404);
+  const safeImages = [];
+  const pushImage = (raw) => {
+    const s = raw && String(raw).trim();
+    if (s && s.startsWith("data:image/")) safeImages.push(s);
+  };
+  if (Array.isArray(imageDataUrls)) imageDataUrls.forEach(pushImage);
+  pushImage(imageDataUrl);
+  for (const img of safeImages) {
+    if (img.length > 200_000) throw createApiError("이미지 용량이 너무 큽니다.", 400);
   }
-  assertScheduleBoardWrite({ briefingId: id, scheduleId });
+  assertScheduleBoardWrite({ briefingId: id, scheduleId: sid });
   const text = String(body || "").trim();
-  if (!text && !safeImage) throw createApiError("내용을 입력해 주세요.", 400);
-  await ensureSiteBoardReady();
+  if (!text && !safeImages.length) throw createApiError("내용을 입력해 주세요.", 400);
   try {
-    const post = await useSiteBoardStore.getState().createPost(id, {
+    const post = await createScheduleBoardPost(sid, {
       body: text,
-      postType: normalizeWirePostType(postType),
-      imageDataUrl: safeImage,
+      postType: wirePostType(postType),
+      imageDataUrl: safeImages[0] || null,
+      imageDataUrls: safeImages,
+      briefingId: id,
     });
     return mapPost(post);
   } catch (error) {
-    throw createApiError(mapBoardApiErrorMessage(error, getApiErrorMessage(error, "저장 중 오류가 발생했습니다.")), error?.status || 500);
+    throw createApiError(
+      mapBoardApiErrorMessage(error, getApiErrorMessage(error, "저장 중 오류가 발생했습니다.")),
+      error?.status || 500
+    );
   }
 }
 
-export async function createScheduleBriefingComment(briefingId, postId, { body, authorName, scheduleId } = {}) {
+export async function createScheduleBriefingComment(briefingId, postId, { body, authorName, scheduleId, mentions } = {}) {
   const id = String(briefingId || "").trim();
-  if (!id) throw createApiError("일정을 찾을 수 없습니다.", 404);
-  assertScheduleBoardWrite({ briefingId: id, scheduleId });
+  const sid = resolveScheduleId(scheduleId, id);
+  if (!sid) throw createApiError("일정을 찾을 수 없습니다.", 404);
+  assertScheduleBoardWrite({ briefingId: id, scheduleId: sid });
   const text = String(body || "").trim();
   if (!text) throw createApiError("댓글 내용을 입력해 주세요.", 400);
   void authorName;
-  await ensureSiteBoardReady();
   try {
-    return await useSiteBoardStore.getState().createComment(id, postId, text);
+    return await createScheduleBoardComment(sid, postId, { body: text, mentions });
   } catch (error) {
-    throw createApiError(mapBoardApiErrorMessage(error, getApiErrorMessage(error, "저장 중 오류가 발생했습니다.")), error?.status || 500);
+    throw createApiError(
+      mapBoardApiErrorMessage(error, getApiErrorMessage(error, "저장 중 오류가 발생했습니다.")),
+      error?.status || 500
+    );
   }
 }
 

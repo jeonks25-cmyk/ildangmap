@@ -1,18 +1,19 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   createScheduleBriefingComment,
   createScheduleBriefingPost,
   fetchScheduleBriefingComments,
   fetchScheduleBriefingPosts,
+  markScheduleBriefingPostRead,
   mapBoardApiErrorMessage,
 } from "../../api/scheduleBriefingApi";
-import { buildBriefingAuthorFromViewer } from "../../utils/briefingAuthor";
 import { BOARD_ACCESS_ROLE } from "../../utils/scheduleBoardAccess";
+import { buildBriefingAuthorFromViewer } from "../../utils/briefingAuthor";
 import FieldScheduleBoardComposeSheet from "./FieldScheduleBoardComposeSheet";
 import "../map/map-site-board.css";
 
 const POST_TYPES = [
-  { value: "general", label: "공지" },
+  { value: "notice", label: "공지" },
   { value: "question", label: "질문" },
   { value: "worklog", label: "작업일지" },
   { value: "photo", label: "작업사진" },
@@ -37,19 +38,48 @@ function badgeForType(type) {
   return { label: "공지", className: "site-board__card-type--notice" };
 }
 
-function BoardPostCard({ post, comments, commentDraft, onCommentDraft, onSubmitComment, canComment }) {
-  const badge = badgeForType(post.postType);
+function BoardPostCard({
+  post,
+  comments,
+  commentDraft,
+  onCommentDraft,
+  onSubmitComment,
+  canComment,
+  onVisible,
+}) {
+  const cardRef = useRef(null);
+  const badge = badgeForType(post.postType === "general" ? "notice" : post.postType);
   const author = String(post.authorName || "작성자").trim() || "작성자";
   const commentList = Array.isArray(comments) ? comments : [];
+  const photoCount = Number(post.imageCount) || (post.imageDataUrl ? 1 : 0);
+
+  useEffect(() => {
+    const node = cardRef.current;
+    if (!node || !onVisible) return undefined;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) onVisible(post);
+      },
+      { threshold: 0.35 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [onVisible, post]);
 
   return (
-    <article className="site-board__card" role="listitem">
+    <article ref={cardRef} className="site-board__card" role="listitem">
       <div className="site-board__card-head">
         <span className="site-board__card-author">{author}</span>
         <span className={`site-board__card-type ${badge.className}`}>{badge.label}</span>
+        {!post.isRead ? <span className="site-board__card-unread" aria-label="미확인" /> : null}
       </div>
       {post.body ? <p className="site-board__card-body">{post.body}</p> : null}
-      {post.imageDataUrl ? <img className="site-board__card-image" src={post.imageDataUrl} alt="" /> : null}
+      {post.postType === "photo" && photoCount > 0 ? (
+        <p className="site-board__card-photo-count">사진 {photoCount}장</p>
+      ) : null}
+      {post.imageDataUrl && post.postType !== "photo" ? (
+        <img className="site-board__card-image" src={post.imageDataUrl} alt="" />
+      ) : null}
       <time className="site-board__card-time" dateTime={post.createdAt || undefined}>
         {formatWhen(post.createdAt)}
         {post.updatedAt && post.updatedAt !== post.createdAt ? ` · 수정 ${formatWhen(post.updatedAt)}` : ""}
@@ -97,7 +127,9 @@ export default function FieldScheduleNoticeBoard({
   canWrite = false,
   canRead = true,
   accessRole = BOARD_ACCESS_ROLE.NONE,
+  isOwner = false,
   onToast,
+  onBoardChange,
 }) {
   const [posts, setPosts] = useState([]);
   const [commentsByPost, setCommentsByPost] = useState({});
@@ -105,6 +137,7 @@ export default function FieldScheduleNoticeBoard({
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
+  const readMarkedRef = useRef(new Set());
 
   const refresh = useCallback(async () => {
     if (!briefingId || !canRead) {
@@ -130,6 +163,7 @@ export default function FieldScheduleNoticeBoard({
         })
       );
       setCommentsByPost(commentMap);
+      onBoardChange?.();
     } catch (error) {
       setPosts([]);
       setCommentsByPost({});
@@ -137,16 +171,40 @@ export default function FieldScheduleNoticeBoard({
     } finally {
       setLoading(false);
     }
-  }, [briefingId, canRead, scheduleId]);
+  }, [briefingId, canRead, onBoardChange, scheduleId]);
 
   useEffect(() => {
+    readMarkedRef.current = new Set();
     refresh();
   }, [refresh]);
 
-  const handleSubmit = async ({ body, postType, imageDataUrl }) => {
+  const handlePostVisible = useCallback(
+    async (post) => {
+      if (!post?.id || post.isRead) return;
+      const key = String(post.id);
+      if (readMarkedRef.current.has(key)) return;
+      readMarkedRef.current.add(key);
+      try {
+        await markScheduleBriefingPostRead(briefingId, post.id, scheduleId);
+        setPosts((prev) => prev.map((p) => (String(p.id) === key ? { ...p, isRead: true } : p)));
+        onBoardChange?.();
+      } catch (_) {
+        readMarkedRef.current.delete(key);
+      }
+    },
+    [briefingId, onBoardChange, scheduleId]
+  );
+
+  const handleSubmit = async ({ body, postType, imageDataUrl, imageDataUrls }) => {
     if (!briefingId) throw new Error("일정을 찾을 수 없습니다.");
     if (!canWrite) throw new Error("이 일정에 접근 권한이 없습니다.");
-    await createScheduleBriefingPost(briefingId, { body, postType, imageDataUrl, scheduleId });
+    await createScheduleBriefingPost(briefingId, {
+      body,
+      postType,
+      imageDataUrl,
+      imageDataUrls,
+      scheduleId,
+    });
     onToast?.("게시했습니다");
     await refresh();
   };
@@ -163,6 +221,7 @@ export default function FieldScheduleNoticeBoard({
       setCommentDrafts((prev) => ({ ...prev, [postId]: "" }));
       const next = await fetchScheduleBriefingComments(briefingId, postId, scheduleId);
       setCommentsByPost((prev) => ({ ...prev, [postId]: next }));
+      onBoardChange?.();
     } catch (error) {
       onToast?.(mapBoardApiErrorMessage(error, "댓글 등록에 실패했습니다."));
     }
@@ -219,6 +278,7 @@ export default function FieldScheduleNoticeBoard({
                 onCommentDraft={(value) => setCommentDrafts((prev) => ({ ...prev, [post.id]: value }))}
                 onSubmitComment={() => handleComment(post.id)}
                 canComment={canWrite}
+                onVisible={handlePostVisible}
               />
             ))
           ) : !loading && canRead ? (
@@ -235,6 +295,7 @@ export default function FieldScheduleNoticeBoard({
       <FieldScheduleBoardComposeSheet
         open={composeOpen}
         siteTitle={siteTitle}
+        isOwner={isOwner}
         onClose={() => setComposeOpen(false)}
         onSubmit={handleSubmit}
         onToast={onToast}

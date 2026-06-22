@@ -198,27 +198,55 @@ export function emitSiteInviteNotification({ invite, recipientUserId }) {
 }
 
 export function emitSiteBoardPostNotification({ post, schedule, briefingId, actorName, recipientUserId }) {
-  const bid = briefingId || schedule?.briefingId || post?.briefingId;
-  const typeLabel =
-    post?.postType === "question"
-      ? "질문"
-      : post?.postType === "worklog"
-        ? "작업내용"
-        : post?.postType === "photo"
-          ? "작업사진"
-          : "공지";
-  return useNotificationStore.getState().pushNotification({
-    type: NOTIFICATION_TYPE.SITE_BOARD_POST,
-    dedupeKey: stableId(["site_board_post", post?.id]),
-    primaryLine: `현장 게시판 · ${typeLabel}`,
-    secondaryLine: post?.body || schedule?.title || "",
+  if (post?.postType !== "notice" && post?.postType !== "general") return null;
+  return emitSiteBoardNoticeNotification({
     actorName: actorName || post?.authorName,
     actorUserId: post?.authorUserId,
+    preview: post?.body || schedule?.title || "",
     target: {
       scheduleId: schedule?.id,
-      briefingId: bid,
+      briefingId: briefingId || schedule?.briefingId || post?.briefingId,
       postId: post?.id,
     },
+    recipientUserId,
+  });
+}
+
+export function emitSiteBoardNoticeNotification({ actorName, actorUserId, preview, target, recipientUserId }) {
+  return useNotificationStore.getState().pushNotification({
+    type: NOTIFICATION_TYPE.SITE_BOARD_POST,
+    dedupeKey: stableId(["site_board_notice", target?.postId, target?.scheduleId]),
+    primaryLine: "현장 게시판 · 공지",
+    secondaryLine: preview || "",
+    actorName,
+    actorUserId,
+    target,
+    recipientUserId,
+  });
+}
+
+export function emitSiteBoardCommentNotification({ actorName, actorUserId, preview, target, recipientUserId }) {
+  return useNotificationStore.getState().pushNotification({
+    type: NOTIFICATION_TYPE.SITE_BOARD_POST,
+    dedupeKey: stableId(["site_board_comment", target?.commentId, target?.postId]),
+    primaryLine: "내 글에 댓글",
+    secondaryLine: preview || "",
+    actorName,
+    actorUserId,
+    target,
+    recipientUserId,
+  });
+}
+
+export function emitSiteBoardMentionNotification({ actorName, actorUserId, preview, target, recipientUserId }) {
+  return useNotificationStore.getState().pushNotification({
+    type: NOTIFICATION_TYPE.SITE_BOARD_POST,
+    dedupeKey: stableId(["site_board_mention", target?.commentId, target?.postId, actorUserId]),
+    primaryLine: "현장 게시판 · @멘션",
+    secondaryLine: preview || "",
+    actorName,
+    actorUserId,
+    target,
     recipientUserId,
   });
 }

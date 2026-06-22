@@ -333,6 +333,22 @@
   margin: 0 0 6px;
 }
 
+.site-board__card-photo-count {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #44403c;
+}
+
+.site-board__card-unread {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  margin-left: auto;
+}
+
 .site-board__card-time {
   display: block;
   font-size: 12px;
