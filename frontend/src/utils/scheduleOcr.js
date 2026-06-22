@@ -1,4 +1,4 @@
-/** 카톡·문자 캡처 / 공정표 OCR — tesseract.js (한국어+영어) */
+import { cropKakaoMessageRegion, filterKakaoOcrLines } from "./kakaoScreenshotCrop";
 
 let ocrWorker = null;
 
@@ -95,8 +95,27 @@ async function loadImageSource(image) {
 /**
  * 공정표 모드: 소형 글자 인식을 위해 확대 + 대비 강화
  */
-async function preprocessImageForOcr(image, mode) {
-  const { source, width, height, bitmap } = await loadImageSource(image);
+async function preprocessImageForOcr(image, mode, options = {}) {
+  const useKakaoCrop = options.kakaoCrop !== false && mode === SCHEDULE_OCR_MODE.CHAT;
+  let workingImage = image;
+
+  if (useKakaoCrop) {
+    try {
+      const cropped = await cropKakaoMessageRegion(image);
+      if (cropped.cropped) {
+        workingImage = cropped.source;
+        logScheduleOcrDiag("kakao_crop", {
+          reason: cropped.reason,
+          width: cropped.width,
+          height: cropped.height,
+        });
+      }
+    } catch (error) {
+      logScheduleOcrDiag("kakao_crop_failed", error?.message || String(error));
+    }
+  }
+
+  const { source, width, height, bitmap } = await loadImageSource(workingImage);
   const isTable = mode === SCHEDULE_OCR_MODE.TABLE;
 
   const maxDim = 3200;
@@ -158,10 +177,10 @@ async function getOcrWorker(onProgress) {
   return ocrWorker;
 }
 
-async function runOcrAttempt(image, mode, onProgress) {
+async function runOcrAttempt(image, mode, onProgress, options = {}) {
   const worker = await getOcrWorker(onProgress);
   const isTable = mode === SCHEDULE_OCR_MODE.TABLE;
-  const input = await preprocessImageForOcr(image, mode);
+  const input = await preprocessImageForOcr(image, mode, options);
 
   const { PSM } = await import("tesseract.js");
   await worker.setParameters({
@@ -169,7 +188,10 @@ async function runOcrAttempt(image, mode, onProgress) {
   });
 
   const { data } = await worker.recognize(input);
-  const text = normalizeOcrText(data.text);
+  let text = normalizeOcrText(data.text);
+  if (mode === SCHEDULE_OCR_MODE.CHAT && options.kakaoCrop !== false) {
+    text = filterKakaoOcrLines(text);
+  }
   const words = Array.isArray(data.words)
     ? data.words.map((w) => ({
         text: w.text,
@@ -218,7 +240,7 @@ export async function extractTextFromScheduleImage(image, options = {}) {
 
   for (const mode of modes) {
     try {
-      const result = await runOcrAttempt(image, mode, options.onProgress);
+      const result = await runOcrAttempt(image, mode, options.onProgress, options);
       attempts.push({ mode, ok: true, charCount: result.charCount, confidence: result.confidence });
 
       logScheduleOcrDiag("response", {
@@ -272,7 +294,7 @@ export async function extractTextFromScheduleImage(image, options = {}) {
   };
 }
 
-export { formatOcrError, logScheduleOcrDiag };
+export { formatOcrError, logScheduleOcrDiag, filterKakaoOcrLines };
 
 export async function releaseScheduleOcrWorker() {
   if (!ocrWorker) return;

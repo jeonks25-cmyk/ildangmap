@@ -10,6 +10,11 @@ import {
   suggestSiteNamesFromAddress,
 } from "../../utils/fieldSiteScheduleParser";
 import { searchKakaoPlaces } from "../../utils/mapPlaceSearch";
+import {
+  runSiteImportOcr,
+  SITE_IMPORT_OCR_STAGE,
+} from "../../features/site-import/services/siteImportOcrService";
+import { structureSiteInfo, structuredInfoToFormPatch } from "../../features/site-import/structure/siteInfoStructurer";
 
 function defaultTextForType(type) {
   if (type === MAP_ITEM_TYPE.FIELD) {
@@ -75,6 +80,9 @@ export default function QuickSiteImportSheet({
   const [addressQuery, setAddressQuery] = useState("");
   const [placeResults, setPlaceResults] = useState([]);
   const [placeLoading, setPlaceLoading] = useState(false);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrMessage, setOcrMessage] = useState("");
+  const [ocrApplied, setOcrApplied] = useState(false);
   const titleTouchedRef = useRef(false);
 
   const isField = type === MAP_ITEM_TYPE.FIELD;
@@ -135,14 +143,17 @@ export default function QuickSiteImportSheet({
     setAddressQuery("");
     setPlaceResults([]);
     setShowPasteInput(true);
+    setOcrLoading(false);
+    setOcrMessage("");
+    setOcrApplied(false);
   }, [open, type, selectedDateKey, resumeState, defaultCrewCount, composeDefaultCraft]);
 
   useEffect(() => {
-    if (!open || !isField || titleTouchedRef.current) return;
+    if (!open || !isField || titleTouchedRef.current || ocrApplied) return;
     const first = siteNameSuggestions[0];
     if (!first) return;
     setQuickPatch((prev) => (prev.title ? prev : { ...prev, title: first }));
-  }, [isField, open, siteNameSuggestions]);
+  }, [isField, open, ocrApplied, siteNameSuggestions]);
 
   useEffect(() => {
     if (!open || !kakao) return undefined;
@@ -163,16 +174,78 @@ export default function QuickSiteImportSheet({
 
   const canSubmit = useMemo(() => {
     if (isField) {
+      const hasPaste = seedText.length >= 4;
+      const hasOcrDraft = ocrApplied && Boolean(fieldDraft?.title?.trim());
       return Boolean(
-        seedText ||
-          captureFileName ||
+        hasPaste ||
+          hasOcrDraft ||
           fieldDraft?.title ||
           fieldDraft?.location?.fullAddress ||
           fieldDraft?.workDate
       );
     }
     return title.trim().length >= 2 || text.trim().length >= 2;
-  }, [captureFileName, fieldDraft, isField, seedText, text, title]);
+  }, [fieldDraft, isField, ocrApplied, seedText, text, title]);
+
+  const handlePasteStructure = async (rawText) => {
+    const structured = await structureSiteInfo(rawText, { useGpt: true });
+    if (!structured.ok) {
+      setOcrMessage(structured.message || "현장 정보를 찾지 못했습니다");
+      setOcrApplied(false);
+      return;
+    }
+    const { patch } = structuredInfoToFormPatch(structured, rawText, selectedDateKey);
+    setQuickPatch((prev) => ({
+      ...prev,
+      ...patch,
+      location: patch.location ? { ...(prev.location || {}), ...patch.location } : prev.location,
+    }));
+    if (patch.location?.fullAddress) setAddressQuery(patch.location.fullAddress);
+    setOcrApplied(true);
+    setOcrMessage(`현장 정보 인식 · 신뢰도 ${Math.round(structured.confidence * 100)}%`);
+  };
+
+  const handleOcrFile = async (file) => {
+    if (!file) return;
+    setCaptureFileName(file.name || "");
+    setShowPasteInput(false);
+    setOcrLoading(true);
+    setOcrMessage("");
+    setOcrApplied(false);
+    titleTouchedRef.current = false;
+    try {
+      const result = await runSiteImportOcr(file, { selectedDateKey, useGpt: true });
+      if (result.stage === SITE_IMPORT_OCR_STAGE.SUCCESS) {
+        setText(result.ocrResult?.text || "");
+        setQuickPatch((prev) => ({
+          ...prev,
+          ...result.patch,
+          location: result.patch?.location
+            ? { ...(prev.location || {}), ...result.patch.location }
+            : prev.location,
+        }));
+        if (result.patch?.location?.fullAddress) {
+          setAddressQuery(result.patch.location.fullAddress);
+        }
+        setOcrApplied(true);
+        setOcrMessage(
+          `현장 정보 인식 · 신뢰도 ${Math.round((result.structured?.confidence || 0) * 100)}%`
+        );
+        return;
+      }
+      setText("");
+      setQuickPatch((prev) => {
+        const next = { ...prev };
+        delete next.title;
+        return next;
+      });
+      setOcrMessage(result.message || "현장 정보를 찾지 못했습니다");
+    } catch (error) {
+      setOcrMessage(error?.message || "OCR 처리에 실패했습니다.");
+    } finally {
+      setOcrLoading(false);
+    }
+  };
 
   const handleEditField = (key, value) => {
     setQuickPatch((prev) => ({ ...prev, [key]: value }));
@@ -273,7 +346,17 @@ export default function QuickSiteImportSheet({
                   <textarea
                     className="quick-site-import-sheet__hero-textarea"
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
+                    onChange={async (e) => {
+                      const next = e.target.value;
+                      setText(next);
+                      setCaptureFileName("");
+                      setOcrApplied(false);
+                      if (String(next).trim().length >= 8) {
+                        await handlePasteStructure(next.trim());
+                      } else if (!String(next).trim()) {
+                        setOcrMessage("");
+                      }
+                    }}
                     placeholder="카톡·문자 내용 그대로 붙여넣기"
                     rows={showPasteInput ? 4 : 2}
                   />
@@ -284,17 +367,33 @@ export default function QuickSiteImportSheet({
                     type="file"
                     accept="image/*"
                     className="quick-site-import-sheet__hero-file"
+                    disabled={ocrLoading}
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      setCaptureFileName(file?.name || "");
-                      if (file) setShowPasteInput(false);
+                      void handleOcrFile(file);
+                      e.target.value = "";
                     }}
                   />
                   <span className="quick-site-import-sheet__hero-photo-btn">
-                    {captureFileName ? `${captureFileName} 선택됨` : "사진 선택하기"}
+                    {ocrLoading
+                      ? "OCR 분석 중…"
+                      : captureFileName
+                        ? `${captureFileName} 선택됨`
+                        : "사진 선택하기"}
                   </span>
                 </label>
               </div>
+
+              {ocrMessage ? (
+                <p
+                  className={`quick-site-import-sheet__hint${
+                    ocrApplied ? " quick-site-import-sheet__hint--ok" : " quick-site-import-sheet__hint--warn"
+                  }`}
+                  role="status"
+                >
+                  {ocrMessage}
+                </p>
+              ) : null}
 
               <section className="quick-site-import-sheet__editable" aria-label="일정 초안 수정">
                 <p className="quick-site-import-sheet__editable-title">자동 입력 초안</p>

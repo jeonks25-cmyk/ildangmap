@@ -2622,6 +2622,14 @@
   color: #a8a29e;
 }
 
+.quick-site-import-sheet__hint--ok {
+  color: #15803d;
+}
+
+.quick-site-import-sheet__hint--warn {
+  color: #b45309;
+}
+
 .quick-site-import-sheet__suggest-list {
   margin: 0;
   padding: 0;
