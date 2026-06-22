@@ -59,6 +59,7 @@ public class SiteImportVisionParseService {
             throw new IllegalArgumentException("image_required");
         }
         if (!StringUtils.hasText(geminiApiKey)) {
+            log.warn("[VISION-OCR] blocked reason=gemini_api_key_missing");
             throw new IllegalStateException("gemini_api_key_missing");
         }
 

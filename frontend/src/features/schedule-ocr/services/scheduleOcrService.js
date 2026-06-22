@@ -95,6 +95,11 @@ export async function runScheduleOcrImport(file, options = {}) {
   const visionAttempted = visionEnabled;
 
   if (visionEnabled) {
+    console.log("[VISION-OCR] attempting gemini vision", {
+      fileName: file?.name,
+      tableMode: forceTable,
+      aiVisionOcr: isAiVisionOcrEnabled(),
+    });
     const visionResult = await tryVisionScheduleImport(file, {
       referenceDate,
       defaults: options.defaults,

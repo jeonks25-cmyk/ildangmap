@@ -33,10 +33,19 @@ export async function parseVisionSiteImage(file) {
     throw new Error("vision_parse_invalid_response");
   }
 
-  console.log("[VISION-OCR] response", envelope);
+  console.log("[VISION-OCR] response", {
+    ok: response.ok,
+    status: response.status,
+    envelope,
+  });
 
   if (!response.ok || !envelope?.success || !envelope?.data) {
     const message = envelope?.message || envelope?.code || `HTTP ${response.status}`;
+    console.warn("[VISION-OCR] failed — tesseract fallback", {
+      status: response.status,
+      code: envelope?.code,
+      message,
+    });
     throw new Error(message);
   }
 
