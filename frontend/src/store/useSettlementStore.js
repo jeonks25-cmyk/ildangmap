@@ -60,8 +60,8 @@ function bindSchedulesSyncContextIfAuthenticated() {
 }
 
 function scheduleSyncDebouncedImpl() {
-  const state = useSettlementStore.getState();
   const sessionUserId = bindSchedulesSyncContextIfAuthenticated();
+  const state = useSettlementStore.getState();
   const canSync = state.schedulesLoaded && (state.schedulesUserId || sessionUserId);
   if (schedulesSyncPaused || !canSync) {
     scheduleDiag("sync debounced skipped", {

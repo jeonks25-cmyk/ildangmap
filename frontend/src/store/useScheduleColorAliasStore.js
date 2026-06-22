@@ -11,14 +11,18 @@ export const useScheduleColorAliasStore = create(
       aliasesByColorId: {},
 
       setColorAlias: (colorId, alias) => {
-        const id = normalizeScheduleColorId(colorId);
-        const trimmed = String(alias || "").trim();
-        set((state) => {
-          const next = { ...state.aliasesByColorId };
-          if (!trimmed) delete next[id];
-          else next[id] = trimmed;
-          return { aliasesByColorId: next };
-        });
+        try {
+          const id = normalizeScheduleColorId(colorId);
+          const trimmed = String(alias || "").trim();
+          set((state) => {
+            const next = { ...state.aliasesByColorId };
+            if (!trimmed) delete next[id];
+            else next[id] = trimmed;
+            return { aliasesByColorId: next };
+          });
+        } catch (error) {
+          console.error("[ScheduleColorAlias] setColorAlias failed", error);
+        }
       },
 
       getColorAlias: (colorId) => {

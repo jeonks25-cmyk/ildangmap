@@ -68,7 +68,10 @@ export default function ScheduleColorPicker({ value, onChange, className = "" })
                   aria-label={`${displayLabel} 색상`}
                   aria-pressed={value === opt.id}
                   onClick={() => handleSelect(opt.id)}
-                  onPointerDown={() => startLongPress(opt.id)}
+                  onPointerDown={(e) => {
+                    e.stopPropagation();
+                    startLongPress(opt.id);
+                  }}
                   onPointerUp={clearLongPress}
                   onPointerLeave={clearLongPress}
                   onPointerCancel={clearLongPress}

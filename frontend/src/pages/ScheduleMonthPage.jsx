@@ -149,7 +149,6 @@ export default function ScheduleMonthPage() {
   const handleSiteSubmit = useCallback(
     async (payload) => {
       await ops.handleSubmitSiteEntry(payload);
-      ops.closeComposer();
     },
     [ops]
   );

@@ -1,42 +1,58 @@
-import React, { useEffect, useState } from "react";
-import { getScheduleColorOption } from "../../constants/scheduleColors";
+import React, { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { getScheduleColorOption, normalizeScheduleColorId } from "../../constants/scheduleColors";
 import { useScheduleColorAliasStore } from "../../store/useScheduleColorAliasStore";
 
-/** 색상 별칭 입력 모달 — 오야지/거래처/팀 이름 */
+/** 색상 별칭 입력 모달 — composer form 밖(portal)에서 렌더, 실패해도 앱 중단 없음 */
 export default function ScheduleColorAliasModal({ open, colorId, onClose }) {
   const setColorAlias = useScheduleColorAliasStore((s) => s.setColorAlias);
-  const savedAlias = useScheduleColorAliasStore((s) => s.getColorAlias(colorId));
+  const normalizedId = colorId ? normalizeScheduleColorId(colorId) : "";
+  const savedAlias = useScheduleColorAliasStore((s) =>
+    normalizedId ? String(s.aliasesByColorId?.[normalizedId] || "").trim() : ""
+  );
   const [value, setValue] = useState("");
 
   useEffect(() => {
     if (!open) return;
     setValue(savedAlias);
-  }, [open, savedAlias, colorId]);
+  }, [open, savedAlias, normalizedId]);
 
-  if (!open || !colorId) return null;
+  const persistAlias = useCallback(
+    (nextAlias) => {
+      if (!normalizedId) return false;
+      try {
+        setColorAlias(normalizedId, nextAlias);
+        return true;
+      } catch (error) {
+        console.error("[ScheduleColorAliasModal] setColorAlias failed", error);
+        return false;
+      }
+    },
+    [normalizedId, setColorAlias]
+  );
 
-  const tone = getScheduleColorOption(colorId);
-
-  const handleSave = (e) => {
-    e.preventDefault();
-    setColorAlias(colorId, value);
+  const handleSave = useCallback(() => {
+    if (!persistAlias(value)) return;
     onClose?.();
-  };
+  }, [onClose, persistAlias, value]);
 
-  const handleClear = () => {
-    setColorAlias(colorId, "");
+  const handleClear = useCallback(() => {
+    if (!persistAlias("")) return;
     onClose?.();
-  };
+  }, [onClose, persistAlias]);
 
-  return (
+  if (!open || !colorId || !normalizedId) return null;
+
+  const tone = getScheduleColorOption(normalizedId);
+
+  return createPortal(
     <div className="schedule-color-alias-modal-backdrop" role="presentation" onClick={onClose}>
-      <form
+      <div
         className="schedule-color-alias-modal"
         role="dialog"
         aria-modal="true"
         aria-label="색상 별칭"
         onClick={(e) => e.stopPropagation()}
-        onSubmit={handleSave}
       >
         <header className="schedule-color-alias-modal__head">
           <span className="schedule-color-alias-modal__swatch" style={{ background: tone.bg, color: tone.text }}>
@@ -55,6 +71,12 @@ export default function ScheduleColorAliasModal({ open, colorId, onClose }) {
             placeholder={`예: ${tone.label === "파랑" ? "장재열" : tone.label === "초록" ? "더본인테리어" : "김반장"}`}
             maxLength={20}
             autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSave();
+              }
+            }}
           />
         </label>
 
@@ -72,11 +94,12 @@ export default function ScheduleColorAliasModal({ open, colorId, onClose }) {
               취소
             </button>
           )}
-          <button type="submit" className="schedule-color-alias-modal__primary">
+          <button type="button" className="schedule-color-alias-modal__primary" onClick={handleSave}>
             저장
           </button>
         </div>
-      </form>
-    </div>
+      </div>
+    </div>,
+    document.body
   );
 }
