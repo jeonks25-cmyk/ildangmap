@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { SCHEDULE_COLOR_OPTIONS } from "../../constants/scheduleColors";
 import { SCHEDULE_DEFAULT_END_TIME, SCHEDULE_DEFAULT_START_TIME } from "../../constants/scheduleDefaults";
 import SchedulePasteImportPanel from "./SchedulePasteImportPanel";
@@ -6,6 +6,7 @@ import ScheduleParticipantPicker from "./ScheduleParticipantPicker";
 import { useUiStore } from "../../store/useUiStore";
 import { toDateKey } from "../../utils/fieldScheduleModel";
 import { markStructureSaved } from "../../features/site-import/parser/siteImportStructureMetrics";
+import { applyScheduleImportTitleToForm } from "../../features/schedule-ocr/utils/scheduleFormApplyTitle";
 
 const ENTRY_TYPES = [
   { id: "site", label: "현장 일정" },
@@ -34,6 +35,7 @@ export default function ScheduleEntryComposerSheet({
   const [participantIds, setParticipantIds] = useState([]);
   const showAppToast = useUiStore((s) => s.showAppToast);
   const importSnapshotRef = useRef(null);
+  const pendingTitleApplyRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -50,15 +52,23 @@ export default function ScheduleEntryComposerSheet({
     setSaving(false);
     setParticipantIds(Array.isArray(seed.participantIds) ? seed.participantIds.map(String) : []);
     importSnapshotRef.current = null;
+    pendingTitleApplyRef.current = null;
   }, [open, initial, dateKey]);
 
   const handlePasteApply = useCallback((result) => {
+    const finalAppliedTitle = applyScheduleImportTitleToForm(result);
+    const parserFinalTitle = String(result?.finalTitle || result?.title || "").trim();
+
     importSnapshotRef.current = {
       sessionId: result.metricsSessionId,
-      title: result.title || "",
+      title: finalAppliedTitle,
       structureOk: Boolean(result.structureOk),
     };
-    if (result.title) setTitle(result.title);
+    pendingTitleApplyRef.current = {
+      expected: finalAppliedTitle,
+      parserFinalTitle,
+    };
+    if (finalAppliedTitle) setTitle(finalAppliedTitle);
     if (result.dateKey) {
       setWorkDateStart(result.dateKey);
       setWorkDateEnd(result.dateKey);
@@ -71,6 +81,19 @@ export default function ScheduleEntryComposerSheet({
       setMemo(result.memo);
     }
   }, []);
+
+  useLayoutEffect(() => {
+    const pending = pendingTitleApplyRef.current;
+    if (!pending?.expected) return;
+    pendingTitleApplyRef.current = null;
+    if (title !== pending.expected) {
+      console.error("[BUG] finalTitle was overwritten before form apply", {
+        expected: pending.expected,
+        actual: title,
+        parserFinalTitle: pending.parserFinalTitle,
+      });
+    }
+  }, [title]);
 
   const endDate = workDateEnd || workDateStart;
 

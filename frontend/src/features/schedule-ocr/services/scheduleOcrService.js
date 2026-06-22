@@ -5,14 +5,16 @@ import { SCHEDULE_OCR_ERROR, SCHEDULE_OCR_STAGE } from "../errors/scheduleOcrErr
 import { createScheduleOcrDraft } from "../generator/scheduleDraftModel";
 import { generatePersonalDraftsFromTable, parseScheduleTable } from "../parser/tableParser";
 import { resolveFailureStage } from "../../site-import/parser/siteImportDiag";
+import { applyScheduleImportTitleToForm } from "../utils/scheduleFormApplyTitle";
 
 const DIAG_PREFIX = "[SCHEDULE-OCR]";
 
 function chatResultToDraft(result, defaults = {}) {
-  if (!result?.title && !result?.dateKey) return null;
+  const title = applyScheduleImportTitleToForm(result, { log: false });
+  if (!title && !result?.dateKey) return null;
   return createScheduleOcrDraft({
     dateKey: result.dateKey,
-    title: result.title || "현장 작업",
+    title: title || "현장 작업",
     startTime: result.startTime || defaults.startTime || SCHEDULE_DEFAULT_START_TIME,
     endTime: result.endTime || defaults.endTime || SCHEDULE_DEFAULT_END_TIME,
     memo: result.memo || defaults.memo || "",
@@ -184,7 +186,15 @@ export async function runScheduleOcrImport(file, options = {}) {
   }
 
   ocrResult = finalOcrResult;
-  const resolvedChatResult = finalChatResult;
+  let resolvedChatResult = finalChatResult;
+  const formApplyTitle = applyScheduleImportTitleToForm(resolvedChatResult);
+  if (formApplyTitle && formApplyTitle !== resolvedChatResult.title) {
+    resolvedChatResult = {
+      ...resolvedChatResult,
+      title: formApplyTitle,
+      finalTitle: formApplyTitle,
+    };
+  }
 
   if (resolvedChatResult.ok || resolvedChatResult.filledFields?.length) {
     const draft = chatResultToDraft(resolvedChatResult, options.defaults);

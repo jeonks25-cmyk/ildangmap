@@ -354,14 +354,24 @@ function resolveScheduleTitle({
 
   if (b && u) {
     titlePath = apt ? "priority1_dong_ho_with_name" : "priority1_dong_ho_only";
-    title = buildSiteTitle({ siteName: apt, building: b, unit: u });
+    const resolvedTitle = buildSiteTitle({ siteName: apt, building: b, unit: u });
+    title = resolvedTitle;
     titleLineIndex = lines.findIndex((line) => {
       const compact = String(line || "").replace(/\s+/g, "");
       return compact.includes(`${b}동`) && (compact.includes(`${u}호`) || compact.includes(u));
     });
     titleDiag.steps.push({ step: titlePath, apartmentName: apt, building: b, unit: u, title, titleLineIndex });
     logTitleResolution({ titlePath, titleBefore, apartmentName: apt, building: b, unit: u, finalTitle: title });
-    return { title, titlePath, titleLineIndex, titleRemainder };
+    console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", title);
+    return {
+      title,
+      resolvedTitle,
+      parsedTitle: "",
+      legacyTitle: "",
+      titlePath,
+      titleLineIndex,
+      titleRemainder,
+    };
   }
 
   if (apt && apt.length >= 2 && !isExcludedTitleCandidate(apt)) {
@@ -369,7 +379,16 @@ function resolveScheduleTitle({
     title = apt;
     titleDiag.steps.push({ step: titlePath, apartmentName: apt, title });
     logTitleResolution({ titlePath, titleBefore, apartmentName: apt, building: b, unit: u, finalTitle: title });
-    return { title, titlePath, titleLineIndex, titleRemainder };
+    console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", title);
+    return {
+      title,
+      resolvedTitle: "",
+      parsedTitle: apt,
+      legacyTitle: "",
+      titlePath,
+      titleLineIndex,
+      titleRemainder,
+    };
   }
 
   for (let i = 0; i < Math.min(lines.length, 12); i++) {
@@ -393,7 +412,16 @@ function resolveScheduleTitle({
     titleDiag.titleSourceText = candidate;
     titleDiag.steps.push({ step: titlePath, lineIndex: i, candidate, title, titleRemainder });
     logTitleResolution({ titlePath, titleBefore, apartmentName: apt, building: b, unit: u, finalTitle: title });
-    return { title, titlePath, titleLineIndex, titleRemainder };
+    console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", title);
+    return {
+      title,
+      resolvedTitle: "",
+      parsedTitle: title,
+      legacyTitle: "",
+      titlePath,
+      titleLineIndex,
+      titleRemainder,
+    };
   }
 
   titlePath = "priority4_legacy_fallback";
@@ -413,7 +441,16 @@ function resolveScheduleTitle({
   if (!titleSource) {
     titleDiag.steps.push({ step: "no_valid_title_line" });
     logTitleResolution({ titlePath, titleBefore, apartmentName: apt, building: b, unit: u, finalTitle: "" });
-    return { title: "", titlePath, titleLineIndex, titleRemainder: "" };
+    console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", "");
+    return {
+      title: "",
+      resolvedTitle: "",
+      parsedTitle: "",
+      legacyTitle: "",
+      titlePath,
+      titleLineIndex,
+      titleRemainder: "",
+    };
   }
 
   titleDiag.titleSourceLine = titleLineIndex;
@@ -436,7 +473,16 @@ function resolveScheduleTitle({
   }
 
   logTitleResolution({ titlePath, titleBefore, apartmentName: apt, building: b, unit: u, finalTitle: title });
-  return { title, titlePath, titleLineIndex, titleRemainder };
+  console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", title);
+  return {
+    title,
+    resolvedTitle: "",
+    parsedTitle: "",
+    legacyTitle: title,
+    titlePath,
+    titleLineIndex,
+    titleRemainder,
+  };
 }
 
 function isSiteInfoLine(line, fieldParse) {
@@ -555,6 +601,9 @@ export function parseSchedulePasteText(text, options = {}) {
   titleRemainder = titleResolved.titleRemainder;
   titleLineIndex = titleResolved.titleLineIndex;
   titleDiag.path = titleResolved.titlePath;
+  const resolvedTitle = titleResolved.resolvedTitle || "";
+  const parsedTitle = titleResolved.parsedTitle || "";
+  const legacyTitle = titleResolved.legacyTitle || "";
 
   const mergedUnitLineIndexes = new Set();
   if (title && !hasUnitInTitle(title) && !(building && unit)) {
@@ -629,6 +678,11 @@ export function parseSchedulePasteText(text, options = {}) {
   return {
     ok,
     title: title || null,
+    finalTitle: title || null,
+    resolvedTitle: resolvedTitle || null,
+    parsedTitle: parsedTitle || null,
+    legacyTitle: legacyTitle || null,
+    resolvedTitleSource: building && unit ? { apartmentName, building, unit } : null,
     dateKey,
     startTime,
     endTime,

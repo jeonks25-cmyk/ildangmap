@@ -85,6 +85,7 @@ describe("siteFieldParser", () => {
       { source: "ocr" }
     );
     expect(result.title).toBe("장재계룡 1109동 1402호");
+    expect(result.resolvedTitle).toBe("장재계룡 1109동 1402호");
     expect(result.titleDiag.path).toMatch(/^priority1_/);
     expect(result.structureOk).toBe(true);
   });
@@ -128,5 +129,33 @@ a`);
     expect(result.startTime).toBeNull();
     expect(result.endTime).toBeNull();
     expect(result.title).toBe("장재계룡 1109동 1402호");
+  });
+});
+
+describe("scheduleFormApplyTitle", () => {
+  test("폼 반영 — resolvedTitle이 OCR garbage title보다 우선", () => {
+    const { applyScheduleImportTitleToForm } = require("../../schedule-ocr/utils/scheduleFormApplyTitle");
+    const applied = applyScheduleImportTitleToForm(
+      {
+        title: "KT12:52SM@0627all",
+        finalTitle: "KT12:52SM@0627all",
+        resolvedTitle: "장재계룡 1109동 1402호",
+        structureTrace: { siteName: "장재계룡", building: "1109", unit: "1402" },
+      },
+      { log: false }
+    );
+    expect(applied).toBe("장재계룡 1109동 1402호");
+  });
+
+  test("폼 반영 — structureTrace만 있어도 resolvedTitle 재계산", () => {
+    const { applyScheduleImportTitleToForm } = require("../../schedule-ocr/utils/scheduleFormApplyTitle");
+    const applied = applyScheduleImportTitleToForm(
+      {
+        title: "KT12:52",
+        structureTrace: { siteName: "장재계룡", building: "1109", unit: "1402" },
+      },
+      { log: false }
+    );
+    expect(applied).toBe("장재계룡 1109동 1402호");
   });
 });
