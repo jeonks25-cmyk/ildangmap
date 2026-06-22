@@ -188,4 +188,22 @@ describe("scheduleFormApplyTitle", () => {
     expect(result.title).toBe("장재계룡 1109동 1402호");
     expect(result.title).not.toMatch(/^KT/i);
   });
+
+  test("발신자명(장재열) — 동호 붙은 현장명(장재계룡) 우선", () => {
+    const result = parseSiteFields(`장재열
+안방붙박이장
+장재계룡계룡1109동1402호
+공동비번:0507`);
+    expect(result.siteName).toBe("장재계룡");
+    expect(result.building).toBe("1109");
+    expect(result.unit).toBe("1402");
+    expect(result.final.title).toBe("장재계룡 1109동 1402호");
+    expect(result.debug?.selectedSite).toBe("장재계룡");
+    const scores = result.debug?.siteNameScores || [];
+    const gyeryong = scores.find((c) => c.text === "장재계룡");
+    const jaeyeol = scores.find((c) => c.text === "장재열");
+    if (gyeryong && jaeyeol) {
+      expect(gyeryong.score).toBeGreaterThan(jaeyeol.score);
+    }
+  });
 });

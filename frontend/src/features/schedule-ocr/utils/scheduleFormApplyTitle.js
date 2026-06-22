@@ -20,6 +20,7 @@ function getStructureFields(result) {
       ""
   ).trim();
   const siteNameCandidates = [
+    result?.structureTrace?.debug?.selectedSite,
     result?.resolvedTitleSource?.apartmentName,
     result?.structureMetrics?.siteName,
     result?.structureTrace?.siteName,

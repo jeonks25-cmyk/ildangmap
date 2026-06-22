@@ -5,6 +5,12 @@
 
 import { APT_COMPLEX_BRANDS } from "../normalizer/siteNameDictionary";
 import { isStructureDebugEnabled } from "./siteImportStructureMetrics";
+import {
+  scoreSiteNameCandidates,
+  logSiteNameCandidateSelection,
+  isKakaoSenderLine,
+  isLikelyPersonName,
+} from "./siteNameCandidateScorer";
 
 const DONG_HO_COMPACT_RE = /(\d{3,4})동(\d{2,4})호/gu;
 const DONG_HO_SPACED_RE = /(\d{3,4})\s*동\s*(\d{2,4})\s*호/gu;
@@ -43,12 +49,18 @@ function extractHangulSiteNameFromGarbage(text) {
 }
 
 export function pickPlausibleApartmentName(...candidates) {
+  const scored = candidates.find((c) => c && typeof c === "object" && Array.isArray(c.siteCandidates));
+  if (scored?.selectedSite && isPlausibleSiteName(scored.selectedSite)) {
+    return scored.selectedSite;
+  }
+
   const seen = new Set();
   for (const raw of candidates.flat()) {
+    if (raw && typeof raw === "object") continue;
     const n = String(raw || "").trim();
     if (!n || seen.has(n)) continue;
     seen.add(n);
-    if (isPlausibleSiteName(n)) return n;
+    if (isPlausibleSiteName(n) && !isLikelyPersonName(n)) return n;
   }
   return "";
 }
@@ -301,11 +313,15 @@ function collectCrossLineMatches(lines) {
     for (let j = i - 1; j >= Math.max(0, i - 3); j--) {
       const prev = lines[j];
       if (isNoiseLine(prev)) continue;
+      if (isKakaoSenderLine(prev, j)) continue;
       if (/\d{3,4}\s*동/u.test(prev)) continue;
       const prevCompact = compactBlob(prev);
       if (HANGUL_SITE_LINE_RE.test(prevCompact) || /[가-힣]{2,}/u.test(prevCompact)) {
-        siteName = normalizeSiteNamePrefix(prevCompact);
-        if (siteName.length >= 2) break;
+        const candidate = normalizeSiteNamePrefix(prevCompact);
+        if (candidate.length >= 2 && !isLikelyPersonName(candidate, j)) {
+          siteName = candidate;
+          break;
+        }
       }
     }
 
@@ -326,13 +342,21 @@ function collectMatchesFromText(text, lineIndex = -1) {
   return collectFromRegex(text, lineIndex, patterns, lineIndex < 0 ? "full_blob" : "compact_dong_ho");
 }
 
-function pickBestSiteMatch(matches) {
+function pickBestSiteMatch(matches, nameSelection) {
   if (!matches.length) return null;
   const top = matches[0];
   if (!top.building || !top.unit) return top;
 
   const peers = matches.filter((m) => m.building === top.building && m.unit === top.unit);
-  const named = peers.find((m) => m.siteName && isPlausibleSiteName(m.siteName));
+  const selectedName = nameSelection?.selectedSite || "";
+
+  if (selectedName) {
+    const scoredPeer = peers.find((m) => m.siteName === selectedName);
+    if (scoredPeer) return scoredPeer;
+    return { ...top, siteName: selectedName };
+  }
+
+  const named = peers.find((m) => m.siteName && isPlausibleSiteName(m.siteName) && !isLikelyPersonName(m.siteName, m.lineIndex));
   if (named) return named;
 
   const nameless = peers.find((m) => !m.siteName);
@@ -382,13 +406,28 @@ export function parseSiteFields(text, options = {}) {
   }
 
   allMatches.sort((a, b) => b.score - a.score);
-  const best = pickBestSiteMatch(allMatches);
 
-  const siteNameCandidates = [...new Set(allMatches.map((m) => m.siteName).filter(Boolean))];
+  const buildingGuess = allMatches[0]?.building || "";
+  const unitGuess = allMatches[0]?.unit || "";
+  const nameSelection = scoreSiteNameCandidates({
+    rawText,
+    lines,
+    matches: allMatches,
+    building: buildingGuess,
+    unit: unitGuess,
+  });
+  logSiteNameCandidateSelection(nameSelection, buildingGuess, unitGuess);
+
+  const best = pickBestSiteMatch(allMatches, nameSelection);
+
+  const siteNameCandidates = [
+    ...nameSelection.siteCandidates.map((c) => c.text),
+    ...new Set(allMatches.map((m) => m.siteName).filter(Boolean)),
+  ].filter((v, i, arr) => arr.indexOf(v) === i);
   const buildingCandidates = [...new Set(allMatches.map((m) => m.building).filter(Boolean))];
   const unitCandidates = [...new Set(allMatches.map((m) => m.unit).filter(Boolean))];
 
-  const siteName = best?.siteName || "";
+  const siteName = nameSelection.selectedSite || best?.siteName || "";
   const building = best?.building || buildingCandidates[0] || "";
   const unit = best?.unit || unitCandidates[0] || "";
   const title = buildSiteTitle({ siteName, building, unit });
@@ -427,6 +466,12 @@ export function parseSiteFields(text, options = {}) {
         line: m.line?.slice(0, 80),
       })),
       bestScore: best?.score ?? 0,
+      siteNameScores: nameSelection.siteCandidates.map((c) => ({
+        text: c.text,
+        score: c.score,
+      })),
+      selectedSite: nameSelection.selectedSite,
+      senderLines: nameSelection.senderLines,
     },
   };
 
@@ -454,6 +499,8 @@ export function logSiteFieldParse(result, label = "site-field-parser") {
   console.log("정규화:", result.normalizedText);
   console.log("필터 줄:", result.filteredLines);
   console.log("현장명 후보:", result.siteNameCandidates);
+  console.log("현장명 점수:", result.debug?.siteNameScores);
+  console.log("선택 현장명:", result.debug?.selectedSite || result.siteName);
   console.log("동 후보:", result.buildingCandidates);
   console.log("호 후보:", result.unitCandidates);
   console.log("최종 선택:", result.final);
