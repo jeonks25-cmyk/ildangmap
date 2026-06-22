@@ -23,12 +23,28 @@ function chatResultToDraft(result, defaults = {}) {
 function logOcrEngineResult(ocrResult, label = "primary") {
   console.groupCollapsed(`${DIAG_PREFIX} OCR 엔진 결과 (${label})`);
   console.log("rawText (원문 전체):", ocrResult?.rawText ?? "—");
-  console.log("text (필터 후):", ocrResult?.text ?? "—");
   console.log("confidence:", ocrResult?.confidence);
+  console.log("정규화/후처리:", ocrResult?.ocrPostprocessText ?? ocrResult?.postprocessed?.text ?? "—");
+  console.log("text (필터 후):", ocrResult?.text ?? "—");
+  console.log("voting:", ocrResult?.voting ?? "—");
+  console.log("variantAttempts:", ocrResult?.variantAttempts?.map((a) => ({
+    variant: a.variant,
+    confidence: a.confidence,
+    charCount: a.charCount,
+  })));
   console.log("lineCount:", ocrResult?.lineCount);
   console.log("charCount:", ocrResult?.charCount);
   console.log("mode:", ocrResult?.mode);
   console.groupEnd();
+}
+
+function logFinalTitle(chatResult, label = "primary") {
+  console.log(`${DIAG_PREFIX} 최종 제목 (${label}):`, chatResult?.title ?? "—", {
+    structureOk: chatResult?.structureOk,
+    siteName: chatResult?.structureTrace?.siteName,
+    building: chatResult?.structureTrace?.building,
+    unit: chatResult?.structureTrace?.unit,
+  });
 }
 
 function logParseOutcome(ocrResult, chatResult, label = "primary") {
@@ -123,6 +139,7 @@ export async function runScheduleOcrImport(file, options = {}) {
   );
 
   logParseOutcome(ocrResult, chatResult, "kakao_crop");
+  logFinalTitle(chatResult, "kakao_crop");
 
   let finalOcrResult = ocrResult;
   let finalChatResult = chatResult;
@@ -142,6 +159,7 @@ export async function runScheduleOcrImport(file, options = {}) {
           { referenceDate }
         );
         logParseOutcome(retryOcr, retryChat, "no_crop_retry");
+        logFinalTitle(retryChat, "no_crop_retry");
         const retryScore = retryChat.structureTrace?.matchCount || 0;
         const firstScore = finalChatResult.structureTrace?.matchCount || 0;
         if (

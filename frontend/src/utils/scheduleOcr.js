@@ -1,4 +1,16 @@
 import { cropKakaoMessageRegion, filterKakaoOcrLines } from "./kakaoScreenshotCrop";
+import {
+  applyOcrPreprocessVariant,
+  CHAT_OCR_VARIANTS,
+  cloneCanvas,
+  detectDarkModeImage,
+  OCR_PREPROCESS_VARIANT,
+} from "./ocr/ocrImagePreprocessor";
+import {
+  pickBestOcrResult,
+  postprocessOcrText,
+} from "./ocr/ocrTextPostprocessor";
+import { buildSiteTitle, parseSiteFields } from "../features/site-import/parser/siteFieldParser";
 
 let ocrWorker = null;
 
@@ -15,6 +27,7 @@ export const SCHEDULE_OCR_STAGE = {
 };
 
 const OCR_DIAG_PREFIX = "[SCHEDULE-OCR]";
+const OCR_LANG = "kor+eng";
 
 function logScheduleOcrDiag(step, detail) {
   if (detail !== undefined) {
@@ -47,10 +60,6 @@ function formatOcrError(error) {
   return message;
 }
 
-/**
- * 공정표/캘린더 이미지 휴리스틱 (가로형·고해상도·파일명)
- * @returns {{ likelyTable: boolean, width: number, height: number, reason: string }}
- */
 export async function inspectScheduleImage(file) {
   const name = String(file?.name || "").toLowerCase();
   const nameHint = /공정|일정|캘린더|calendar|schedule|표/.test(name);
@@ -67,11 +76,7 @@ export async function inspectScheduleImage(file) {
       (width >= 700 && height >= 900 && aspect < 1.4) ||
       (pixels >= 1_500_000 && height > width);
 
-    const reason = nameHint
-      ? "filename"
-      : likelyTable
-        ? "layout"
-        : "chat";
+    const reason = nameHint ? "filename" : likelyTable ? "layout" : "chat";
 
     return { likelyTable, width, height, reason };
   } catch (error) {
@@ -92,10 +97,7 @@ async function loadImageSource(image) {
   return { source: bitmap, width: bitmap.width, height: bitmap.height, bitmap };
 }
 
-/**
- * 공정표 모드: 소형 글자 인식을 위해 확대 + 대비 강화
- */
-async function preprocessImageForOcr(image, mode, options = {}) {
+async function prepareBaseCanvas(image, mode, options = {}) {
   const useKakaoCrop = options.kakaoCrop !== false && mode === SCHEDULE_OCR_MODE.CHAT;
   let workingImage = image;
 
@@ -127,46 +129,43 @@ async function preprocessImageForOcr(image, mode, options = {}) {
     const scaleUp = Math.max(1, minTableWidth / width, 1.6);
     targetW = Math.min(Math.round(width * scaleUp), maxDim);
     targetH = Math.min(Math.round(height * (targetW / width)), maxDim);
-  } else if (Math.max(width, height) > maxDim) {
-    const scaleDown = maxDim / Math.max(width, height);
-    targetW = Math.round(width * scaleDown);
-    targetH = Math.round(height * scaleDown);
+  } else {
+    const scaleUp = Math.max(1, 1400 / Math.max(width, 1));
+    if (scaleUp > 1.05) {
+      targetW = Math.min(Math.round(width * scaleUp), maxDim);
+      targetH = Math.min(Math.round(height * (targetW / width)), maxDim);
+    } else if (Math.max(width, height) > maxDim) {
+      const scaleDown = maxDim / Math.max(width, height);
+      targetW = Math.round(width * scaleDown);
+      targetH = Math.round(height * scaleDown);
+    }
   }
 
   const canvas = document.createElement("canvas");
   canvas.width = targetW;
   canvas.height = targetH;
-  const ctx = canvas.getContext("2d", { willReadFrequently: isTable });
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) {
     bitmap?.close?.();
-    return image;
+    return { canvas: null, isDarkMode: false };
   }
 
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, targetW, targetH);
-  ctx.imageSmoothingEnabled = !isTable;
+  ctx.imageSmoothingEnabled = true;
   ctx.drawImage(source, 0, 0, targetW, targetH);
   bitmap?.close?.();
 
-  if (isTable) {
-    const imageData = ctx.getImageData(0, 0, targetW, targetH);
-    const { data } = imageData;
-    for (let i = 0; i < data.length; i += 4) {
-      const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-      const boosted = gray < 140 ? Math.max(0, gray - 25) : Math.min(255, gray + 20);
-      const v = boosted > 165 ? 255 : boosted < 95 ? 0 : boosted;
-      data[i] = data[i + 1] = data[i + 2] = v;
-    }
-    ctx.putImageData(imageData, 0, 0);
-  }
+  const probe = ctx.getImageData(0, 0, targetW, targetH);
+  const isDarkMode = detectDarkModeImage(probe);
 
-  return canvas;
+  return { canvas, isDarkMode };
 }
 
 async function getOcrWorker(onProgress) {
   if (ocrWorker) return ocrWorker;
   const { createWorker } = await import("tesseract.js");
-  ocrWorker = await createWorker("kor+eng", 1, {
+  ocrWorker = await createWorker(OCR_LANG, 1, {
     logger: (message) => {
       if (!onProgress) return;
       if (message.status === "recognizing text" || message.status === "loading language traineddata") {
@@ -177,39 +176,184 @@ async function getOcrWorker(onProgress) {
   return ocrWorker;
 }
 
-async function runOcrAttempt(image, mode, onProgress, options = {}) {
-  const worker = await getOcrWorker(onProgress);
-  const isTable = mode === SCHEDULE_OCR_MODE.TABLE;
-  const input = await preprocessImageForOcr(image, mode, options);
-
-  const { PSM } = await import("tesseract.js");
+async function recognizeCanvas(worker, canvas, psmMode) {
   await worker.setParameters({
-    tessedit_pageseg_mode: isTable ? PSM.SPARSE_TEXT : PSM.AUTO,
+    tessedit_pageseg_mode: psmMode,
+  });
+  const { data } = await worker.recognize(canvas);
+  return data;
+}
+
+function buildOcrAttemptFromData(data, variant, preprocess) {
+  const rawText = String(data.text || "");
+  const text = normalizeOcrText(rawText);
+  return {
+    variant,
+    preprocess,
+    text,
+    rawText,
+    confidence: Number(data.confidence) || 0,
+    charCount: text.length,
+    lineCount: text ? text.split("\n").length : 0,
+    words: Array.isArray(data.words)
+      ? data.words.map((w) => ({
+          text: w.text,
+          confidence: w.confidence,
+          bbox: w.bbox,
+        }))
+      : [],
+  };
+}
+
+function logOcrConfidenceReport({
+  variantAttempts,
+  winner,
+  postprocessed,
+  voting,
+}) {
+  console.group(`${OCR_DIAG_PREFIX} OCR confidence report`);
+  console.log("언어:", OCR_LANG);
+  console.log("voting:", voting);
+  variantAttempts.forEach((attempt) => {
+    console.log(`[${attempt.variant}] confidence=${attempt.confidence} chars=${attempt.charCount}`, {
+      preview: attempt.rawText.slice(0, 300),
+    });
+  });
+  console.log("선택 variant:", winner?.variant);
+  console.log("원문 (winner raw):", winner?.rawText ?? "—");
+  console.log("confidence:", winner?.confidence ?? 0);
+  console.log("정규화 결과:", postprocessed?.text ?? "—");
+  console.log("후처리 corrections:", postprocessed?.corrections ?? []);
+  const fieldParse = parseSiteFields(postprocessed?.text || "");
+  const finalTitle = fieldParse.structureOk ? fieldParse.final.title : buildSiteTitle(fieldParse);
+  console.log("최종 제목 (파서):", finalTitle || "—");
+  console.log("structureOk:", fieldParse.structureOk, {
+    siteName: fieldParse.siteName,
+    building: fieldParse.building,
+    unit: fieldParse.unit,
+  });
+  console.groupEnd();
+}
+
+async function runChatOcrMultiPass(image, onProgress, options = {}) {
+  const { canvas, isDarkMode } = await prepareBaseCanvas(image, SCHEDULE_OCR_MODE.CHAT, options);
+  if (!canvas) throw new Error("canvas_failed");
+
+  const worker = await getOcrWorker(onProgress);
+  const { PSM } = await import("tesseract.js");
+  const variantAttempts = [];
+
+  logScheduleOcrDiag("multi_pass_start", {
+    variants: CHAT_OCR_VARIANTS,
+    isDarkMode,
+    width: canvas.width,
+    height: canvas.height,
   });
 
-  const { data } = await worker.recognize(input);
-  let text = normalizeOcrText(data.text);
-  if (mode === SCHEDULE_OCR_MODE.CHAT && options.kakaoCrop !== false) {
+  for (const variant of CHAT_OCR_VARIANTS) {
+    const variantCanvas = cloneCanvas(canvas);
+    applyOcrPreprocessVariant(variantCanvas, variant, { isDarkMode });
+    const data = await recognizeCanvas(worker, variantCanvas, PSM.AUTO);
+    const attempt = buildOcrAttemptFromData(data, variant, `chat_${variant}`);
+    variantAttempts.push(attempt);
+    logScheduleOcrDiag("variant_result", {
+      variant,
+      confidence: attempt.confidence,
+      charCount: attempt.charCount,
+      preview: attempt.rawText.slice(0, 200),
+    });
+  }
+
+  const winner = pickBestOcrResult(variantAttempts);
+  if (!winner) {
+    return {
+      text: "",
+      rawText: "",
+      confidence: 0,
+      charCount: 0,
+      lineCount: 0,
+      words: [],
+      mode: SCHEDULE_OCR_MODE.CHAT,
+      preprocess: "chat_multi_pass",
+      variantAttempts,
+      voting: { strategy: "longest_weighted", winner: null },
+      postprocessed: null,
+    };
+  }
+
+  const postprocessed = postprocessOcrText(winner.rawText);
+  let text = normalizeOcrText(postprocessed.text);
+  if (options.kakaoCrop !== false) {
     text = filterKakaoOcrLines(text);
   }
-  const words = Array.isArray(data.words)
-    ? data.words.map((w) => ({
-        text: w.text,
-        confidence: w.confidence,
-        bbox: w.bbox,
-      }))
-    : [];
+
+  const voting = {
+    strategy: "longest_weighted",
+    winner: winner.variant,
+    candidates: variantAttempts.map((a) => ({
+      variant: a.variant,
+      confidence: a.confidence,
+      charCount: a.charCount,
+    })),
+  };
+
+  logOcrConfidenceReport({ variantAttempts, winner, postprocessed, voting });
 
   return {
     text,
-    confidence: Number(data.confidence) || 0,
-    rawText: String(data.text || ""),
-    words,
-    mode,
-    preprocess: isTable ? "table_upscale_contrast" : "default",
-    lineCount: text ? text.split("\n").length : 0,
+    rawText: winner.rawText,
+    confidence: winner.confidence,
     charCount: text.length,
+    lineCount: text ? text.split("\n").length : 0,
+    words: winner.words,
+    mode: SCHEDULE_OCR_MODE.CHAT,
+    preprocess: "chat_multi_pass",
+    variantAttempts,
+    voting,
+    postprocessed,
+    ocrPostprocessText: postprocessed.text,
   };
+}
+
+async function runTableOcrAttempt(image, onProgress, options = {}) {
+  const { canvas, isDarkMode } = await prepareBaseCanvas(image, SCHEDULE_OCR_MODE.TABLE, options);
+  if (!canvas) throw new Error("canvas_failed");
+
+  const worker = await getOcrWorker(onProgress);
+  const { PSM } = await import("tesseract.js");
+
+  applyOcrPreprocessVariant(canvas, OCR_PREPROCESS_VARIANT.HIGH_CONTRAST, { isDarkMode });
+  const data = await recognizeCanvas(worker, canvas, PSM.SPARSE_TEXT);
+  const attempt = buildOcrAttemptFromData(data, "table", "table_upscale_contrast");
+  const postprocessed = postprocessOcrText(attempt.rawText);
+  let text = normalizeOcrText(postprocessed.text);
+
+  logOcrConfidenceReport({
+    variantAttempts: [attempt],
+    winner: attempt,
+    postprocessed,
+    voting: { strategy: "single_table", winner: "table" },
+  });
+
+  return {
+    text,
+    rawText: attempt.rawText,
+    confidence: attempt.confidence,
+    charCount: text.length,
+    lineCount: text ? text.split("\n").length : 0,
+    words: attempt.words,
+    mode: SCHEDULE_OCR_MODE.TABLE,
+    preprocess: attempt.preprocess,
+    postprocessed,
+    ocrPostprocessText: postprocessed.text,
+  };
+}
+
+async function runOcrAttempt(image, mode, onProgress, options = {}) {
+  if (mode === SCHEDULE_OCR_MODE.CHAT) {
+    return runChatOcrMultiPass(image, onProgress, options);
+  }
+  return runTableOcrAttempt(image, onProgress, options);
 }
 
 function resolveModes(requestedMode, profile) {
@@ -219,11 +363,6 @@ function resolveModes(requestedMode, profile) {
   return [SCHEDULE_OCR_MODE.CHAT, SCHEDULE_OCR_MODE.TABLE];
 }
 
-/**
- * @param {File|Blob|string} image
- * @param {{ onProgress?: (progress: number, status?: string) => void, mode?: string }} [options]
- * @returns {Promise<{ text: string, confidence: number, stage: string, mode: string, attempts: object[], rawText?: string, charCount: number, lineCount: number }>}
- */
 export async function extractTextFromScheduleImage(image, options = {}) {
   const profile = await inspectScheduleImage(image);
   const modes = resolveModes(options.mode || SCHEDULE_OCR_MODE.AUTO, profile);
@@ -231,6 +370,7 @@ export async function extractTextFromScheduleImage(image, options = {}) {
   logScheduleOcrDiag("start", {
     modes,
     profile,
+    lang: OCR_LANG,
     fileName: image?.name || "(blob)",
     fileSize: image?.size || null,
   });
@@ -241,7 +381,13 @@ export async function extractTextFromScheduleImage(image, options = {}) {
   for (const mode of modes) {
     try {
       const result = await runOcrAttempt(image, mode, options.onProgress, options);
-      attempts.push({ mode, ok: true, charCount: result.charCount, confidence: result.confidence });
+      attempts.push({
+        mode,
+        ok: true,
+        charCount: result.charCount,
+        confidence: result.confidence,
+        voting: result.voting,
+      });
 
       logScheduleOcrDiag("response", {
         mode,
@@ -251,7 +397,8 @@ export async function extractTextFromScheduleImage(image, options = {}) {
         preprocess: result.preprocess,
         textPreview: result.text.slice(0, 500),
         rawPreview: result.rawText.slice(0, 500),
-        wordsSample: result.words?.slice(0, 12),
+        postprocessPreview: result.ocrPostprocessText?.slice(0, 500),
+        voting: result.voting,
       });
 
       if (!result.text.trim()) {
