@@ -2,7 +2,7 @@ import { isMockApiEnabled, runApiRequest } from "./client";
 import { readJsonStorage, removeStorageKey, writeJsonStorage } from "../store/storeUtils";
 import { SCHEDULES_STORAGE_KEY } from "../utils/scheduleModel";
 import { migrateSchedule } from "../utils/scheduleModel";
-import { scheduleDiag } from "../utils/scheduleSyncDiag";
+import { scheduleDiag, schedulePersistTrace, payloadByteLength } from "../utils/scheduleSyncDiag";
 
 const LEGACY_SETTLEMENT_STORE_KEY = "ildangmap_settlement_store_v2";
 const FIELD_OPS_STORAGE_KEY = "ildangmap.scheduleFieldOps.v1";
@@ -122,39 +122,78 @@ function resolveUseMock() {
 
 export async function getSchedulesData() {
   scheduleDiag("GET /api/users/me/schedules");
-  const data = await runApiRequest({
-    path: "/api/users/me/schedules",
-    useMock: resolveUseMock(),
-    mock: () => {
-      const userId = readJsonStorage("ildangmap_user_store_v1", {})?.state?.profile?.id || 1;
-      return readMockSchedules(userId);
-    },
-  });
-  scheduleDiag("GET /api/users/me/schedules response", {
-    scheduleCount: data?.schedules?.length ?? 0,
-  });
-  return data;
+  schedulePersistTrace("GET_START", { path: "/api/users/me/schedules" });
+  try {
+    const data = await runApiRequest({
+      path: "/api/users/me/schedules",
+      useMock: resolveUseMock(),
+      mock: () => {
+        const userId = readJsonStorage("ildangmap_user_store_v1", {})?.state?.profile?.id || 1;
+        return readMockSchedules(userId);
+      },
+    });
+    const scheduleCount = data?.schedules?.length ?? 0;
+    scheduleDiag("GET /api/users/me/schedules response", { scheduleCount });
+    schedulePersistTrace("GET_OK", {
+      scheduleCount,
+      payloadBytes: payloadByteLength(data),
+      saveSuccess: true,
+    });
+    return data;
+  } catch (error) {
+    schedulePersistTrace("GET_FAIL", {
+      scheduleCount: 0,
+      saveSuccess: false,
+      message: error?.message,
+      status: error?.status,
+      code: error?.code,
+    });
+    throw error;
+  }
 }
 
 export async function putSchedulesData(payload) {
   const body = normalizeSchedulesPayload(payload);
-  scheduleDiag("PUT /api/users/me/schedules", {
-    scheduleCount: body.schedules?.length ?? 0,
-  });
-  const saved = await runApiRequest({
+  const scheduleCount = body.schedules?.length ?? 0;
+  const payloadBytes = payloadByteLength(body);
+  scheduleDiag("PUT /api/users/me/schedules", { scheduleCount });
+  schedulePersistTrace("PUT_START", {
     path: "/api/users/me/schedules",
-    method: "PUT",
-    body,
-    redirect: "manual",
-    useMock: resolveUseMock(),
-    mock: () => {
-      const userId = readJsonStorage("ildangmap_user_store_v1", {})?.state?.profile?.id || 1;
-      writeMockSchedules(userId, body);
-      return body;
-    },
+    scheduleCount,
+    payloadBytes,
   });
-  scheduleDiag("PUT /api/users/me/schedules response", {
-    scheduleCount: saved?.schedules?.length ?? 0,
-  });
-  return saved;
+  try {
+    const saved = await runApiRequest({
+      path: "/api/users/me/schedules",
+      method: "PUT",
+      body,
+      redirect: "manual",
+      useMock: resolveUseMock(),
+      mock: () => {
+        const userId = readJsonStorage("ildangmap_user_store_v1", {})?.state?.profile?.id || 1;
+        writeMockSchedules(userId, body);
+        return body;
+      },
+    });
+    scheduleDiag("PUT /api/users/me/schedules response", {
+      scheduleCount: saved?.schedules?.length ?? 0,
+    });
+    schedulePersistTrace("PUT_OK", {
+      scheduleCount: saved?.schedules?.length ?? scheduleCount,
+      payloadBytes: payloadByteLength(saved),
+      saveSuccess: true,
+      httpStatus: 200,
+    });
+    return saved;
+  } catch (error) {
+    schedulePersistTrace("PUT_FAIL", {
+      scheduleCount,
+      payloadBytes,
+      saveSuccess: false,
+      httpStatus: error?.status ?? null,
+      message: error?.message,
+      code: error?.code,
+    });
+    throw error;
+  }
 }

@@ -30,7 +30,7 @@ import {
 } from "./storeUtils";
 import { useContactsStore } from "./useContactsStore";
 import { useSettlementStore } from "./useSettlementStore";
-import { scheduleDiag } from "../utils/scheduleSyncDiag";
+import { scheduleDiag, schedulePersistTrace } from "../utils/scheduleSyncDiag";
 import { bootstrapBoardNotifications } from "../utils/boardNotificationBootstrap";
 import { useSiteBoardStore } from "./useSiteBoardStore";
 import { useNotificationStore } from "./useNotificationStore";
@@ -906,25 +906,64 @@ export const useUserStore = create(
         const settlement = useSettlementStore.getState();
         const sessionUserId = get().session?.user?.id ?? get().profile?.id ?? null;
         const scheduleCount = Array.isArray(settlement.schedules) ? settlement.schedules.length : 0;
+        schedulePersistTrace("LOGOUT_START", {
+          userId: sessionUserId != null ? String(sessionUserId) : null,
+          isAuthenticated: Boolean(get().session?.isAuthenticated),
+          scheduleCount,
+        });
         if (get().session?.isAuthenticated && scheduleCount > 0) {
           scheduleDiag("logout flush schedules start", {
             userId: sessionUserId != null ? String(sessionUserId) : null,
             scheduleCount,
           });
           try {
-            await settlement.flushSchedulesSync();
-            scheduleDiag("logout flush schedules OK", {
+            const flushed = await settlement.flushSchedulesSync();
+            if (flushed != null) {
+              schedulePersistTrace("LOGOUT_FLUSH_OK", {
+                userId: sessionUserId != null ? String(sessionUserId) : null,
+                scheduleCount: flushed?.schedules?.length ?? scheduleCount,
+                saveSuccess: true,
+              });
+              scheduleDiag("logout flush schedules OK", {
+                userId: sessionUserId != null ? String(sessionUserId) : null,
+                scheduleCount,
+              });
+            } else {
+              schedulePersistTrace("LOGOUT_FLUSH_SKIP", {
+                userId: sessionUserId != null ? String(sessionUserId) : null,
+                scheduleCount,
+                saveSuccess: false,
+              });
+              scheduleDiag("logout flush schedules skipped (sync returned null)", {
+                userId: sessionUserId != null ? String(sessionUserId) : null,
+                scheduleCount,
+              });
+            }
+          } catch (error) {
+            schedulePersistTrace("LOGOUT_FLUSH_FAIL", {
               userId: sessionUserId != null ? String(sessionUserId) : null,
               scheduleCount,
+              saveSuccess: false,
+              message: error?.message,
+              status: error?.status,
+              code: error?.code,
             });
-          } catch (error) {
             scheduleDiag("logout flush schedules failed", {
               userId: sessionUserId != null ? String(sessionUserId) : null,
               message: error?.message,
               status: error?.status,
             });
           }
+        } else {
+          schedulePersistTrace("LOGOUT_NO_FLUSH", {
+            userId: sessionUserId != null ? String(sessionUserId) : null,
+            isAuthenticated: Boolean(get().session?.isAuthenticated),
+            scheduleCount,
+          });
         }
+        schedulePersistTrace("LOGOUT_SESSION_CLEAR", {
+          userId: sessionUserId != null ? String(sessionUserId) : null,
+        });
         logoutSession().catch(() => {
           /* noop */
         });

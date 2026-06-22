@@ -33,7 +33,7 @@ import {
 } from "./useNotificationStore";
 import { createScheduleBriefingId, ensureScheduleBriefingIdValue } from "../utils/scheduleBoardAccess";
 import { useUserStore } from "./useUserStore";
-import { scheduleDiag } from "../utils/scheduleSyncDiag";
+import { scheduleDiag, schedulePersistTrace, payloadByteLength } from "../utils/scheduleSyncDiag";
 
 const STORE_KEY = "ildangmap_settlement_store_v2";
 
@@ -179,6 +179,11 @@ export const useSettlementStore = create(
       },
 
       resetSchedules: () => {
+        const beforeCount = Array.isArray(get().schedules) ? get().schedules.length : 0;
+        schedulePersistTrace("RESET", {
+          schedulesUserId: get().schedulesUserId,
+          scheduleCount: beforeCount,
+        });
         if (schedulesSyncTimer) {
           clearTimeout(schedulesSyncTimer);
           schedulesSyncTimer = null;
@@ -204,7 +209,16 @@ export const useSettlementStore = create(
       syncSchedulesToServer: async () => {
         const sessionUserId = bindSchedulesSyncContextIfAuthenticated();
         const userId = get().schedulesUserId || sessionUserId;
+        const scheduleCount = Array.isArray(get().schedules) ? get().schedules.length : 0;
         if (!userId || !get().schedulesLoaded) {
+          schedulePersistTrace("SYNC_SKIPPED", {
+            userId: userId != null ? String(userId) : null,
+            sessionUserId: sessionUserId != null ? String(sessionUserId) : null,
+            schedulesLoaded: get().schedulesLoaded,
+            scheduleCount,
+            saveSuccess: false,
+            reason: "not_ready",
+          });
           scheduleDiag("syncToServer skipped", {
             schedulesUserId: get().schedulesUserId,
             sessionUserId,
@@ -215,11 +229,23 @@ export const useSettlementStore = create(
         set({ schedulesSyncing: true, schedulesError: "" });
         try {
           const payload = get().buildSchedulesPayload();
+          const payloadBytes = payloadByteLength(payload);
+          schedulePersistTrace("SYNC_PUT", {
+            userId: String(userId),
+            scheduleCount: payload.schedules?.length ?? 0,
+            payloadBytes,
+          });
           scheduleDiag("syncToServer PUT", {
             userId,
             scheduleCount: payload.schedules?.length ?? 0,
           });
           const saved = await putSchedulesData(payload);
+          schedulePersistTrace("SYNC_SERVER_OK", {
+            userId: String(userId),
+            scheduleCount: saved?.schedules?.length ?? 0,
+            payloadBytes: payloadByteLength(saved),
+            saveSuccess: true,
+          });
           scheduleDiag("syncToServer OK", {
             userId,
             scheduleCount: saved?.schedules?.length ?? 0,
@@ -227,6 +253,14 @@ export const useSettlementStore = create(
           applyPayloadToSet(set, saved, get().briefingData);
           return saved;
         } catch (error) {
+          schedulePersistTrace("SYNC_SERVER_FAIL", {
+            userId: userId != null ? String(userId) : null,
+            scheduleCount,
+            saveSuccess: false,
+            message: error?.message,
+            status: error?.status,
+            code: error?.code,
+          });
           scheduleDiag("syncToServer error", {
             userId,
             message: error?.message,
@@ -246,6 +280,12 @@ export const useSettlementStore = create(
 
       bootstrapSchedules: async (userId) => {
         const uid = userId != null && userId !== "" ? String(userId) : null;
+        schedulePersistTrace("BOOTSTRAP_START", {
+          userId: uid,
+          schedulesUserId: get().schedulesUserId,
+          schedulesLoaded: get().schedulesLoaded,
+          localScheduleCount: Array.isArray(get().schedules) ? get().schedules.length : 0,
+        });
         if (!uid) {
           get().resetSchedules();
           return;
@@ -258,6 +298,11 @@ export const useSettlementStore = create(
           get().resetSchedules();
         }
         if (get().schedulesLoaded && get().schedulesUserId === uid) {
+          schedulePersistTrace("BOOTSTRAP_SKIP", {
+            userId: uid,
+            reason: "already_loaded",
+            scheduleCount: Array.isArray(get().schedules) ? get().schedules.length : 0,
+          });
           scheduleDiag("bootstrap skip — already loaded", { userId: uid });
           return;
         }
@@ -275,16 +320,25 @@ export const useSettlementStore = create(
           set({ loading: true, schedulesError: "" });
           try {
             const server = normalizeSchedulesPayload(await getSchedulesData());
+            const serverCount = server.schedules?.length ?? 0;
+            schedulePersistTrace("BOOTSTRAP_GET", {
+              userId: uid,
+              scheduleCount: serverCount,
+            });
             scheduleDiag("bootstrap GET /users/me/schedules", {
               userId: uid,
-              serverScheduleCount: server.schedules?.length ?? 0,
+              serverScheduleCount: serverCount,
             });
             if (hasSchedulesPayload(server)) {
               get().applySchedulesPayload(server);
               set({ schedulesUserId: uid, schedulesLoaded: true });
+              schedulePersistTrace("BOOTSTRAP_APPLY_SERVER", {
+                userId: uid,
+                scheduleCount: serverCount,
+              });
               scheduleDiag("bootstrap applied server payload", {
                 userId: uid,
-                scheduleCount: server.schedules?.length ?? 0,
+                scheduleCount: serverCount,
               });
               return;
             }
@@ -321,6 +375,7 @@ export const useSettlementStore = create(
 
             get().applySchedulesPayload(normalizeSchedulesPayload({ schedules: [], fieldOps: readAllFieldOps() }));
             set({ schedulesUserId: uid, schedulesLoaded: true });
+            schedulePersistTrace("BOOTSTRAP_EMPTY", { userId: uid, scheduleCount: 0 });
             scheduleDiag("bootstrap empty", { userId: uid });
           } catch (error) {
             scheduleDiag("bootstrap error", {

@@ -7,6 +7,29 @@ export function scheduleDiag(step, detail) {
   }
 }
 
+/** 영속화 경로 추적 — [SCHEDULE-PERSIST] (저장·sync·로그아웃·bootstrap) */
+export function schedulePersistTrace(phase, detail = {}) {
+  console.log(`[SCHEDULE-PERSIST] ${phase}`, {
+    at: new Date().toISOString(),
+    ...detail,
+  });
+}
+
+export function payloadByteLength(payload) {
+  try {
+    if (typeof Blob !== "undefined") {
+      return new Blob([JSON.stringify(payload)]).size;
+    }
+  } catch {
+    /* fall through */
+  }
+  try {
+    return JSON.stringify(payload).length;
+  } catch {
+    return 0;
+  }
+}
+
 export function scheduleDiagSaveResult(schedule) {
   if (!schedule) {
     scheduleDiag("save — no schedule");

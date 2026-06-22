@@ -42,7 +42,7 @@ import {
 } from "../utils/fieldMemoryStorage";
 import { getFieldProfileFamilyKey, getFieldProfileKey } from "../utils/fieldHistoryModel";
 import { recordSiteMemoryFromRegistration } from "../features/site-import/memory";
-import { scheduleDiagSaveResult, scheduleDiagCurrentUser } from "../utils/scheduleSyncDiag";
+import { scheduleDiagSaveResult, scheduleDiagCurrentUser, schedulePersistTrace } from "../utils/scheduleSyncDiag";
 import { trySyncSchedulesToServer } from "../utils/scheduleServerSync";
 import { hasVisibleIldangmapSessionCookie } from "../utils/sessionBootstrapFlow";
 
@@ -585,6 +585,14 @@ export function useScheduleFieldOps(selectedDateKey) {
         schedulesUserId: useSettlementStore.getState().schedulesUserId,
         hasSessionCookie: hasVisibleIldangmapSessionCookie(),
       });
+      schedulePersistTrace("SAVE_START", {
+        userId: (session?.user?.id ?? profile?.id ?? myUserId) != null
+          ? String(session?.user?.id ?? profile?.id ?? myUserId)
+          : null,
+        isAuthenticated: Boolean(session?.isAuthenticated),
+        isEdit: Boolean(id),
+        title: String(title || "").trim(),
+      });
 
       try {
         if (id) {
@@ -667,6 +675,14 @@ export function useScheduleFieldOps(selectedDateKey) {
               createdSchedule
             : createdSchedule;
         scheduleDiagSaveResult(latestSchedule);
+        schedulePersistTrace("SAVE_MEMORY_OK", {
+          userId: (session?.user?.id ?? profile?.id ?? myUserId) != null
+            ? String(session?.user?.id ?? profile?.id ?? myUserId)
+            : null,
+          scheduleId: latestSchedule?.id ?? null,
+          ownerId: latestSchedule?.createdByUserId ?? null,
+          scheduleCount: useSettlementStore.getState().schedules?.length ?? 0,
+        });
 
         const contacts = buildContactsList(
           favoriteById,
@@ -722,7 +738,18 @@ export function useScheduleFieldOps(selectedDateKey) {
             : "현장 일정을 저장했습니다"
         );
 
-        void trySyncSchedulesToServer({ showAppToast });
+        const syncOutcome = await trySyncSchedulesToServer({
+          showAppToast,
+          source: "handleSubmitSiteEntry",
+        });
+        schedulePersistTrace("SAVE_SYNC_DONE", {
+          userId: (session?.user?.id ?? profile?.id ?? myUserId) != null
+            ? String(session?.user?.id ?? profile?.id ?? myUserId)
+            : null,
+          scheduleId: latestSchedule?.id ?? null,
+          saveSuccess: Boolean(syncOutcome?.ok),
+          syncReason: syncOutcome?.reason ?? null,
+        });
       } catch (error) {
         console.error("[useScheduleFieldOps] handleSubmitSiteEntry failed", error);
         throw error instanceof Error ? error : new Error("현장 일정 저장에 실패했습니다");

@@ -8,9 +8,11 @@ import com.ildangmap.domain.schedule.UserSchedulesData;
 import com.ildangmap.global.exception.BadRequestException;
 import com.ildangmap.repository.UserSchedulesDataRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserSchedulesService {
@@ -22,17 +24,28 @@ public class UserSchedulesService {
 
     @Transactional(readOnly = true)
     public SchedulesPayloadDto getSchedules(Long userId) {
-        return repository.findByUserId(userId).map(this::deserialize).orElseGet(SchedulesPayloadDto::empty);
+        SchedulesPayloadDto payload =
+                repository.findByUserId(userId).map(this::deserialize).orElseGet(SchedulesPayloadDto::empty);
+        int scheduleCount = payload.getSchedules() != null ? payload.getSchedules().size() : 0;
+        log.info("[getSchedules] userId={} scheduleCount={}", userId, scheduleCount);
+        return payload;
     }
 
     @Transactional
     public SchedulesPayloadDto saveSchedules(Long userId, SchedulesPayloadDto payload) {
         SchedulesPayloadDto normalized = normalize(payload);
+        int scheduleCount = normalized.getSchedules() != null ? normalized.getSchedules().size() : 0;
         String json = serialize(normalized);
+        log.info(
+                "[saveSchedules] userId={} scheduleCount={} payloadBytes={}",
+                userId,
+                scheduleCount,
+                json.length());
         UserSchedulesData entity =
                 repository.findByUserId(userId).orElseGet(() -> UserSchedulesData.createEmpty(userId));
         entity.replacePayload(json);
         repository.save(entity);
+        log.info("[saveSchedules] saved userId={} entityId={} scheduleCount={}", userId, entity.getId(), scheduleCount);
         return normalized;
     }
 
