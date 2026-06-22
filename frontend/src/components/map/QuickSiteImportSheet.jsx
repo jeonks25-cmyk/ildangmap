@@ -12,8 +12,10 @@ import {
 import { searchKakaoPlaces } from "../../utils/mapPlaceSearch";
 import { normalizeActivityRegions } from "../../constants/activityRegions";
 import { useUserStore } from "../../store/useUserStore";
+import { useSettlementStore } from "../../store/useSettlementStore";
 import SiteImportChecklist, {
   SiteImportMultiScheduleList,
+  SiteMemoryRecommendation,
   SiteNameCandidatePicker,
 } from "./SiteImportChecklist";
 import {
@@ -52,6 +54,7 @@ function normalizeFieldDraft(draft, patch = {}) {
   if (patch.payAmount !== undefined) next.payAmount = patch.payAmount;
   if (patch.requiredItems !== undefined) next.details.requiredItems = patch.requiredItems;
   if (patch.craft) next.craft = patch.craft;
+  if (patch.calendarColor) next.calendarColor = patch.calendarColor;
   if (patch.title !== undefined) next.title = patch.title;
   if (patch.accessPassword !== undefined) next.details.accessPassword = patch.accessPassword;
   if (patch.housePassword !== undefined) next.details.housePassword = patch.housePassword;
@@ -98,9 +101,12 @@ export default function QuickSiteImportSheet({
   const [lastStructured, setLastStructured] = useState(null);
   const [siteNameCandidates, setSiteNameCandidates] = useState([]);
   const [selectedSiteName, setSelectedSiteName] = useState("");
+  const [memoryRecommendation, setMemoryRecommendation] = useState(null);
   const titleTouchedRef = useRef(false);
 
   const profileRegions = useUserStore((s) => s.profile?.regions ?? s.profile?.region);
+  const userId = useUserStore((s) => s.session?.userId ?? s.profile?.userId ?? "me");
+  const schedules = useSettlementStore((s) => s.schedules);
   const activityRegions = useMemo(
     () => normalizeActivityRegions(profileRegions, []),
     [profileRegions]
@@ -112,8 +118,10 @@ export default function QuickSiteImportSheet({
       activityRegions,
       recentAddresses: recentAddressOptions,
       kakao,
+      userId,
+      schedules,
     }),
-    [activityRegions, kakao, recentAddressOptions, selectedDateKey]
+    [activityRegions, kakao, recentAddressOptions, schedules, selectedDateKey, userId]
   );
 
   const isField = type === MAP_ITEM_TYPE.FIELD;
@@ -227,6 +235,7 @@ export default function QuickSiteImportSheet({
     setLastStructured(structured);
     setSiteNameCandidates(structured.siteNameCandidates || []);
     setSelectedSiteName("");
+    setMemoryRecommendation(structured.siteMemoryRecommendation || null);
     setQuickPatch((prev) => ({
       ...prev,
       ...patch,
@@ -296,6 +305,7 @@ export default function QuickSiteImportSheet({
     setMultiSchedules([]);
     setSiteNameCandidates([]);
     setSelectedSiteName("");
+    setMemoryRecommendation(null);
     setLastStructured(null);
     titleTouchedRef.current = false;
     try {
@@ -362,7 +372,7 @@ export default function QuickSiteImportSheet({
             rowPatch
           );
           if (!draft) continue;
-          await Promise.resolve(onSubmitField?.({ draft, source: "capture" }));
+          await Promise.resolve(onSubmitField?.({ draft, source: "capture", ocrText: text }));
         }
         onClose?.();
         return;
@@ -372,7 +382,9 @@ export default function QuickSiteImportSheet({
         normalizeFieldDraft(fieldDraft || createInitialJobPostDraft({ selectedDateKey, defaultCraft: seedCraft }), {
           title: fieldDraft?.title || siteNameSuggestions[0] || "",
         }) || createInitialJobPostDraft({ selectedDateKey, defaultCraft: seedCraft });
-      await Promise.resolve(onSubmitField?.({ draft, source: text.trim() ? "paste" : "capture" }));
+      await Promise.resolve(
+        onSubmitField?.({ draft, source: text.trim() ? "paste" : "capture", ocrText: text })
+      );
       onClose?.();
       return;
     }
@@ -495,6 +507,13 @@ export default function QuickSiteImportSheet({
                   selectedName={selectedSiteName}
                   rawName={lastStructured?.siteNameRaw || ""}
                   onSelect={handleSiteNameSelect}
+                />
+              ) : null}
+
+              {memoryRecommendation ? (
+                <SiteMemoryRecommendation
+                  recommendation={memoryRecommendation}
+                  memoryMatch={lastStructured?.memoryMatch}
                 />
               ) : null}
 

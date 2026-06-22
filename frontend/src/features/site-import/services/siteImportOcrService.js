@@ -66,6 +66,8 @@ export async function runSiteImportOcr(fileOrFiles, options = {}) {
     activityRegions: options.activityRegions,
     recentAddresses: options.recentAddresses,
     kakao: options.kakao,
+    userId: options.userId,
+    schedules: options.schedules,
   });
 
   const ocrResult = { ...lastOcrResult, text, filteredText: text, fileCount: files.length };

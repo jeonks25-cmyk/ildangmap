@@ -2807,6 +2807,67 @@
   color: #78716c;
 }
 
+.site-import-memory {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #eff6ff;
+  border: 1px solid rgba(37, 99, 235, 0.18);
+}
+
+.site-import-memory__title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #1e40af;
+}
+
+.site-import-memory__match {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #475569;
+}
+
+.site-import-memory__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.site-import-memory__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.site-import-memory__list span {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.site-import-memory__list strong {
+  color: #0f172a;
+  font-weight: 800;
+  text-align: right;
+}
+
+.site-import-memory__color {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.site-import-memory__color i {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
 .quick-site-import-sheet__suggest-list {
   margin: 0;
   padding: 0;

@@ -102,6 +102,7 @@ import {
   saveFieldVisitMemory,
 } from "../utils/fieldMemoryStorage";
 import { createFieldJobFromDraft } from "../utils/fieldJobDraftAdapter";
+import { recordSiteMemoryFromRegistration } from "../features/site-import/memory";
 import { scheduleDateKeyFromWorkDate } from "../utils/fieldScheduleModel";
 import { useSettlementStore } from "../store/useSettlementStore";
 import { getScheduleDurationDays } from "../utils/scheduleModel";
@@ -1052,7 +1053,7 @@ export default function MapPage() {
   );
 
   const handleCreateFieldFromDraft = useCallback(
-    async ({ draft }) => {
+    async ({ draft, ocrText = "" }) => {
       const job = createFieldJobFromDraft({
         draft,
         selectedDateKey,
@@ -1067,6 +1068,7 @@ export default function MapPage() {
         endDate,
         durationDays: saved?.durationDays || 1,
         source: "map-field-paste-registration",
+        calendarColor: draft?.calendarColor,
       });
       getScheduleMemoryKeys(createdSchedule || job, persisted || job).forEach((key) => {
         saveFieldVisitMemory(key, createVisitMemoryFromSchedule(createdSchedule || job, persisted || job));
@@ -1078,6 +1080,13 @@ export default function MapPage() {
           detail: (persisted || job)?.title || "",
           source: "map_registration",
         });
+      });
+      recordSiteMemoryFromRegistration({
+        userId: profile?.userId ?? profile?.applicantUserId ?? "me",
+        draft,
+        schedule: createdSchedule,
+        job: saved,
+        ocrText,
       });
       if (scheduleDate !== selectedDateKey) setSelectedDateKey(scheduleDate);
       setFieldImportResume(null);
@@ -1103,6 +1112,8 @@ export default function MapPage() {
       kakao,
       map,
       mapCenterOption,
+      profile?.applicantUserId,
+      profile?.userId,
       selectedDateKey,
       setSelectedDateKey,
       setSelectedJobId,

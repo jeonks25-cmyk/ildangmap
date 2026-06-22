@@ -8,7 +8,15 @@ import { inferCraftFromText } from "../extractor/craftInference";
 import { parseMultiSchedules } from "../extractor/multiScheduleParser";
 import { structureSiteInfoWithGpt } from "../../../api/siteImportApi";
 import { parsePastedFieldText } from "../../../utils/mapItemDraft";
-import { normalizeSiteName } from "../normalizer/siteNameNormalizer";
+import { normalizeSiteName, AUTO_SELECT_THRESHOLD } from "../normalizer/siteNameNormalizer";
+import {
+  applySiteMemoryCorrection,
+  buildMemorySiteNameCandidates,
+  buildSiteMemoryRecommendation,
+  mergeMemoryCandidates,
+  syncSiteMemoryFromSchedules,
+  loadSiteMemory,
+} from "../memory";
 
 const MIN_UNIT_CONFIDENCE = 0.55;
 
@@ -56,7 +64,7 @@ function enrichWithCraft(merged, ocrText) {
   return merged;
 }
 
-function toStructuredPayload(merged, source, normalization = null) {
+function toStructuredPayload(merged, source, normalization = null, memoryContext = null) {
   const needsSiteNameSelection = Boolean(normalization?.needsSelection);
   const apartmentName = needsSiteNameSelection
     ? merged.apartmentName
@@ -94,6 +102,10 @@ function toStructuredPayload(merged, source, normalization = null) {
       }
     : {};
 
+  const memoryBlock = memoryContext?.memoryMatch
+    ? { memoryMatch: memoryContext.memoryMatch }
+    : {};
+
   if (!ok) {
     return {
       title: "",
@@ -111,6 +123,7 @@ function toStructuredPayload(merged, source, normalization = null) {
       source,
       message: "현장 정보를 찾지 못했습니다",
       ...siteNameBlock,
+      ...memoryBlock,
     };
   }
 
@@ -130,6 +143,7 @@ function toStructuredPayload(merged, source, normalization = null) {
     source,
     message: "",
     ...siteNameBlock,
+    ...memoryBlock,
   };
 }
 
@@ -138,10 +152,28 @@ function toStructuredPayload(merged, source, normalization = null) {
  * @param {{ useGpt?: boolean, referenceDate?: Date, selectedDateKey?: string }} [options]
  */
 export async function structureSiteInfo(ocrText, options = {}) {
+  const userId = options.userId || "me";
+  let siteMemory =
+    options.siteMemory ||
+    (options.schedules?.length
+      ? syncSiteMemoryFromSchedules(userId, options.schedules)
+      : loadSiteMemory(userId));
+
   let extracted = extractSiteInfo(ocrText);
+  let memoryMatch = null;
+
+  if (siteMemory) {
+    const memoryResult = applySiteMemoryCorrection(extracted, ocrText, siteMemory);
+    extracted = memoryResult.extracted;
+    memoryMatch = memoryResult.memoryMatch;
+    if (memoryResult.memoryBoost > 0) {
+      extracted.confidence = Math.min(0.98, (extracted.confidence || 0) + memoryResult.memoryBoost * 0.08);
+    }
+  }
+
   extracted = enrichWithCraft(extracted, ocrText);
   let merged = extracted;
-  let source = "rule";
+  let source = memoryMatch ? "memory+rule" : "rule";
 
   if (options.useGpt !== false && ocrText.trim().length >= 4) {
     try {
@@ -173,6 +205,30 @@ export async function structureSiteInfo(ocrText, options = {}) {
         merged.confidence = Math.min(0.98, merged.confidence + 0.06);
       }
     }
+
+    if (siteMemory) {
+      const memoryCandidates = buildMemorySiteNameCandidates(
+        normalization.rawName || merged.apartmentName,
+        merged.building,
+        siteMemory
+      );
+      if (memoryCandidates.length) {
+        const mergedCandidates = mergeMemoryCandidates(memoryCandidates, normalization.candidates);
+        const top = mergedCandidates[0];
+        const autoFromMemory = top?.score >= AUTO_SELECT_THRESHOLD;
+        normalization = {
+          ...normalization,
+          candidates: mergedCandidates,
+          autoSelected: autoFromMemory || normalization.autoSelected,
+          normalizedName: autoFromMemory ? top.name : normalization.normalizedName,
+          needsSelection: !autoFromMemory && mergedCandidates.length >= 2,
+          confidence: Math.max(normalization.confidence || 0, top?.score || 0),
+        };
+        if (autoFromMemory) {
+          merged = { ...merged, apartmentName: top.name };
+        }
+      }
+    }
   }
 
   const multiSchedules = parseMultiSchedules(ocrText, {
@@ -180,9 +236,11 @@ export async function structureSiteInfo(ocrText, options = {}) {
     defaultDateKey: options.selectedDateKey,
   });
 
-  const payload = toStructuredPayload(merged, source, normalization);
+  const payload = toStructuredPayload(merged, source, normalization, { memoryMatch });
+  const recommendation = buildSiteMemoryRecommendation(payload, siteMemory);
   return {
     ...payload,
+    siteMemoryRecommendation: recommendation,
     multiSchedules: multiSchedules.length >= 2 ? multiSchedules : [],
   };
 }
@@ -209,7 +267,12 @@ export function structuredInfoToFormPatch(structured, ocrText, selectedDateKey =
     title,
     accessPassword: structured.commonPassword || pasted.accessPassword?.value || "",
     housePassword: structured.housePassword || "",
-    craft: structured.craft || pasted.craft?.value || undefined,
+    craft:
+      structured.craft ||
+      structured.siteMemoryRecommendation?.craft ||
+      pasted.craft?.value ||
+      undefined,
+    calendarColor: structured.siteMemoryRecommendation?.calendarColor || undefined,
     location: fullAddress
       ? {
           fullAddress,

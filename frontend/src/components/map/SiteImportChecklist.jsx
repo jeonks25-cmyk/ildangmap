@@ -82,6 +82,57 @@ export function SiteNameCandidatePicker({
   );
 }
 
+export function SiteMemoryRecommendation({ recommendation = null, memoryMatch = null }) {
+  if (!recommendation) return null;
+
+  return (
+    <section className="site-import-memory" aria-label="AI 현장 추천">
+      <p className="site-import-memory__title">AI 현장 추천</p>
+      {memoryMatch?.siteName ? (
+        <p className="site-import-memory__match">
+          기억된 현장 <strong>{memoryMatch.siteName}</strong>
+          {memoryMatch.registrationCount ? ` · 등록 ${memoryMatch.registrationCount}회` : ""}
+        </p>
+      ) : null}
+      <ul className="site-import-memory__list">
+        {recommendation.title ? (
+          <li>
+            <span>제목</span>
+            <strong>{recommendation.title}</strong>
+          </li>
+        ) : null}
+        {recommendation.craftLabel ? (
+          <li>
+            <span>공정</span>
+            <strong>{recommendation.craftLabel}</strong>
+          </li>
+        ) : null}
+        {recommendation.colorLabel ? (
+          <li>
+            <span>색상</span>
+            <strong className="site-import-memory__color">
+              <i style={{ background: recommendation.colorBg }} aria-hidden="true" />
+              {recommendation.colorLabel}
+            </strong>
+          </li>
+        ) : null}
+        {recommendation.participants?.length ? (
+          <li>
+            <span>참여자</span>
+            <strong>{recommendation.participants.join(", ")}</strong>
+          </li>
+        ) : null}
+        {recommendation.knownBuildings?.length ? (
+          <li>
+            <span>자주 가는 동</span>
+            <strong>{recommendation.knownBuildings.join(", ")}</strong>
+          </li>
+        ) : null}
+      </ul>
+    </section>
+  );
+}
+
 export function SiteImportMultiScheduleList({ rows = [], onToggle, onToggleAll }) {
   if (!rows.length) return null;
   const selectedCount = rows.filter((r) => r.selected !== false).length;

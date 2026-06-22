@@ -41,6 +41,7 @@ import {
   saveFieldVisitMemory,
 } from "../utils/fieldMemoryStorage";
 import { getFieldProfileFamilyKey, getFieldProfileKey } from "../utils/fieldHistoryModel";
+import { recordSiteMemoryFromRegistration } from "../features/site-import/memory";
 
 function parseDateKey(key) {
   const [y, m, d] = String(key).split("-").map(Number);
@@ -718,7 +719,7 @@ export function useScheduleFieldOps(selectedDateKey) {
   );
 
   const handleCreateFieldFromDraft = useCallback(
-    async ({ draft }) => {
+    async ({ draft, ocrText = "" }) => {
       const job = createFieldJobFromDraft({
         draft,
         selectedDateKey,
@@ -734,6 +735,7 @@ export function useScheduleFieldOps(selectedDateKey) {
         durationDays: saved?.durationDays || 1,
         source: "calendar-map-item-registration",
         briefingId: `briefing-sched-pending-${saved?.id || Date.now()}`,
+        calendarColor: draft?.calendarColor,
       });
       if (createdSchedule?.id) {
         updateSchedule?.(createdSchedule.id, {
@@ -751,6 +753,13 @@ export function useScheduleFieldOps(selectedDateKey) {
           source: "schedule_registration",
         });
       });
+      recordSiteMemoryFromRegistration({
+        userId: myUserId,
+        draft,
+        schedule: createdSchedule,
+        job: saved,
+        ocrText,
+      });
       setTeamInviteContext({
         job: saved,
         scheduleId: createdSchedule?.id || null,
@@ -761,7 +770,7 @@ export function useScheduleFieldOps(selectedDateKey) {
       showAppToast?.("현장 일정을 저장했습니다 · 팀원을 불러보세요");
       return persisted || job;
     },
-    [addScheduleFromJobMatch, createJobPost, fallbackLocation, selectedDateKey, showAppToast, updateSchedule]
+    [addScheduleFromJobMatch, createJobPost, fallbackLocation, myUserId, selectedDateKey, showAppToast, updateSchedule]
   );
 
   const handleSubmitMapItem = useCallback(

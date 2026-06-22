@@ -71,7 +71,7 @@ function isDateOrPasswordLine(line) {
 }
 
 /** 반복 접미사 제거: 장재계룡계룡 → 장재계룡 */
-function dedupeRepeatedSuffix(name) {
+export function dedupeRepeatedSuffix(name) {
   let s = String(name || "").trim();
   if (s.length < 4) return s;
   for (let len = 2; len <= Math.min(6, Math.floor(s.length / 2)); len++) {
