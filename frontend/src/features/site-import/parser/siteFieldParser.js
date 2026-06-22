@@ -32,6 +32,27 @@ export function dedupeRepeatedSuffix(name) {
   return s;
 }
 
+/** OCR 노이즈 접두에서 한글 현장명만 추출 (KT12:52…장재계룡QQ → 장재계룡) */
+function extractHangulSiteNameFromGarbage(text) {
+  const runs = String(text || "").match(/[가-힣]{2,10}/gu) || [];
+  for (const run of runs) {
+    const cleaned = dedupeRepeatedSuffix(run);
+    if (isPlausibleSiteName(cleaned)) return cleaned;
+  }
+  return "";
+}
+
+export function pickPlausibleApartmentName(...candidates) {
+  const seen = new Set();
+  for (const raw of candidates.flat()) {
+    const n = String(raw || "").trim();
+    if (!n || seen.has(n)) continue;
+    seen.add(n);
+    if (isPlausibleSiteName(n)) return n;
+  }
+  return "";
+}
+
 /** OCR 흔한 오인식 정규화 */
 export function normalizeOcrSiteText(text) {
   return String(text || "")
@@ -75,6 +96,13 @@ export function normalizeSiteNamePrefix(prefix) {
       name = dedupeRepeatedSuffix([before, brandPart, after].filter(Boolean).join(""));
       break;
     }
+  }
+
+  name = dedupeRepeatedSuffix(name);
+
+  if (!isPlausibleSiteName(name)) {
+    const extracted = extractHangulSiteNameFromGarbage(prefix);
+    if (extracted) name = extracted;
   }
 
   return dedupeRepeatedSuffix(name);
@@ -298,6 +326,24 @@ function collectMatchesFromText(text, lineIndex = -1) {
   return collectFromRegex(text, lineIndex, patterns, lineIndex < 0 ? "full_blob" : "compact_dong_ho");
 }
 
+function pickBestSiteMatch(matches) {
+  if (!matches.length) return null;
+  const top = matches[0];
+  if (!top.building || !top.unit) return top;
+
+  const peers = matches.filter((m) => m.building === top.building && m.unit === top.unit);
+  const named = peers.find((m) => m.siteName && isPlausibleSiteName(m.siteName));
+  if (named) return named;
+
+  const nameless = peers.find((m) => !m.siteName);
+  if (nameless) return nameless;
+
+  if (top.siteName && !isPlausibleSiteName(top.siteName)) {
+    return { ...top, siteName: "" };
+  }
+  return top;
+}
+
 /**
  * @param {string} text
  */
@@ -336,7 +382,7 @@ export function parseSiteFields(text, options = {}) {
   }
 
   allMatches.sort((a, b) => b.score - a.score);
-  const best = allMatches[0] || null;
+  const best = pickBestSiteMatch(allMatches);
 
   const siteNameCandidates = [...new Set(allMatches.map((m) => m.siteName).filter(Boolean))];
   const buildingCandidates = [...new Set(allMatches.map((m) => m.building).filter(Boolean))];

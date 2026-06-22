@@ -158,4 +158,34 @@ describe("scheduleFormApplyTitle", () => {
     );
     expect(applied).toBe("장재계룡 1109동 1402호");
   });
+
+  test("폼 반영 — 동·호 있으면 parsedTitle(KT garbage) 무시", () => {
+    const { applyScheduleImportTitleToForm } = require("../../schedule-ocr/utils/scheduleFormApplyTitle");
+    const applied = applyScheduleImportTitleToForm(
+      {
+        title: "KT12:525M@0627all",
+        parsedTitle: "KT12:525M@0627all",
+        structureTrace: {
+          siteName: "KT12:525M@0627all",
+          building: "1109",
+          unit: "1402",
+          siteNameCandidates: ["장재계룡"],
+        },
+      },
+      { log: false }
+    );
+    expect(applied).toBe("장재계룡 1109동 1402호");
+    expect(applied).not.toMatch(/^KT/i);
+  });
+
+  test("카톡 OCR 한 줄 blob — garbage 현장명 제외", () => {
+    const { parseSchedulePasteText } = require("../../../utils/schedulePasteParser");
+    const result = parseSchedulePasteText(
+      "KT12:525M@0627all&장재계룡QQhaCS서대문인테리어장재계룡1109동1402호",
+      { source: "ocr" }
+    );
+    expect(result.building || result.structureTrace?.building).toBe("1109");
+    expect(result.title).toBe("장재계룡 1109동 1402호");
+    expect(result.title).not.toMatch(/^KT/i);
+  });
 });

@@ -4,7 +4,7 @@
  * 현장 카톡 공지: 제목(현장명+동·호) · 날짜(없으면 내일) · 나머지→메모
  */
 
-import { parseSiteFields, isNoiseLine, buildSiteTitle } from "../features/site-import/parser/siteFieldParser";
+import { parseSiteFields, isNoiseLine, buildSiteTitle, pickPlausibleApartmentName } from "../features/site-import/parser/siteFieldParser";
 import {
   extractExplicitWorkTimes,
   isKakaoSendTimeLine,
@@ -337,13 +337,14 @@ function logTitleResolution({
  */
 function resolveScheduleTitle({
   apartmentName,
+  siteNameCandidates = [],
   building,
   unit,
   lines,
   referenceDate,
   titleDiag,
 }) {
-  const apt = String(apartmentName || "").trim();
+  const apt = pickPlausibleApartmentName(apartmentName, siteNameCandidates);
   const b = String(building || "").trim();
   const u = String(unit || "").trim();
   let title = "";
@@ -541,7 +542,11 @@ export function parseSchedulePasteText(text, options = {}) {
     debug: isStructureDebugEnabled(),
   });
   const siteInfoSnap = source === SCHEDULE_IMPORT_SOURCE.OCR ? extractSiteInfo(rawText) : null;
-  const apartmentName = fieldParse.siteName || siteInfoSnap?.apartmentName || "";
+  const apartmentName = pickPlausibleApartmentName(
+    fieldParse.siteName,
+    fieldParse.siteNameCandidates,
+    siteInfoSnap?.apartmentName
+  );
   const building = fieldParse.building || siteInfoSnap?.building || "";
   const unit = fieldParse.unit || siteInfoSnap?.unit || "";
   const structureOk = Boolean(fieldParse.structureOk || (building && unit));
@@ -591,6 +596,7 @@ export function parseSchedulePasteText(text, options = {}) {
 
   const titleResolved = resolveScheduleTitle({
     apartmentName,
+    siteNameCandidates: fieldParse.siteNameCandidates || [],
     building,
     unit,
     lines,
