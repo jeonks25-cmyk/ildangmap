@@ -8,6 +8,7 @@ import { inferCraftFromText } from "../extractor/craftInference";
 import { parseMultiSchedules } from "../extractor/multiScheduleParser";
 import { structureSiteInfoWithGpt } from "../../../api/siteImportApi";
 import { parsePastedFieldText } from "../../../utils/mapItemDraft";
+import { normalizeSiteName } from "../normalizer/siteNameNormalizer";
 
 const MIN_UNIT_CONFIDENCE = 0.55;
 
@@ -55,15 +56,48 @@ function enrichWithCraft(merged, ocrText) {
   return merged;
 }
 
-function toStructuredPayload(merged, source) {
-  const title = buildScheduleTitle(merged);
-  const checklist = buildSiteVerificationChecklist(merged);
+function toStructuredPayload(merged, source, normalization = null) {
+  const needsSiteNameSelection = Boolean(normalization?.needsSelection);
+  const apartmentName = needsSiteNameSelection
+    ? merged.apartmentName
+    : normalization?.normalizedName || merged.apartmentName;
+
+  const titleMerged = { ...merged, apartmentName };
+  const title = needsSiteNameSelection ? "" : buildScheduleTitle(titleMerged);
+  const checklist = buildSiteVerificationChecklist({ ...merged, apartmentName });
+  if (normalization?.needsSelection) {
+    const aptRow = checklist.find((row) => row.key === "apartment");
+    if (aptRow) {
+      aptRow.status = "warn";
+      aptRow.detail = `${normalization.rawName} — 후보 선택`;
+    }
+  } else if (
+    normalization?.autoSelected &&
+    normalization.normalizedName &&
+    normalization.normalizedName !== normalization.rawName
+  ) {
+    const aptRow = checklist.find((row) => row.key === "apartment");
+    if (aptRow) {
+      aptRow.detail = normalization.normalizedName;
+    }
+  }
   const ok = merged.hasUnit && merged.confidence >= MIN_UNIT_CONFIDENCE;
+
+  const siteNameBlock = normalization
+    ? {
+        siteNameRaw: normalization.rawName,
+        siteNameNormalized: normalization.normalizedName,
+        siteNameAutoSelected: normalization.autoSelected,
+        needsSiteNameSelection,
+        siteNameCandidates: normalization.candidates || [],
+        siteNameConfidence: normalization.confidence,
+      }
+    : {};
 
   if (!ok) {
     return {
       title: "",
-      apartmentName: merged.apartmentName || "",
+      apartmentName: apartmentName || "",
       building: merged.building || "",
       unit: merged.unit || "",
       commonPassword: merged.commonPassword || "",
@@ -76,12 +110,13 @@ function toStructuredPayload(merged, source) {
       ok: false,
       source,
       message: "현장 정보를 찾지 못했습니다",
+      ...siteNameBlock,
     };
   }
 
   return {
     title,
-    apartmentName: merged.apartmentName,
+    apartmentName,
     building: merged.building,
     unit: merged.unit,
     commonPassword: merged.commonPassword,
@@ -94,6 +129,7 @@ function toStructuredPayload(merged, source) {
     ok: true,
     source,
     message: "",
+    ...siteNameBlock,
   };
 }
 
@@ -120,29 +156,57 @@ export async function structureSiteInfo(ocrText, options = {}) {
     }
   }
 
+  let normalization = null;
+  if (merged.apartmentName && merged.apartmentName.length >= 2) {
+    normalization = await normalizeSiteName({
+      rawName: merged.apartmentName,
+      building: merged.building,
+      unit: merged.unit,
+      ocrText,
+      activityRegions: options.activityRegions,
+      recentAddresses: options.recentAddresses,
+      kakao: options.kakao,
+    });
+    if (normalization.autoSelected && normalization.normalizedName) {
+      merged = { ...merged, apartmentName: normalization.normalizedName };
+      if (normalization.confidence > 0.8) {
+        merged.confidence = Math.min(0.98, merged.confidence + 0.06);
+      }
+    }
+  }
+
   const multiSchedules = parseMultiSchedules(ocrText, {
     referenceDate: options.referenceDate,
     defaultDateKey: options.selectedDateKey,
   });
 
-  const payload = toStructuredPayload(merged, source);
+  const payload = toStructuredPayload(merged, source, normalization);
   return {
     ...payload,
     multiSchedules: multiSchedules.length >= 2 ? multiSchedules : [],
   };
 }
 
-export function structuredInfoToFormPatch(structured, ocrText, selectedDateKey = "") {
+export function structuredInfoToFormPatch(structured, ocrText, selectedDateKey = "", selectedSiteName = "") {
   if (!structured?.ok) {
     return { patch: {}, structured, applied: false };
   }
 
   const pasted = parsePastedFieldText(ocrText, selectedDateKey);
   const workDesc = (structured.workItems || []).filter(Boolean).join(" · ");
-  const fullAddress = buildAddressLine(structured) || pasted.address?.fullAddress || "";
+  const aptForTitle = selectedSiteName || (structured.needsSiteNameSelection ? "" : structured.apartmentName);
+  const title = buildScheduleTitle({
+    apartmentName: aptForTitle,
+    building: structured.building,
+    unit: structured.unit,
+  });
+  const fullAddress =
+    buildAddressLine({ ...structured, apartmentName: aptForTitle }) ||
+    pasted.address?.fullAddress ||
+    "";
 
   const patch = {
-    title: structured.title,
+    title,
     accessPassword: structured.commonPassword || pasted.accessPassword?.value || "",
     housePassword: structured.housePassword || "",
     craft: structured.craft || pasted.craft?.value || undefined,

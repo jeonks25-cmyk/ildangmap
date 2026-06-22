@@ -2739,6 +2739,74 @@
   color: #78716c;
 }
 
+.site-import-candidates {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fffbeb;
+  border: 1px solid rgba(217, 119, 6, 0.22);
+}
+
+.site-import-candidates__title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #92400e;
+}
+
+.site-import-candidates__raw {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: #78716c;
+}
+
+.site-import-candidates__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.site-import-candidates__btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(120, 113, 108, 0.18);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  color: #292524;
+  text-align: left;
+}
+
+.site-import-candidates__btn.is-selected {
+  border-color: #15803d;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.site-import-candidates__score {
+  font-size: 12px;
+  font-weight: 800;
+  color: #b45309;
+}
+
+.site-import-candidates__btn.is-selected .site-import-candidates__score {
+  color: #15803d;
+}
+
+.site-import-candidates__detail {
+  display: block;
+  margin: 4px 0 0 12px;
+  font-size: 11px;
+  color: #78716c;
+}
+
 .quick-site-import-sheet__suggest-list {
   margin: 0;
   padding: 0;

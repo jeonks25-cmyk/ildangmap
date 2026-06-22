@@ -6,6 +6,8 @@ function iconForStatus(status) {
   return "✗";
 }
 
+const CIRCLED_NUMBERS = ["①", "②", "③", "④", "⑤"];
+
 export default function SiteImportChecklist({ checklist = [], title = "인식 결과" }) {
   if (!checklist.length) return null;
 
@@ -33,6 +35,48 @@ export default function SiteImportChecklist({ checklist = [], title = "인식 �
             )}
           </li>
         ))}
+      </ul>
+    </section>
+  );
+}
+
+export function SiteNameCandidatePicker({
+  candidates = [],
+  selectedName = "",
+  rawName = "",
+  onSelect,
+}) {
+  if (!candidates.length) return null;
+
+  return (
+    <section className="site-import-candidates" aria-label="현장명 후보">
+      <p className="site-import-candidates__title">현장명 후보</p>
+      {rawName ? (
+        <p className="site-import-candidates__raw">
+          OCR 원문: <strong>{rawName}</strong>
+        </p>
+      ) : null}
+      <ul className="site-import-candidates__list">
+        {candidates.map((candidate, index) => {
+          const active = selectedName === candidate.name;
+          return (
+            <li key={`${candidate.name}-${index}`}>
+              <button
+                type="button"
+                className={`site-import-candidates__btn${active ? " is-selected" : ""}`}
+                onClick={() => onSelect?.(candidate)}
+              >
+                <span className="site-import-candidates__label">
+                  {CIRCLED_NUMBERS[index] || `${index + 1}.`} {candidate.name}
+                </span>
+                <span className="site-import-candidates__score">({candidate.scorePercent}%)</span>
+              </button>
+              {candidate.detail ? (
+                <small className="site-import-candidates__detail">{candidate.detail}</small>
+              ) : null}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

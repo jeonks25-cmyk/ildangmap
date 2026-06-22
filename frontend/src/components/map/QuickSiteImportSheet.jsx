@@ -10,7 +10,12 @@ import {
   suggestSiteNamesFromAddress,
 } from "../../utils/fieldSiteScheduleParser";
 import { searchKakaoPlaces } from "../../utils/mapPlaceSearch";
-import SiteImportChecklist, { SiteImportMultiScheduleList } from "./SiteImportChecklist";
+import { normalizeActivityRegions } from "../../constants/activityRegions";
+import { useUserStore } from "../../store/useUserStore";
+import SiteImportChecklist, {
+  SiteImportMultiScheduleList,
+  SiteNameCandidatePicker,
+} from "./SiteImportChecklist";
 import {
   multiScheduleRowToFormPatch,
   runSiteImportOcr,
@@ -90,7 +95,26 @@ export default function QuickSiteImportSheet({
   const [ocrApplied, setOcrApplied] = useState(false);
   const [multiSchedules, setMultiSchedules] = useState([]);
   const [baseOcrPatch, setBaseOcrPatch] = useState({});
+  const [lastStructured, setLastStructured] = useState(null);
+  const [siteNameCandidates, setSiteNameCandidates] = useState([]);
+  const [selectedSiteName, setSelectedSiteName] = useState("");
   const titleTouchedRef = useRef(false);
+
+  const profileRegions = useUserStore((s) => s.profile?.regions ?? s.profile?.region);
+  const activityRegions = useMemo(
+    () => normalizeActivityRegions(profileRegions, []),
+    [profileRegions]
+  );
+
+  const structureOptions = useMemo(
+    () => ({
+      selectedDateKey,
+      activityRegions,
+      recentAddresses: recentAddressOptions,
+      kakao,
+    }),
+    [activityRegions, kakao, recentAddressOptions, selectedDateKey]
+  );
 
   const isField = type === MAP_ITEM_TYPE.FIELD;
   const label = MAP_ITEM_TYPE_LABEL[type] || "현장 정보";
@@ -200,6 +224,9 @@ export default function QuickSiteImportSheet({
   }, [fieldDraft, isField, multiSchedules, ocrApplied, seedText, text, title]);
 
   const applyStructuredResult = (structured, patch, rawText) => {
+    setLastStructured(structured);
+    setSiteNameCandidates(structured.siteNameCandidates || []);
+    setSelectedSiteName("");
     setQuickPatch((prev) => ({
       ...prev,
       ...patch,
@@ -209,12 +236,36 @@ export default function QuickSiteImportSheet({
     setBaseOcrPatch(patch);
     setOcrChecklist(structured.checklist || []);
     setOcrApplied(true);
-    setOcrError("");
+    setOcrError(structured.needsSiteNameSelection ? "현장명 후보 중 하나를 선택해 주세요" : "");
     void rawText;
   };
 
+  const handleSiteNameSelect = (candidate) => {
+    if (!candidate?.name || !lastStructured) return;
+    setSelectedSiteName(candidate.name);
+    const { patch } = structuredInfoToFormPatch(lastStructured, text, selectedDateKey, candidate.name);
+    setQuickPatch((prev) => ({
+      ...prev,
+      ...patch,
+      location: patch.location
+        ? {
+            ...(prev.location || {}),
+            ...patch.location,
+            ...(candidate.lat && candidate.lng ? { lat: candidate.lat, lng: candidate.lng } : {}),
+          }
+        : prev.location,
+    }));
+    if (patch.location?.fullAddress) setAddressQuery(patch.location.fullAddress);
+    setOcrError("");
+    setOcrChecklist((prev) =>
+      prev.map((row) =>
+        row.key === "apartment" ? { ...row, status: "ok", detail: candidate.name } : row
+      )
+    );
+  };
+
   const handlePasteStructure = async (rawText) => {
-    const structured = await structureSiteInfo(rawText, { useGpt: true, selectedDateKey });
+    const structured = await structureSiteInfo(rawText, { useGpt: true, ...structureOptions });
     if (structured.multiSchedules?.length >= 2) {
       setMultiSchedules(structured.multiSchedules);
       const { patch } = structuredInfoToFormPatch(structured, rawText, selectedDateKey);
@@ -243,9 +294,12 @@ export default function QuickSiteImportSheet({
     setOcrChecklist([]);
     setOcrApplied(false);
     setMultiSchedules([]);
+    setSiteNameCandidates([]);
+    setSelectedSiteName("");
+    setLastStructured(null);
     titleTouchedRef.current = false;
     try {
-      const result = await runSiteImportOcr(files, { selectedDateKey, useGpt: true });
+      const result = await runSiteImportOcr(files, { useGpt: true, ...structureOptions });
       if (
         result.stage === SITE_IMPORT_OCR_STAGE.SUCCESS ||
         result.stage === SITE_IMPORT_OCR_STAGE.MULTI
@@ -433,6 +487,15 @@ export default function QuickSiteImportSheet({
 
               {ocrChecklist.length ? (
                 <SiteImportChecklist checklist={ocrChecklist} title="인식 결과" />
+              ) : null}
+
+              {siteNameCandidates.length >= 2 ? (
+                <SiteNameCandidatePicker
+                  candidates={siteNameCandidates}
+                  selectedName={selectedSiteName}
+                  rawName={lastStructured?.siteNameRaw || ""}
+                  onSelect={handleSiteNameSelect}
+                />
               ) : null}
 
               {multiSchedules.length >= 2 ? (

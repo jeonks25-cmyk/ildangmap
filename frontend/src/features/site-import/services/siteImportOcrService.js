@@ -63,6 +63,9 @@ export async function runSiteImportOcr(fileOrFiles, options = {}) {
     useGpt: options.useGpt !== false,
     referenceDate: options.referenceDate,
     selectedDateKey: options.selectedDateKey,
+    activityRegions: options.activityRegions,
+    recentAddresses: options.recentAddresses,
+    kakao: options.kakao,
   });
 
   const ocrResult = { ...lastOcrResult, text, filteredText: text, fileCount: files.length };

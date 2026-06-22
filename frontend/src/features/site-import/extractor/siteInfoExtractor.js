@@ -3,6 +3,9 @@
  */
 
 import { inferCraftFromText } from "./craftInference";
+import { APT_COMPLEX_BRANDS as DICT_APT_BRANDS } from "../normalizer/siteNameDictionary";
+
+export { APT_COMPLEX_BRANDS } from "../normalizer/siteNameDictionary";
 
 export const SITE_BRAND_NAMES = [
   "영림",
@@ -20,24 +23,7 @@ export const SITE_BRAND_NAMES = [
   "썬팅",
 ];
 
-/** 아파트 단지 브랜드 사전 */
-export const APT_COMPLEX_BRANDS = [
-  "자이",
-  "푸르지오",
-  "래미안",
-  "더샵",
-  "힐스테이트",
-  "아이파크",
-  "롯데캐슬",
-  "리슈빌",
-  "e편한세상",
-  "이편한세상",
-  "푸르지오",
-  "SK뷰",
-  "호반",
-  "우미",
-  "계룡",
-];
+const APT_COMPLEX_BRANDS = DICT_APT_BRANDS;
 
 const DONG_HO_GLOBAL_RE = /(\d{3,4})\s*동\s*(\d{2,4})\s*호/gu;
 const DONG_HO_COMPACT_RE = /(\d{3,4})동(\d{2,4})호/gu;
