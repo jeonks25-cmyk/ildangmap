@@ -6,6 +6,7 @@ import {
   resolveEntryParticipantNames,
 } from "../../utils/scheduleEntryHelpers";
 import { resolveScheduleBriefingId } from "../../utils/scheduleFieldOpsStorage";
+import { getScheduleBoardAccess } from "../../utils/scheduleBoardAccess";
 import FieldScheduleNoticeBoard from "./FieldScheduleNoticeBoard";
 import "../../styles/field-schedule-detail.css";
 
@@ -36,6 +37,17 @@ export default function ScheduleDetailSheet({
   const briefingId = useMemo(
     () => (entry?.kind === "site" && entry?.schedule ? resolveScheduleBriefingId(entry.schedule) : ""),
     [entry]
+  );
+  const boardAccess = useMemo(
+    () =>
+      entry?.schedule
+        ? getScheduleBoardAccess({
+            briefingId,
+            scheduleId: entry.schedule.id,
+            schedule: entry.schedule,
+          })
+        : { canRead: false, canWrite: false, role: "none" },
+    [briefingId, entry?.schedule]
   );
 
   if (!open || !entry) return null;
@@ -114,7 +126,11 @@ export default function ScheduleDetailSheet({
           <div className="schedule-detail-sheet-panel__board">
             <FieldScheduleNoticeBoard
               briefingId={briefingId}
+              scheduleId={entry.schedule?.id}
               siteTitle={entry.title || siteName || "현장 게시판"}
+              canWrite={boardAccess.canWrite}
+              canRead={boardAccess.canRead}
+              accessRole={boardAccess.role}
               onToast={onToast}
             />
           </div>

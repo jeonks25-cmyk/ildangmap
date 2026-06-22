@@ -30,6 +30,8 @@ import {
   emitScheduleCancelledNotification,
   emitScheduleCreatedNotification,
 } from "./useNotificationStore";
+import { createScheduleBriefingId, ensureScheduleBriefingIdValue } from "../utils/scheduleBoardAccess";
+import { useUserStore } from "./useUserStore";
 
 const STORE_KEY = "ildangmap_settlement_store_v2";
 
@@ -254,7 +256,14 @@ export const useSettlementStore = create(
         }),
 
       addSchedule: (schedule) => {
-        const next = migrateSchedule(schedule);
+        const viewerId = useUserStore.getState().session?.user?.id ?? useUserStore.getState().profile?.applicantUserId;
+        const next = migrateSchedule({
+          ...schedule,
+          briefingId: ensureScheduleBriefingIdValue(schedule),
+          createdByUserId:
+            schedule?.createdByUserId ??
+            (Number.isFinite(Number(viewerId)) && Number(viewerId) > 0 ? Number(viewerId) : null),
+        });
         set((state) => {
           const schedules = [next, ...(Array.isArray(state.schedules) ? state.schedules : [])];
           return {
@@ -267,7 +276,14 @@ export const useSettlementStore = create(
       },
 
       addScheduleFromJobMatch: (job, overrides = {}) => {
-        const schedule = createScheduleFromJobMatch(job, overrides);
+        const viewerId = useUserStore.getState().session?.user?.id ?? useUserStore.getState().profile?.applicantUserId;
+        const schedule = migrateSchedule({
+          ...createScheduleFromJobMatch(job, overrides),
+          briefingId: createScheduleBriefingId(),
+          createdByUserId:
+            overrides.createdByUserId ??
+            (Number.isFinite(Number(viewerId)) && Number(viewerId) > 0 ? Number(viewerId) : null),
+        });
         set((state) => {
           const schedules = [schedule, ...(Array.isArray(state.schedules) ? state.schedules : [])];
           return {

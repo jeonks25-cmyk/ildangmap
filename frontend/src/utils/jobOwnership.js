@@ -11,8 +11,10 @@ export function resolveViewerApplicantUserId(userSlice) {
   if (!userSlice || typeof userSlice !== "object") return null;
   const { session, profile } = userSlice;
   if (!session || session.isAuthenticated !== true) return null;
-  const n = Number(profile?.applicantUserId);
+  const n = Number(profile?.applicantUserId ?? profile?.userId ?? profile?.id);
   if (Number.isFinite(n) && n > 0) return n;
+  const sid = Number(session?.user?.id);
+  if (Number.isFinite(sid) && sid > 0) return sid;
   return null;
 }
 

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useSettlementStore } from "../store/useSettlementStore";
 import { useJobStore } from "../store/useJobStore";
@@ -18,6 +18,11 @@ import {
   scheduleToEditForm,
   countUnavailableForRequest,
 } from "../utils/scheduleFieldOpsStorage";
+import {
+  ensureScheduleBriefingIdValue,
+  getScheduleBoardAccess,
+  isLegacySyntheticBriefingId,
+} from "../utils/scheduleBoardAccess";
 import { buildUrgentHelpJobFromSchedule } from "../utils/urgentHelpFromSchedule";
 import ScheduleEditSheet from "../components/schedule/ScheduleEditSheet";
 import CalendarSaveButton from "../components/schedule/CalendarSaveButton";
@@ -73,7 +78,9 @@ export default function FieldScheduleDetailPage() {
   const updateSchedule = useSettlementStore((s) => s.updateSchedule);
   const createJobPost = useJobStore((s) => s.createJobPost);
   const showAppToast = useUiStore((s) => s.showAppToast);
-  const viewerId = useUserStore((s) => s.session?.userId ?? s.profile?.userId ?? 1);
+  const viewerId = useUserStore(
+    (s) => s.profile?.applicantUserId ?? s.session?.user?.id ?? s.profile?.userId ?? null
+  );
   const { openPersonCard } = usePersonCard();
 
   const [editOpen, setEditOpen] = useState(location.state?.action === "edit");
@@ -88,7 +95,25 @@ export default function FieldScheduleDetailPage() {
   }, [schedules, scheduleId, refreshKey]);
 
   const participants = useMemo(() => (schedule ? getScheduleParticipants(schedule) : []), [schedule]);
-  const briefingId = useMemo(() => resolveScheduleBriefingId(schedule), [schedule]);
+  const briefingId = useMemo(() => {
+    if (!schedule) return "";
+    return String(schedule.briefingId || "").trim() || resolveScheduleBriefingId(schedule);
+  }, [schedule]);
+
+  const boardAccess = useMemo(
+    () => getScheduleBoardAccess({ briefingId, scheduleId, schedule }),
+    [briefingId, schedule, scheduleId]
+  );
+
+  useEffect(() => {
+    if (!schedule?.id) return;
+    const stored = String(schedule.briefingId || "").trim();
+    if (stored && !isLegacySyntheticBriefingId(stored)) return;
+    const nextId = ensureScheduleBriefingIdValue(schedule);
+    if (stored === nextId) return;
+    updateSchedule(schedule.id, { briefingId: nextId });
+    setRefreshKey((k) => k + 1);
+  }, [schedule, updateSchedule]);
   const changeHistory = useMemo(
     () => {
       void refreshKey;
@@ -427,7 +452,11 @@ export default function FieldScheduleDetailPage() {
           <div id="field-board">
             <FieldScheduleNoticeBoard
               briefingId={briefingId}
+              scheduleId={schedule?.id}
               siteTitle={schedule?.title || "현장 게시판"}
+              canWrite={boardAccess.canWrite}
+              canRead={boardAccess.canRead}
+              accessRole={boardAccess.role}
               onToast={showAppToast}
             />
           </div>

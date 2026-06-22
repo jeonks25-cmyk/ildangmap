@@ -14,6 +14,7 @@ import {
 import { getApiErrorMessage } from "../api/client";
 import { emitSiteBoardPostNotification } from "./useNotificationStore";
 import { useSettlementStore } from "./useSettlementStore";
+import { resolveScheduleBriefingId } from "../utils/scheduleFieldOpsStorage";
 
 let siteBoardBootstrapInFlight = null;
 
@@ -158,16 +159,20 @@ export const useSiteBoardStore = create((set, get) => ({
       commentsByPostId: board.commentsByPostId || {},
     });
     const schedules = useSettlementStore.getState().schedules;
-    const schedule = (Array.isArray(schedules) ? schedules : []).find(
-      (s) => String(s?.briefingId || "").trim() === String(briefingId || "").trim()
-    );
-    emitSiteBoardPostNotification({
-      post,
-      schedule,
-      briefingId,
-      actorName: post.authorName,
-      recipientUserId: post.authorUserId,
-    });
+    const list = Array.isArray(schedules) ? schedules : [];
+    const bid = String(briefingId || "").trim();
+    const schedule =
+      list.find((s) => String(s?.briefingId || "").trim() === bid) ||
+      list.find((s) => resolveScheduleBriefingId(s) === bid);
+    if (post.postType === "general") {
+      emitSiteBoardPostNotification({
+        post,
+        schedule,
+        briefingId,
+        actorName: post.authorName,
+        recipientUserId: post.authorUserId,
+      });
+    }
     return post;
   },
 

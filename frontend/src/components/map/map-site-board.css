@@ -134,6 +134,13 @@
   font-weight: 900;
 }
 
+.site-board__read-only-hint {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #78716c;
+}
+
 .site-board__list {
   display: flex;
   flex-direction: column;

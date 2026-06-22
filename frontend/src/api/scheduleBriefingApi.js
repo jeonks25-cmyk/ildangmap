@@ -1,13 +1,15 @@
-import { createApiError } from "./client";
-import { useSettlementStore } from "../store/useSettlementStore";
-import { useUserStore } from "../store/useUserStore";
-import { loadStoredSchedules } from "../utils/scheduleModel";
+import { createApiError, getApiErrorMessage } from "./client";
 import { mergeStoredScheduleBriefingPostsWithDemo } from "../utils/demoFieldOpsSeeds";
 import { isDemoMode } from "../utils/demoMode";
-import { loadStoredJobs } from "../utils/jobsStorage";
-import { canAccessJobBriefing, migrateJob } from "../utils/jobModel";
-import { resolveViewerApplicantUserId } from "../utils/jobOwnership";
 import { useSiteBoardStore } from "../store/useSiteBoardStore";
+import { useUserStore } from "../store/useUserStore";
+import {
+  assertScheduleBoardRead,
+  assertScheduleBoardWrite,
+  findSchedulesByBriefingId,
+  mapBoardApiErrorMessage,
+  pickCanonicalSchedule,
+} from "../utils/scheduleBoardAccess";
 
 function normalizeWirePostType(t) {
   const s = String(t || "general").toLowerCase();
@@ -15,64 +17,23 @@ function normalizeWirePostType(t) {
   if (s === "help_request" || s === "help") return "help_request";
   if (s === "notice" || s === "announcement" || s === "공지") return "general";
   if (s === "question" || s === "질문") return "question";
-  if (s === "worklog" || s === "work_log" || s === "작업내용") return "worklog";
+  if (s === "worklog" || s === "work_log" || s === "작업내용" || s === "작업일지") return "worklog";
   if (s === "photo" || s === "work_photo" || s === "작업사진") return "photo";
   return "general";
 }
 
-function findSchedulesByBriefingId(briefingId) {
-  const bid = String(briefingId || "").trim();
-  if (!bid) return [];
-  const fromStore = useSettlementStore.getState().schedules;
-  const list = Array.isArray(fromStore) && fromStore.length ? fromStore : loadStoredSchedules();
-  return (Array.isArray(list) ? list : []).filter((s) => s && String(s.briefingId || "").trim() === bid);
-}
-
-function mockViewerId() {
-  const s = useUserStore.getState();
-  return resolveViewerApplicantUserId({
-    session: s.session,
-    profile: s.profile,
-    authReady: s.authReady,
-  });
-}
-
-function pickCanonicalSchedule(matches) {
-  if (!matches.length) return null;
-  const nonJoin = matches.filter((s) => !s.joinedFromScheduleId);
-  const withOwner = nonJoin.find((s) => s.createdByUserId != null) || nonJoin[0];
-  return withOwner || matches[0];
-}
-
-function assertScheduleBriefingAccess(briefingId) {
-  if (isDemoMode()) return 1;
-  const viewer = mockViewerId();
-  if (viewer == null || !Number.isFinite(Number(viewer))) {
-    throw createApiError("로그인이 필요합니다.", 401);
+async function ensureSiteBoardReady() {
+  const store = useSiteBoardStore.getState();
+  if (store.siteBoardLoaded) return;
+  const userId =
+    useUserStore.getState().session?.user?.id ??
+    useUserStore.getState().profile?.applicantUserId ??
+    useUserStore.getState().profile?.id;
+  if (userId != null) {
+    await store.bootstrapSiteBoards(userId).catch(() => {
+      /* bootstrapSiteBoards stores error in siteBoardError */
+    });
   }
-  const matches = findSchedulesByBriefingId(briefingId);
-  if (!matches.length) {
-    throw createApiError("일정을 찾을 수 없습니다.", 404);
-  }
-  const primary = pickCanonicalSchedule(matches);
-  if (!primary) throw createApiError("일정을 찾을 수 없습니다.", 404);
-
-  const ownerId = Number(primary.createdByUserId);
-  if (!Number.isFinite(ownerId) || ownerId <= 0) return Number(viewer);
-  if (ownerId === viewer) return Number(viewer);
-  if (matches.some((s) => s.acceptedParticipantUserId === viewer)) return Number(viewer);
-  const invOk = matches.some((s) =>
-    (s.scheduleInvites || []).some(
-      (i) => i.userId === viewer && (String(i.status).toLowerCase() === "accepted" || String(i.status).toLowerCase() === "confirmed")
-    )
-  );
-  if (invOk) return Number(viewer);
-  if (primary.jobId != null) {
-    const jobs = loadStoredJobs().map(migrateJob);
-    const job = jobs.find((j) => j && Number(j.id) === Number(primary.jobId));
-    if (job && canAccessJobBriefing(job, viewer)) return Number(viewer);
-  }
-  throw createApiError("이 현장 게시판에 접근할 수 없습니다.", 403);
 }
 
 function mapPost(p) {
@@ -145,63 +106,75 @@ function buildRoomFromSchedule(schedule) {
   };
 }
 
-export async function fetchScheduleBriefingRoom(briefingId) {
+export async function fetchScheduleBriefingRoom(briefingId, scheduleId) {
   const id = String(briefingId || "").trim();
   if (!id) throw createApiError("일정을 찾을 수 없습니다.", 404);
-  const rows = findSchedulesByBriefingId(id);
+  assertScheduleBoardRead({ briefingId: id, scheduleId });
+  const rows = findSchedulesByBriefingId(id, scheduleId);
   if (!rows.length) throw createApiError("일정을 찾을 수 없습니다.", 404);
-  assertScheduleBriefingAccess(id);
   return buildRoomFromSchedule(pickCanonicalSchedule(rows));
 }
 
-export async function fetchScheduleBriefingPosts(briefingId) {
+export async function fetchScheduleBriefingPosts(briefingId, scheduleId) {
   const id = String(briefingId || "").trim();
   if (!id) return [];
-  assertScheduleBriefingAccess(id);
+  assertScheduleBoardRead({ briefingId: id, scheduleId });
+  await ensureSiteBoardReady();
   const store = useSiteBoardStore.getState();
   const board = await store.refreshBoard(id);
   const posts = Array.isArray(board?.posts) ? board.posts : store.getBoardSlice(id).posts;
-  return mergeStoredScheduleBriefingPostsWithDemo(id, posts, new Date()).map(mapPost);
+  const merged = isDemoMode() ? mergeStoredScheduleBriefingPostsWithDemo(id, posts, new Date()) : posts;
+  return merged.map(mapPost);
 }
 
-export async function fetchScheduleBriefingComments(briefingId, postId) {
+export async function fetchScheduleBriefingComments(briefingId, postId, scheduleId) {
   const id = String(briefingId || "").trim();
   if (!id || !postId) return [];
-  assertScheduleBriefingAccess(id);
+  assertScheduleBoardRead({ briefingId: id, scheduleId });
+  await ensureSiteBoardReady();
   const store = useSiteBoardStore.getState();
   await store.refreshBoard(id);
   const slice = store.getBoardSlice(id);
   return slice.commentsByPostId?.[String(postId)] || [];
 }
 
-export async function createScheduleBriefingPost(briefingId, { body, postType, imageDataUrl }) {
+export async function createScheduleBriefingPost(briefingId, { body, postType, imageDataUrl, scheduleId } = {}) {
   const id = String(briefingId || "").trim();
   if (!id) throw createApiError("일정을 찾을 수 없습니다.", 404);
   const safeImage =
     imageDataUrl && String(imageDataUrl).trim().startsWith("data:image/") ? String(imageDataUrl).trim() : null;
   if (safeImage && safeImage.length > 200_000) {
-    throw createApiError("첨부 이미지가 너무 큽니다.", 400);
+    throw createApiError("이미지 용량이 너무 큽니다.", 400);
   }
-  assertScheduleBriefingAccess(id);
+  assertScheduleBoardWrite({ briefingId: id, scheduleId });
   const text = String(body || "").trim();
   if (!text && !safeImage) throw createApiError("내용을 입력해 주세요.", 400);
-  const post = await useSiteBoardStore.getState().createPost(id, {
-    body: text,
-    postType: normalizeWirePostType(postType),
-    imageDataUrl: safeImage,
-  });
-  return mapPost(post);
+  await ensureSiteBoardReady();
+  try {
+    const post = await useSiteBoardStore.getState().createPost(id, {
+      body: text,
+      postType: normalizeWirePostType(postType),
+      imageDataUrl: safeImage,
+    });
+    return mapPost(post);
+  } catch (error) {
+    throw createApiError(mapBoardApiErrorMessage(error, getApiErrorMessage(error, "저장 중 오류가 발생했습니다.")), error?.status || 500);
+  }
 }
 
-export async function createScheduleBriefingComment(briefingId, postId, { body, authorName }) {
+export async function createScheduleBriefingComment(briefingId, postId, { body, authorName, scheduleId } = {}) {
   const id = String(briefingId || "").trim();
   if (!id) throw createApiError("일정을 찾을 수 없습니다.", 404);
-  assertScheduleBriefingAccess(id);
+  assertScheduleBoardWrite({ briefingId: id, scheduleId });
   const text = String(body || "").trim();
   if (!text) throw createApiError("댓글 내용을 입력해 주세요.", 400);
   void authorName;
-  const comment = await useSiteBoardStore.getState().createComment(id, postId, text);
-  return comment;
+  await ensureSiteBoardReady();
+  try {
+    return await useSiteBoardStore.getState().createComment(id, postId, text);
+  } catch (error) {
+    throw createApiError(mapBoardApiErrorMessage(error, getApiErrorMessage(error, "저장 중 오류가 발생했습니다.")), error?.status || 500);
+  }
 }
 
-export { normalizeWirePostType as normalizePostType };
+export { normalizeWirePostType as normalizePostType, mapBoardApiErrorMessage };

@@ -4,7 +4,7 @@ import { compressImageFileToDataUrl } from "../../utils/briefingImageCompress";
 const POST_TYPES = [
   { value: "general", label: "공지" },
   { value: "question", label: "질문" },
-  { value: "worklog", label: "작업내용" },
+  { value: "worklog", label: "작업일지" },
   { value: "photo", label: "작업사진" },
 ];
 
@@ -118,7 +118,7 @@ export default function FieldScheduleBoardComposeSheet({
           </label>
         ) : null}
 
-        <p className="site-board-compose__hint">공지 · 질문 · 작업내용 · 작업사진을 남길 수 있습니다.</p>
+        <p className="site-board-compose__hint">공지 · 질문 · 작업일지 · 작업사진을 남길 수 있습니다.</p>
         <button type="submit" className="site-board-compose__submit" disabled={!canSubmit || submitting}>
           {submitting ? "등록 중…" : "등록"}
         </button>

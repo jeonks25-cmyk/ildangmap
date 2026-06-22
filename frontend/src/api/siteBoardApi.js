@@ -29,7 +29,7 @@ export function normalizeSiteBoardPayload(raw) {
 function normalizePostType(t) {
   const s = String(t || "general").toLowerCase();
   if (s === "question" || s === "질문") return "question";
-  if (s === "worklog" || s === "work_log" || s === "작업내용") return "worklog";
+  if (s === "worklog" || s === "work_log" || s === "작업내용" || s === "작업일지") return "worklog";
   if (s === "photo" || s === "work_photo" || s === "작업사진") return "photo";
   if (s === "change" || s === "changed") return "change";
   if (s === "help_request" || s === "help") return "help_request";
