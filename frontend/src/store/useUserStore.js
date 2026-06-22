@@ -31,6 +31,7 @@ import {
 import { useContactsStore } from "./useContactsStore";
 import { useSettlementStore } from "./useSettlementStore";
 import { useSiteBoardStore } from "./useSiteBoardStore";
+import { useNotificationStore } from "./useNotificationStore";
 import { useUiStore } from "./useUiStore";
 import { validateNicknameInput } from "../utils/displayNickname";
 import { authDiag, authDiagStoreSnapshot } from "../utils/authDiag";
@@ -644,6 +645,7 @@ export const useUserStore = create(
                     useContactsStore.getState().resetContacts();
                     useSettlementStore.getState().resetSchedules();
                     useSiteBoardStore.getState().resetSiteBoards();
+                    useNotificationStore.getState().resetNotifications();
                   }
                 });
                 return patch;
@@ -659,6 +661,7 @@ export const useUserStore = create(
                     useContactsStore.getState().resetContacts();
                     useSettlementStore.getState().resetSchedules();
                     useSiteBoardStore.getState().resetSiteBoards();
+                    useNotificationStore.getState().resetNotifications();
                   });
                   return {
                     ...next,
@@ -925,6 +928,7 @@ export const useUserStore = create(
         useContactsStore.getState().resetContacts();
         useSettlementStore.getState().resetSchedules();
         useSiteBoardStore.getState().resetSiteBoards();
+        useNotificationStore.getState().resetNotifications();
       },
 
       setProfile: (patch) =>

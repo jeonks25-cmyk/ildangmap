@@ -1,9 +1,10 @@
 /**
- * 현장 일정 운영 데이터 — 변경 이력·변경 요청·참여자 응답 (MVP localStorage)
+ * 현장 일정 운영 데이터 — 변경 이력·변경 요청·참여자 응답
  */
 import { getScheduleEndDateKey } from "./scheduleModel";
 import { formatAssignmentPeriod, normalizeWorkerAssignments } from "./workerAssignmentModel";
 import { joinWorkTimeParts, parseWorkTimeParts } from "./fieldSiteScheduleParser";
+import { emitScheduleChangedNotification } from "../store/useNotificationStore";
 
 const STORAGE_KEY = "ildangmap.scheduleFieldOps.v1";
 
@@ -186,6 +187,11 @@ export function createScheduleChangeRequest(schedule, { summary, patch, createdB
   const prev = Array.isArray(data.changeRequests[scheduleId]) ? data.changeRequests[scheduleId] : [];
   data.changeRequests[scheduleId] = [row, ...prev].slice(0, 20);
   writeAll(data);
+  emitScheduleChangedNotification({
+    schedule,
+    summary: row.summary,
+    requestId: row.id,
+  });
   return row;
 }
 

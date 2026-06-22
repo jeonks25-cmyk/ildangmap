@@ -5,6 +5,11 @@ import { loadStoredJobs, mergeJobsWithSeedData } from "../utils/jobsStorage";
 import { buildConsumerRequestChatPayload } from "../utils/consumerRequestsStorage";
 import { createPrivateJobSnapshot, normalizeParticipantStatus } from "../utils/jobPrivacyPolicy";
 import { createSafeJsonStorage } from "./storeUtils";
+import {
+  emitMessageReceivedNotification,
+  emitTeamJoinApprovedNotification,
+  emitTeamJoinRequestNotification,
+} from "./useNotificationStore";
 
 const STORE_KEY = "ildangmap_chat_store_v1";
 const STALE_AUTO_APPROVE_KEY = ["auto", "ApproveOnOpen"].join("");
@@ -112,7 +117,7 @@ function seedRooms() {
     }),
     createSeedRoom(pendingJob, {
       status: "applied",
-      unreadCount: 2,
+      unreadCount: 0,
       messages: [
         makeMessage({
           sender: "system",
@@ -178,6 +183,7 @@ export const useChatStore = create(
             room = appendMessage(room, ownerMsg, { unreadDelta: 1 });
             room = sanitizeJobRoom({ ...room, status: "applied" });
             next[idx] = room;
+            emitTeamJoinRequestNotification({ room, applicantName: "기술자" });
           }
           resolvedRoom = room;
           nextRooms = next.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
@@ -220,6 +226,9 @@ export const useChatStore = create(
           };
           resolvedRoom = sanitizeJobRoom(resolvedRoom);
           nextRooms = [resolvedRoom, ...current].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+          if (kind === "apply") {
+            emitTeamJoinRequestNotification({ room: resolvedRoom, applicantName: "기술자" });
+          }
         }
 
         set({ rooms: nextRooms });
@@ -308,7 +317,14 @@ export const useChatStore = create(
           rooms: (Array.isArray(state.rooms) ? state.rooms : [])
             .map((room) => {
               if (room?.id !== roomId) return room;
-              return appendMessage(room, msg, { resetUnread: sender === "me", unreadDelta: sender === "owner" ? 1 : 0 });
+              const nextRoom = appendMessage(room, msg, {
+                resetUnread: sender === "me",
+                unreadDelta: sender === "owner" ? 1 : 0,
+              });
+              if (sender === "owner") {
+                emitMessageReceivedNotification({ room: nextRoom, message: msg });
+              }
+              return nextRoom;
             })
             .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
         }));
@@ -332,11 +348,13 @@ export const useChatStore = create(
               });
               let nextRoom = appendMessage(room, systemMsg, { unreadDelta: 1 });
               nextRoom = appendMessage(nextRoom, ownerMsg, { unreadDelta: 1 });
-              return {
+              const approvedRoom = {
                 ...nextRoom,
                 status: "approved",
                 ...(privateSnapshot ? { privateSnapshot } : {}),
               };
+              emitTeamJoinApprovedNotification({ room: approvedRoom, ownerName: room.ownerName });
+              return approvedRoom;
             })
             .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)),
         })),

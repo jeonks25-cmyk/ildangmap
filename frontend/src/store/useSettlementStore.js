@@ -26,6 +26,10 @@ import { readAllFieldOps } from "../utils/scheduleFieldOpsStorage";
 import { mergeWorkerAssignmentsForInvite, syncScheduleParticipantSelection } from "../utils/workerAssignmentModel";
 import { createSafeJsonStorage, pickPersistedStoreState, resolveUpdater, runAsyncStoreAction } from "./storeUtils";
 import { useContactsStore } from "./useContactsStore";
+import {
+  emitScheduleCancelledNotification,
+  emitScheduleCreatedNotification,
+} from "./useNotificationStore";
 
 const STORE_KEY = "ildangmap_settlement_store_v2";
 
@@ -258,6 +262,7 @@ export const useSettlementStore = create(
             summary: buildLocalSummary(schedules, state.briefingData),
           };
         });
+        emitScheduleCreatedNotification({ schedule: next });
         return next;
       },
 
@@ -270,6 +275,7 @@ export const useSettlementStore = create(
             summary: buildLocalSummary(schedules, state.briefingData),
           };
         });
+        emitScheduleCreatedNotification({ schedule });
         return schedule;
       },
 
@@ -298,10 +304,12 @@ export const useSettlementStore = create(
 
       deleteSchedule: (scheduleId) => {
         if (scheduleId == null) return false;
+        let removedSchedule = null;
         let removed = false;
         set((state) => {
           const schedules = (Array.isArray(state.schedules) ? state.schedules : []).filter((schedule) => {
             if (!schedule || String(schedule.id) !== String(scheduleId)) return true;
+            removedSchedule = schedule;
             removed = true;
             return false;
           });
@@ -310,6 +318,9 @@ export const useSettlementStore = create(
             summary: buildLocalSummary(schedules, state.briefingData),
           };
         });
+        if (removed && removedSchedule) {
+          emitScheduleCancelledNotification({ schedule: removedSchedule });
+        }
         return removed;
       },
 
@@ -375,6 +386,7 @@ export const useSettlementStore = create(
           workDate: schedule.workDate,
           invitees,
         });
+        emitScheduleCreatedNotification({ schedule, actorName: payload.fromName });
         return schedule;
       },
 

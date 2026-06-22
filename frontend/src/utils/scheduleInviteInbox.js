@@ -1,4 +1,5 @@
 import { writeJsonStorage } from "../store/storeUtils";
+import { emitSiteInviteNotification } from "../store/useNotificationStore";
 
 export const SCHEDULE_INVITE_INBOX_KEY = "ildangmap_schedule_invite_inbox_v1";
 
@@ -31,7 +32,7 @@ export function appendScheduleInvites(payload) {
   for (let i = 0; i < invitees.length; i += 1) {
     const inv = invitees[i];
     if (!inv || !Number.isFinite(Number(inv.userId))) continue;
-    list.push({
+    const row = {
       id: `inv-${base}-${i}-${inv.userId}`,
       scheduleId,
       briefingId,
@@ -41,7 +42,10 @@ export function appendScheduleInvites(payload) {
       title: String(title || "").trim(),
       workDate: String(workDate || "").trim(),
       status: "pending",
-    });
+      createdAt: new Date().toISOString(),
+    };
+    list.push(row);
+    emitSiteInviteNotification({ invite: row, recipientUserId: row.toUserId });
   }
   saveAllScheduleInvites(list);
 }

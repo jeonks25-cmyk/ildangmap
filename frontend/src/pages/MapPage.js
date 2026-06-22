@@ -75,6 +75,7 @@ import {
 } from "../utils/mapOverlaySignature";
 import { deriveFieldFlowEvents } from "../utils/fieldFlowModel";
 import { useNotifications } from "../context/NotificationContext";
+import { useNotificationNavigation } from "../hooks/useTabNotificationOverlay";
 import { useUserMapPreferences } from "../context/UserMapPreferencesContext";
 import {
   DEFAULT_EXPERIENCE_MAP_LAYERS,
@@ -627,11 +628,9 @@ export default function MapPage() {
     openCenter,
     closeCenter,
     notifications: notificationItems,
-    toggleRead: toggleNotificationRead,
     unreadCount,
   } = useNotifications();
-  const [notificationOverlayMode, setNotificationOverlayMode] = useState("list");
-  const [notificationOverlayDetail, setNotificationOverlayDetail] = useState(null);
+  const { handleNotificationClick } = useNotificationNavigation();
 
   useMapPageFabRouteStateFlow({
     location,
@@ -1757,8 +1756,6 @@ export default function MapPage() {
 
   const handleCloseNotificationOverlay = useCallback(() => {
     closeCenter();
-    setNotificationOverlayMode("list");
-    setNotificationOverlayDetail(null);
   }, [closeCenter]);
 
   const handleOpenPlaceOverlayList = useCallback(() => {
@@ -1769,32 +1766,8 @@ export default function MapPage() {
   const handleOpenNotificationCenter = useCallback(() => {
     handleClosePlaceOverlay();
     handleCloseSearchPanel();
-    setNotificationOverlayMode("list");
-    setNotificationOverlayDetail(null);
     openCenter();
   }, [handleClosePlaceOverlay, handleCloseSearchPanel, openCenter]);
-
-  const handleNotificationOverlayBack = useCallback(() => {
-    setNotificationOverlayMode("list");
-    setNotificationOverlayDetail(null);
-  }, []);
-
-  const handleNotificationOverlaySelect = useCallback(
-    (item) => {
-      if (!item) return;
-      if (!item.isRead) toggleNotificationRead(item.id);
-      setNotificationOverlayDetail(item);
-      setNotificationOverlayMode("detail");
-    },
-    [toggleNotificationRead]
-  );
-
-  useEffect(() => {
-    if (!notificationOverlayOpen) {
-      setNotificationOverlayMode("list");
-      setNotificationOverlayDetail(null);
-    }
-  }, [notificationOverlayOpen]);
 
   const experienceCompletionPrompts = useMemo(
     () => getCompletionExperiencePrompts(selectedFieldMapItem),
@@ -2066,12 +2039,9 @@ export default function MapPage() {
           <MapNotificationOverlay
             open={notificationOverlayOpen}
             mapContainerRef={mapRef}
-            mode={notificationOverlayMode}
-            detailNotification={notificationOverlayDetail}
             notifications={notificationItems}
             onClose={handleCloseNotificationOverlay}
-            onBack={handleNotificationOverlayBack}
-            onSelectNotification={handleNotificationOverlaySelect}
+            onSelectNotification={handleNotificationClick}
           />
         ) : null}
         </div>

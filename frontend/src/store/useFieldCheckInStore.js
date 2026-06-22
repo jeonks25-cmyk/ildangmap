@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { createFieldCheckInRecord } from "../utils/fieldCheckInModel";
 import { getExperienceHubKey } from "../utils/fieldExperienceModel";
+import { emitCheckInNotification, emitCheckOutNotification } from "./useNotificationStore";
+import { buildBriefingAuthorFromViewer } from "../utils/briefingAuthor";
 
 export const useFieldCheckInStore = create(
   persist(
@@ -12,6 +14,19 @@ export const useFieldCheckInStore = create(
         set((state) => ({
           records: [record, ...(state.records || [])].slice(0, 200),
         }));
+        const author = buildBriefingAuthorFromViewer();
+        const fieldLabel =
+          payload?.fieldItem?.title ||
+          payload?.fieldItem?.shortRegion ||
+          payload?.fieldItem?.name ||
+          "";
+        emitCheckInNotification({
+          actorName: author.authorName,
+          fieldLabel,
+          scheduleId: payload?.fieldItem?.scheduleId || null,
+          checkInId: record.id,
+          recipientUserId: author.authorUserId || null,
+        });
         return record;
       },
       checkOut: (recordId) => {
@@ -24,6 +39,15 @@ export const useFieldCheckInStore = create(
             return updated;
           }),
         }));
+        if (updated) {
+          const author = buildBriefingAuthorFromViewer();
+          emitCheckOutNotification({
+            actorName: author.authorName,
+            fieldLabel: updated.hubKey || "",
+            checkInId: updated.id,
+            recipientUserId: author.authorUserId || null,
+          });
+        }
         return updated;
       },
       attachExperienceToCheckIn: (recordId, experienceId) => {

@@ -9,6 +9,7 @@ import OAuthPage from "./OAuthPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import "./styles/auth-callback.css";
 import { PersonCardProvider } from "./context/PersonCardContext";
+import { NotificationProvider } from "./context/NotificationContext";
 
 const FieldScheduleDetailPage = lazy(() => import("./pages/FieldScheduleDetailPage"));
 const BriefingRoomPage = lazy(() => import("./pages/BriefingRoomPage"));
@@ -41,6 +42,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <PersonCardProvider>
+        <NotificationProvider>
         <Routes>
         <Route path="/" element={<AppShell />}>
           <Route index element={<Navigate to="map" replace />} />
@@ -205,6 +207,7 @@ export default function App() {
         <Route path="/oauth/kakao/callback" element={<OAuthPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         </Routes>
+        </NotificationProvider>
       </PersonCardProvider>
     </BrowserRouter>
   );

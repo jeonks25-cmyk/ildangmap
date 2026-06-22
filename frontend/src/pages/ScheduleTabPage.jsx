@@ -28,12 +28,9 @@ export default function ScheduleTabPage() {
       </div>
       <MapNotificationOverlay
         open={overlay.notificationOverlayOpen}
-        mode={overlay.notificationOverlayMode}
-        detailNotification={overlay.notificationOverlayDetail}
         notifications={overlay.notificationItems}
         mapContainerRef={overlay.pageRef}
         onClose={overlay.handleCloseNotificationOverlay}
-        onBack={overlay.handleNotificationOverlayBack}
         onSelectNotification={overlay.handleNotificationOverlaySelect}
       />
     </div>

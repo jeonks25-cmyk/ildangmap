@@ -414,12 +414,9 @@ export default function ContactsTabPage() {
       <FloatingActionButton label="인원" aria-label="인원 추가" onClick={() => setPeopleAddOpen(true)} />
       <MapNotificationOverlay
         open={overlay.notificationOverlayOpen}
-        mode={overlay.notificationOverlayMode}
-        detailNotification={overlay.notificationOverlayDetail}
         notifications={overlay.notificationItems}
         mapContainerRef={overlay.pageRef}
         onClose={overlay.handleCloseNotificationOverlay}
-        onBack={overlay.handleNotificationOverlayBack}
         onSelectNotification={overlay.handleNotificationOverlaySelect}
       />
     </div>

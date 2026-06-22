@@ -1,7 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
+import { resolveNotificationRoute } from "../utils/notificationNavigation";
 
-/** 탭 공통 알림센터 오버레이 상태 */
+/** 알림 클릭 → 읽음 처리 + 해당 화면 이동 */
+export function useNotificationNavigation() {
+  const navigate = useNavigate();
+  const { toggleRead, closeCenter } = useNotifications();
+
+  const handleNotificationClick = useCallback(
+    (item) => {
+      if (!item) return;
+      if (!item.isRead) toggleRead(item.id);
+      const route = resolveNotificationRoute(item);
+      closeCenter();
+      if (route?.pathname) {
+        navigate(route.pathname + (route.search || ""), { state: route.state });
+      }
+    },
+    [closeCenter, navigate, toggleRead]
+  );
+
+  return { handleNotificationClick };
+}
+
+/** 탭 공통 알림센터 오버레이 */
 export function useTabNotificationOverlay() {
   const pageRef = useRef(null);
   const {
@@ -9,56 +32,25 @@ export function useTabNotificationOverlay() {
     openCenter,
     closeCenter,
     notifications: notificationItems,
-    toggleRead: toggleNotificationRead,
     unreadCount,
   } = useNotifications();
-  const [notificationOverlayMode, setNotificationOverlayMode] = useState("list");
-  const [notificationOverlayDetail, setNotificationOverlayDetail] = useState(null);
+  const { handleNotificationClick } = useNotificationNavigation();
 
   const handleOpenNotificationCenter = useCallback(() => {
-    setNotificationOverlayMode("list");
-    setNotificationOverlayDetail(null);
     openCenter();
   }, [openCenter]);
 
   const handleCloseNotificationOverlay = useCallback(() => {
     closeCenter();
-    setNotificationOverlayMode("list");
-    setNotificationOverlayDetail(null);
   }, [closeCenter]);
-
-  const handleNotificationOverlayBack = useCallback(() => {
-    setNotificationOverlayMode("list");
-    setNotificationOverlayDetail(null);
-  }, []);
-
-  const handleNotificationOverlaySelect = useCallback(
-    (item) => {
-      if (!item) return;
-      if (!item.isRead) toggleNotificationRead(item.id);
-      setNotificationOverlayDetail(item);
-      setNotificationOverlayMode("detail");
-    },
-    [toggleNotificationRead]
-  );
-
-  useEffect(() => {
-    if (!notificationOverlayOpen) {
-      setNotificationOverlayMode("list");
-      setNotificationOverlayDetail(null);
-    }
-  }, [notificationOverlayOpen]);
 
   return {
     pageRef,
     notificationOverlayOpen,
-    notificationOverlayMode,
-    notificationOverlayDetail,
     notificationItems,
     unreadCount,
     handleOpenNotificationCenter,
     handleCloseNotificationOverlay,
-    handleNotificationOverlayBack,
-    handleNotificationOverlaySelect,
+    handleNotificationOverlaySelect: handleNotificationClick,
   };
 }

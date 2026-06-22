@@ -12,6 +12,8 @@ import {
   removeLegacySiteBoardLocalStorage,
 } from "../api/siteBoardApi";
 import { getApiErrorMessage } from "../api/client";
+import { emitSiteBoardPostNotification } from "./useNotificationStore";
+import { useSettlementStore } from "./useSettlementStore";
 
 let siteBoardBootstrapInFlight = null;
 
@@ -154,6 +156,17 @@ export const useSiteBoardStore = create((set, get) => ({
     get().setBoardSlice(briefingId, {
       posts: [post, ...(board.posts || [])],
       commentsByPostId: board.commentsByPostId || {},
+    });
+    const schedules = useSettlementStore.getState().schedules;
+    const schedule = (Array.isArray(schedules) ? schedules : []).find(
+      (s) => String(s?.briefingId || "").trim() === String(briefingId || "").trim()
+    );
+    emitSiteBoardPostNotification({
+      post,
+      schedule,
+      briefingId,
+      actorName: post.authorName,
+      recipientUserId: post.authorUserId,
     });
     return post;
   },

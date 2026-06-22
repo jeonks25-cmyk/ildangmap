@@ -21,12 +21,11 @@ function createInitialState() {
     notificationView: "center",
     notificationReadIds: [],
     notificationSettings: {
-      help: true,
-      stage: true,
-      settlement: true,
-      favorite: true,
+      attendance: true,
       schedule: true,
-      briefing: true,
+      site: true,
+      message: true,
+      team: true,
     },
   };
 }
