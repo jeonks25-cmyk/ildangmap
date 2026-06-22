@@ -11,6 +11,7 @@ export const SCHEDULE_OCR_STAGE = {
   CHAT_PARSED: "chat_parsed",
   TABLE_PARSED: "table_parsed",
   REVIEW_REQUIRED: "review_required",
+  SITE_CANDIDATES: "site_candidates",
 };
 
 export function getScheduleOcrErrorMessage(code) {

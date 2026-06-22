@@ -4038,6 +4038,122 @@
   color: #2563eb;
 }
 
+.schedule-site-candidates {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #c7d7fe;
+  background: linear-gradient(180deg, #f8faff 0%, #fff 100%);
+}
+
+.schedule-site-candidates__head {
+  margin-bottom: 12px;
+}
+
+.schedule-site-candidates__title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.schedule-site-candidates__lead {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #475569;
+}
+
+.schedule-site-candidates__list {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.schedule-site-candidates__option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  cursor: pointer;
+}
+
+.schedule-site-candidates__option.is-selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #3b82f6 inset;
+}
+
+.schedule-site-candidates__option input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+
+.schedule-site-candidates__option-text {
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-all;
+  color: #0f172a;
+}
+
+.schedule-site-candidates__score {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.schedule-site-candidates__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.schedule-site-candidates__confirm {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.schedule-site-candidates__confirm:disabled {
+  opacity: 0.55;
+}
+
+.schedule-site-candidates__cancel {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  font-size: 13px;
+}
+
+.schedule-site-candidates__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
 .site-import-debug {
   margin-top: 10px;
   padding: 10px 12px;

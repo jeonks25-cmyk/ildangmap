@@ -4,11 +4,13 @@ import { releaseScheduleOcrWorker, SCHEDULE_OCR_MODE } from "../../utils/schedul
 import {
   getScheduleOcrErrorMessage,
   runScheduleOcrImport,
+  parseScheduleImportFromSiteCandidate,
   SCHEDULE_OCR_ERROR,
   SCHEDULE_OCR_STAGE,
 } from "../../features/schedule-ocr";
 import { formatOcrError } from "../../utils/scheduleOcr";
 import SiteImportDebugPanel from "../map/SiteImportDebugPanel";
+import ScheduleSiteCandidatePicker from "./ScheduleSiteCandidatePicker";
 import { isStructureDebugEnabled } from "../../features/site-import/parser/siteImportStructureMetrics";
 
 const EXAMPLE_TEXT = `성환부영 3차, 301동 105호.
@@ -57,6 +59,10 @@ export default function SchedulePasteImportPanel({
   const [previewName, setPreviewName] = useState("");
   const [tableMode, setTableMode] = useState(false);
   const [structureTrace, setStructureTrace] = useState(null);
+  const [siteCandidates, setSiteCandidates] = useState([]);
+  const [selectedSiteLineId, setSelectedSiteLineId] = useState(null);
+  const [pendingOcrText, setPendingOcrText] = useState("");
+  const [candidateBusy, setCandidateBusy] = useState(false);
   const showStructureDebug = isStructureDebugEnabled();
 
   const clearPreview = useCallback(() => {
@@ -68,6 +74,13 @@ export default function SchedulePasteImportPanel({
     setPreviewName("");
   }, []);
 
+  const clearSiteCandidatePick = useCallback(() => {
+    setSiteCandidates([]);
+    setSelectedSiteLineId(null);
+    setPendingOcrText("");
+    setCandidateBusy(false);
+  }, []);
+
   useEffect(() => {
     if (!open) return undefined;
     setPasteText("");
@@ -76,26 +89,54 @@ export default function SchedulePasteImportPanel({
     setOcrProgress(0);
     setTableMode(false);
     setStructureTrace(null);
+    clearSiteCandidatePick();
     clearPreview();
     if (fileInputRef.current) fileInputRef.current.value = "";
     return () => {
       releaseScheduleOcrWorker();
     };
-  }, [open, clearPreview]);
+  }, [open, clearPreview, clearSiteCandidatePick]);
 
   const handleAutoFill = () => {
     const text = pasteText.trim();
     setPasteText(text);
+    clearSiteCandidatePick();
     const result = parseScheduleImport({ source: SCHEDULE_IMPORT_SOURCE.PASTE, text }, { referenceDate });
     setStructureTrace(result.structureTrace || null);
     onApply?.(result);
     setStatus(buildPasteStatusMessage(result));
   };
 
+  const applyFromSiteCandidate = async (candidate) => {
+    if (!candidate?.text || !pendingOcrText) return;
+    setCandidateBusy(true);
+    try {
+      const result = parseScheduleImportFromSiteCandidate(pendingOcrText, candidate.text, {
+        referenceDate: referenceDate || new Date(),
+      });
+      setStructureTrace(result.structureTrace || null);
+      onApply?.(result);
+      clearSiteCandidatePick();
+      const structureNote = result.structureOk
+        ? "선택한 줄에서 현장명·동·호를 채웠습니다."
+        : "제목을 확인해 주세요.";
+      setStatus({
+        tone: result.structureOk ? "success" : "warn",
+        message: structureNote,
+        stage: SCHEDULE_OCR_STAGE.CHAT_PARSED,
+        ocrTextPreview: pendingOcrText.slice(0, 600),
+        structureOk: result.structureOk,
+      });
+    } finally {
+      setCandidateBusy(false);
+    }
+  };
+
   const runOcr = async (file) => {
     if (!file || ocrBusy) return;
     setOcrBusy(true);
     setOcrProgress(0);
+    clearSiteCandidatePick();
     setStatus({ tone: "info", message: "캡처에서 글자를 읽는 중입니다…", stage: "ocr_running" });
 
     try {
@@ -129,6 +170,19 @@ export default function SchedulePasteImportPanel({
           tone: "success",
           message: `공정표에서 ${result.drafts.length}건 일정을 찾았습니다. 검토 화면에서 확인하세요.`,
           stage: SCHEDULE_OCR_STAGE.TABLE_PARSED,
+        });
+        return;
+      }
+
+      if (result.needsSiteCandidatePick && result.siteLineCandidates?.length) {
+        setPendingOcrText(result.ocrResult?.text || "");
+        setSiteCandidates(result.siteLineCandidates);
+        setSelectedSiteLineId(result.selectedSiteLineId);
+        setStatus({
+          tone: "info",
+          message: "현장 후보를 찾았습니다. 아래에서 일정에 넣을 줄을 선택하세요.",
+          stage: SCHEDULE_OCR_STAGE.SITE_CANDIDATES,
+          ocrTextPreview: result.ocrResult?.text?.slice(0, 600),
         });
         return;
       }
@@ -198,6 +252,7 @@ export default function SchedulePasteImportPanel({
           onChange={(e) => {
             setPasteText(e.target.value);
             if (status) setStatus(null);
+            clearSiteCandidatePick();
           }}
           placeholder={EXAMPLE_TEXT}
           rows={4}
@@ -259,6 +314,16 @@ export default function SchedulePasteImportPanel({
           </div>
         ) : null}
       </div>
+
+      {siteCandidates.length > 0 ? (
+        <ScheduleSiteCandidatePicker
+          candidates={siteCandidates}
+          selectedId={selectedSiteLineId}
+          busy={candidateBusy}
+          onConfirm={applyFromSiteCandidate}
+          onCancel={clearSiteCandidatePick}
+        />
+      ) : null}
 
       {status ? (
         <div className="schedule-paste-import__status-wrap">

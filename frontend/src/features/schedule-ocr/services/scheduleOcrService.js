@@ -6,6 +6,7 @@ import { createScheduleOcrDraft } from "../generator/scheduleDraftModel";
 import { generatePersonalDraftsFromTable, parseScheduleTable } from "../parser/tableParser";
 import { resolveFailureStage } from "../../site-import/parser/siteImportDiag";
 import { applyScheduleImportTitleToForm } from "../utils/scheduleFormApplyTitle";
+import { extractSiteLineCandidates } from "../parser/siteLineCandidateExtractor";
 
 const DIAG_PREFIX = "[SCHEDULE-OCR]";
 
@@ -187,6 +188,22 @@ export async function runScheduleOcrImport(file, options = {}) {
 
   ocrResult = finalOcrResult;
   let resolvedChatResult = finalChatResult;
+
+  if (!forceTable) {
+    const sitePick = extractSiteLineCandidates(ocrResult.text);
+    if (sitePick.candidates.length > 0) {
+      return {
+        stage: SCHEDULE_OCR_STAGE.SITE_CANDIDATES,
+        needsSiteCandidatePick: true,
+        siteLineCandidates: sitePick.candidates,
+        selectedSiteLineId: sitePick.selectedId,
+        ocrResult,
+        chatResult: resolvedChatResult,
+        useComposer: true,
+      };
+    }
+  }
+
   const formApplyTitle = applyScheduleImportTitleToForm(resolvedChatResult);
   if (formApplyTitle && formApplyTitle !== resolvedChatResult.title) {
     resolvedChatResult = {
