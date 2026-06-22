@@ -413,7 +413,7 @@ export function useScheduleFieldOps(selectedDateKey) {
         throw error instanceof Error ? error : new Error("개인 일정 저장에 실패했습니다");
       }
     },
-    [addPersonalEvent, ownerId, showAppToast, updatePersonalEvent]
+    [addPersonalEvent, myUserId, ownerId, showAppToast, updatePersonalEvent]
   );
 
   const handleBulkPersonalEntries = useCallback(
