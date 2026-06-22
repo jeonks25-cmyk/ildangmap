@@ -9,8 +9,17 @@ import { applyScheduleImportTitleToForm } from "../utils/scheduleFormApplyTitle"
 import { extractSiteLineCandidates } from "../parser/siteLineCandidateExtractor";
 import { isAiVisionOcrEnabled } from "../../site-import/utils/visionOcrPrefs";
 import { tryVisionScheduleImport } from "./visionOcrService";
+import { buildVisionOcrDiagFromTesseract } from "../../site-import/utils/visionOcrDiagModel";
 
 const DIAG_PREFIX = "[SCHEDULE-OCR]";
+
+function withTesseractVisionDiag(payload, chatResult, visionAttempted) {
+  if (!chatResult) return payload;
+  return {
+    ...payload,
+    visionOcrDiag: buildVisionOcrDiagFromTesseract(chatResult, { visionAttempted }),
+  };
+}
 
 function chatResultToDraft(result, defaults = {}) {
   const title = applyScheduleImportTitleToForm(result, { log: false });
@@ -77,6 +86,7 @@ export async function runScheduleOcrImport(file, options = {}) {
   const referenceDate = options.referenceDate || new Date();
   const forceTable = options.mode === SCHEDULE_OCR_MODE.TABLE || options.tableMode;
   const visionEnabled = options.useVisionOcr !== false && isAiVisionOcrEnabled() && !forceTable;
+  const visionAttempted = visionEnabled;
 
   if (visionEnabled) {
     const visionResult = await tryVisionScheduleImport(file, {
@@ -210,15 +220,19 @@ export async function runScheduleOcrImport(file, options = {}) {
   if (!forceTable) {
     const sitePick = extractSiteLineCandidates(ocrResult.text);
     if (sitePick.candidates.length > 0) {
-      return {
-        stage: SCHEDULE_OCR_STAGE.SITE_CANDIDATES,
-        needsSiteCandidatePick: true,
-        siteLineCandidates: sitePick.candidates,
-        selectedSiteLineId: sitePick.selectedId,
-        ocrResult,
-        chatResult: resolvedChatResult,
-        useComposer: true,
-      };
+      return withTesseractVisionDiag(
+        {
+          stage: SCHEDULE_OCR_STAGE.SITE_CANDIDATES,
+          needsSiteCandidatePick: true,
+          siteLineCandidates: sitePick.candidates,
+          selectedSiteLineId: sitePick.selectedId,
+          ocrResult,
+          chatResult: resolvedChatResult,
+          useComposer: true,
+        },
+        resolvedChatResult,
+        visionAttempted
+      );
     }
   }
 
@@ -234,13 +248,17 @@ export async function runScheduleOcrImport(file, options = {}) {
   if (resolvedChatResult.ok || resolvedChatResult.filledFields?.length) {
     const draft = chatResultToDraft(resolvedChatResult, options.defaults);
     if (draft) {
-      return {
-        stage: SCHEDULE_OCR_STAGE.CHAT_PARSED,
-        drafts: [draft],
-        ocrResult,
-        chatResult: resolvedChatResult,
-        useComposer: true,
-      };
+      return withTesseractVisionDiag(
+        {
+          stage: SCHEDULE_OCR_STAGE.CHAT_PARSED,
+          drafts: [draft],
+          ocrResult,
+          chatResult: resolvedChatResult,
+          useComposer: true,
+        },
+        resolvedChatResult,
+        visionAttempted
+      );
     }
     console.warn(`${DIAG_PREFIX} draft 생성 실패`, {
       title: resolvedChatResult.title,
@@ -249,22 +267,30 @@ export async function runScheduleOcrImport(file, options = {}) {
   }
 
   if (forceTable || ocrResult.profile?.likelyTable) {
-    return {
+    return withTesseractVisionDiag(
+      {
+        stage: SCHEDULE_OCR_STAGE.REVIEW_REQUIRED,
+        errorCode: tableResult.items.length
+          ? SCHEDULE_OCR_ERROR.GENERATE_FAILED
+          : SCHEDULE_OCR_ERROR.TABLE_PARSE_FAILED,
+        ocrResult,
+        tableResult,
+        chatResult: resolvedChatResult,
+      },
+      resolvedChatResult,
+      visionAttempted
+    );
+  }
+
+  return withTesseractVisionDiag(
+    {
       stage: SCHEDULE_OCR_STAGE.REVIEW_REQUIRED,
-      errorCode: tableResult.items.length
-        ? SCHEDULE_OCR_ERROR.GENERATE_FAILED
-        : SCHEDULE_OCR_ERROR.TABLE_PARSE_FAILED,
+      errorCode: SCHEDULE_OCR_ERROR.UNSUPPORTED_FORMAT,
       ocrResult,
       tableResult,
       chatResult: resolvedChatResult,
-    };
-  }
-
-  return {
-    stage: SCHEDULE_OCR_STAGE.REVIEW_REQUIRED,
-    errorCode: SCHEDULE_OCR_ERROR.UNSUPPORTED_FORMAT,
-    ocrResult,
-    tableResult,
-    chatResult: resolvedChatResult,
-  };
+    },
+    resolvedChatResult,
+    visionAttempted
+  );
 }

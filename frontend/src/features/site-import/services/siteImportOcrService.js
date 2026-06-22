@@ -8,6 +8,7 @@ import {
 import { parseVisionSiteImage } from "../../../api/visionParseApi";
 import { isAiVisionOcrEnabled } from "../utils/visionOcrPrefs";
 import { visionResponseToStructured } from "../utils/visionImportMapper";
+import { buildVisionOcrDiagFromStructured } from "../utils/visionOcrDiagModel";
 
 export const SITE_IMPORT_OCR_STAGE = {
   SUCCESS: "success",
@@ -35,6 +36,7 @@ export async function runSiteImportOcr(fileOrFiles, options = {}) {
   }
 
   const visionEnabled = options.useVisionOcr !== false && isAiVisionOcrEnabled() && files.length === 1;
+  const visionAttempted = visionEnabled;
   if (visionEnabled) {
     try {
       const visionData = await parseVisionSiteImage(files[0]);
@@ -48,6 +50,7 @@ export async function runSiteImportOcr(fileOrFiles, options = {}) {
             patch,
             visionSource: true,
             ocrResult: { source: "gemini-vision", visionData },
+            visionOcrDiag: buildVisionOcrDiagFromStructured(structured, { visionSource: true }),
           };
         }
       }
@@ -105,6 +108,7 @@ export async function runSiteImportOcr(fileOrFiles, options = {}) {
       structured,
       patch,
       multiSchedules: structured.multiSchedules,
+      visionOcrDiag: buildVisionOcrDiagFromStructured(structured, { visionAttempted }),
     };
   }
 
@@ -116,6 +120,7 @@ export async function runSiteImportOcr(fileOrFiles, options = {}) {
       message: structured.message || "현장 정보를 찾지 못했습니다",
       ocrResult,
       structured,
+      visionOcrDiag: buildVisionOcrDiagFromStructured(structured, { visionAttempted }),
     };
   }
 
@@ -124,6 +129,7 @@ export async function runSiteImportOcr(fileOrFiles, options = {}) {
     ocrResult,
     structured,
     patch,
+    visionOcrDiag: buildVisionOcrDiagFromStructured(structured, { visionAttempted }),
   };
 }
 

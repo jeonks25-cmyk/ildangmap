@@ -10,9 +10,11 @@ import {
 } from "../../features/schedule-ocr";
 import { formatOcrError } from "../../utils/scheduleOcr";
 import SiteImportDebugPanel from "../map/SiteImportDebugPanel";
+import VisionOcrDiagPanel from "../ocr/VisionOcrDiagPanel";
 import ScheduleSiteCandidatePicker from "./ScheduleSiteCandidatePicker";
 import { isStructureDebugEnabled } from "../../features/site-import/parser/siteImportStructureMetrics";
 import { isAiVisionOcrEnabled } from "../../features/site-import/utils/visionOcrPrefs";
+import { buildVisionOcrDiagFromTesseract } from "../../features/site-import/utils/visionOcrDiagModel";
 
 const EXAMPLE_TEXT = `성환부영 3차, 301동 105호.
 공용현관:5623
@@ -60,6 +62,7 @@ export default function SchedulePasteImportPanel({
   const [previewName, setPreviewName] = useState("");
   const [tableMode, setTableMode] = useState(false);
   const [structureTrace, setStructureTrace] = useState(null);
+  const [visionOcrDiag, setVisionOcrDiag] = useState(null);
   const [siteCandidates, setSiteCandidates] = useState([]);
   const [selectedSiteLineId, setSelectedSiteLineId] = useState(null);
   const [pendingOcrText, setPendingOcrText] = useState("");
@@ -90,6 +93,7 @@ export default function SchedulePasteImportPanel({
     setOcrProgress(0);
     setTableMode(false);
     setStructureTrace(null);
+    setVisionOcrDiag(null);
     clearSiteCandidatePick();
     clearPreview();
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -116,6 +120,7 @@ export default function SchedulePasteImportPanel({
         referenceDate: referenceDate || new Date(),
       });
       setStructureTrace(result.structureTrace || null);
+      setVisionOcrDiag(buildVisionOcrDiagFromTesseract(result, { visionAttempted: true }));
       onApply?.(result);
       clearSiteCandidatePick();
       const structureNote = result.structureOk
@@ -138,6 +143,7 @@ export default function SchedulePasteImportPanel({
     setOcrBusy(true);
     setOcrProgress(0);
     clearSiteCandidatePick();
+    setVisionOcrDiag(null);
     setStatus({
       tone: "info",
       message:
@@ -160,6 +166,7 @@ export default function SchedulePasteImportPanel({
       }
 
       if (result.errorCode) {
+        setVisionOcrDiag(result.visionOcrDiag || null);
         setStatus({
           tone: "error",
           message: getScheduleOcrErrorMessage(result.errorCode),
@@ -183,6 +190,7 @@ export default function SchedulePasteImportPanel({
       }
 
       if (result.needsSiteCandidatePick && result.siteLineCandidates?.length) {
+        setVisionOcrDiag(result.visionOcrDiag || null);
         setPendingOcrText(result.ocrResult?.text || "");
         setSiteCandidates(result.siteLineCandidates);
         setSelectedSiteLineId(result.selectedSiteLineId);
@@ -196,6 +204,7 @@ export default function SchedulePasteImportPanel({
       }
 
       if (result.useComposer && result.drafts?.length === 1 && result.chatResult) {
+        setVisionOcrDiag(result.visionOcrDiag || null);
         setStructureTrace(result.chatResult.structureTrace || null);
         onApply?.(result.chatResult);
         const structureNote = result.visionSource
@@ -349,6 +358,7 @@ export default function SchedulePasteImportPanel({
               <pre>{status.ocrTextPreview}</pre>
             </details>
           ) : null}
+          <VisionOcrDiagPanel diag={visionOcrDiag} />
           {showStructureDebug && structureTrace ? (
             <SiteImportDebugPanel trace={structureTrace} title="구조화 파서 (일정 가져오기)" />
           ) : null}

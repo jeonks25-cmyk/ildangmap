@@ -19,6 +19,7 @@ import SiteImportChecklist, {
   SiteNameCandidatePicker,
 } from "./SiteImportChecklist";
 import SiteImportDebugPanel from "./SiteImportDebugPanel";
+import VisionOcrDiagPanel from "../ocr/VisionOcrDiagPanel";
 import {
   isStructureDebugEnabled,
   markStructureSaved,
@@ -101,6 +102,7 @@ export default function QuickSiteImportSheet({
   const [ocrChecklist, setOcrChecklist] = useState([]);
   const [ocrError, setOcrError] = useState("");
   const [ocrApplied, setOcrApplied] = useState(false);
+  const [visionOcrDiag, setVisionOcrDiag] = useState(null);
   const [multiSchedules, setMultiSchedules] = useState([]);
   const [baseOcrPatch, setBaseOcrPatch] = useState({});
   const [lastStructured, setLastStructured] = useState(null);
@@ -193,6 +195,7 @@ export default function QuickSiteImportSheet({
     setOcrChecklist([]);
     setOcrError("");
     setOcrApplied(false);
+    setVisionOcrDiag(null);
     setMultiSchedules([]);
     setBaseOcrPatch({});
   }, [open, type, selectedDateKey, resumeState, defaultCrewCount, composeDefaultCraft]);
@@ -314,6 +317,7 @@ export default function QuickSiteImportSheet({
     setOcrError("");
     setOcrChecklist([]);
     setOcrApplied(false);
+    setVisionOcrDiag(null);
     setMultiSchedules([]);
     setSiteNameCandidates([]);
     setSelectedSiteName("");
@@ -322,6 +326,7 @@ export default function QuickSiteImportSheet({
     titleTouchedRef.current = false;
     try {
       const result = await runSiteImportOcr(files, { useGpt: true, ...structureOptions });
+      setVisionOcrDiag(result.visionOcrDiag || null);
       if (
         result.stage === SITE_IMPORT_OCR_STAGE.SUCCESS ||
         result.stage === SITE_IMPORT_OCR_STAGE.MULTI
@@ -520,6 +525,8 @@ export default function QuickSiteImportSheet({
               {ocrChecklist.length ? (
                 <SiteImportChecklist checklist={ocrChecklist} title="인식 결과" />
               ) : null}
+
+              <VisionOcrDiagPanel diag={visionOcrDiag} />
 
               {showStructureDebug && lastStructured?.structureTrace ? (
                 <SiteImportDebugPanel trace={lastStructured.structureTrace} title="구조화 파서 (현장 등록)" />

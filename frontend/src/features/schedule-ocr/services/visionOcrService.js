@@ -4,6 +4,7 @@ import { SCHEDULE_OCR_STAGE } from "../errors/scheduleOcrErrors";
 import { createScheduleOcrDraft } from "../generator/scheduleDraftModel";
 import { applyScheduleImportTitleToForm } from "../utils/scheduleFormApplyTitle";
 import { visionResponseToScheduleImport } from "../../site-import/utils/visionImportMapper";
+import { buildVisionOcrDiagFromVision } from "../../site-import/utils/visionOcrDiagModel";
 
 /**
  * Gemini Vision 우선 경로 — 실패 시 null (Tesseract fallback)
@@ -47,6 +48,7 @@ export async function tryVisionScheduleImport(file, options = {}) {
       chatResult,
       useComposer: true,
       visionSource: true,
+      visionOcrDiag: buildVisionOcrDiagFromVision(visionData, chatResult),
     };
   } catch (error) {
     console.warn("[VISION-OCR] schedule import failed — fallback", error?.message || error);

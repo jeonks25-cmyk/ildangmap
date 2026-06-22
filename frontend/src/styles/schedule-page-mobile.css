@@ -4192,6 +4192,68 @@
   white-space: pre-wrap;
 }
 
+.vision-ocr-diag {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #dbe3ea;
+  background: #f8fafc;
+  font-size: 12px;
+}
+
+.vision-ocr-diag--vision {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.vision-ocr-diag--fallback {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.vision-ocr-diag__banner {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.vision-ocr-diag__banner--vision {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.vision-ocr-diag__banner--fallback {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.vision-ocr-diag__list {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.vision-ocr-diag__list div {
+  display: grid;
+  grid-template-columns: 108px 1fr;
+  gap: 8px;
+}
+
+.vision-ocr-diag__list dt {
+  margin: 0;
+  color: #6b7280;
+}
+
+.vision-ocr-diag__list dd {
+  margin: 0;
+  font-weight: 600;
+  color: #111827;
+  word-break: break-all;
+}
+
 .schedule-entry-composer-backdrop {
   position: fixed;
   inset: 0;
