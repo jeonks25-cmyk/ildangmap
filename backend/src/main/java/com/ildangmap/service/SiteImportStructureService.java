@@ -26,9 +26,9 @@ public class SiteImportStructureService {
             Pattern.compile("([가-힣A-Za-z]{2,20})(?:\\1)?(\\d{3,4})동(\\d{2,4})호");
     private static final Pattern DONG_HO = Pattern.compile("(\\d{3,4})\\s*동\\s*(\\d{2,4})\\s*호");
     private static final Pattern COMMON_PW =
-            Pattern.compile("(?:공동(?:현관)?(?:비번|비밀번호|번호)|공동비번)\\s*[:：]?\\s*([#*\\d]{3,8})", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("(?:공비|공동(?:비번|비밀번호|번호)?|공용(?:비번|비밀번호))\\s*[:：]?\\s*([#*\\d]{3,8})", Pattern.CASE_INSENSITIVE);
     private static final Pattern HOUSE_PW =
-            Pattern.compile("(?:세대(?:비번|비밀번호|번호)|현관(?:비번|비밀번호)|비번|비밀번호|출입(?:번호|비번))\\s*[:：]?\\s*([#*\\d]{3,8})", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("(?:세비|세대(?:비번|비밀번호|번호)?|현관(?:비번|비밀번호|번호)?)\\s*[:：]?\\s*([#*\\d*]{3,10})", Pattern.CASE_INSENSITIVE);
 
     private final ObjectMapper objectMapper;
 

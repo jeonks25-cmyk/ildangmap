@@ -10,11 +10,14 @@ import {
   suggestSiteNamesFromAddress,
 } from "../../utils/fieldSiteScheduleParser";
 import { searchKakaoPlaces } from "../../utils/mapPlaceSearch";
+import SiteImportChecklist, { SiteImportMultiScheduleList } from "./SiteImportChecklist";
 import {
+  multiScheduleRowToFormPatch,
   runSiteImportOcr,
   SITE_IMPORT_OCR_STAGE,
+  structureSiteInfo,
+  structuredInfoToFormPatch,
 } from "../../features/site-import/services/siteImportOcrService";
-import { structureSiteInfo, structuredInfoToFormPatch } from "../../features/site-import/structure/siteInfoStructurer";
 
 function defaultTextForType(type) {
   if (type === MAP_ITEM_TYPE.FIELD) {
@@ -46,6 +49,7 @@ function normalizeFieldDraft(draft, patch = {}) {
   if (patch.craft) next.craft = patch.craft;
   if (patch.title !== undefined) next.title = patch.title;
   if (patch.accessPassword !== undefined) next.details.accessPassword = patch.accessPassword;
+  if (patch.housePassword !== undefined) next.details.housePassword = patch.housePassword;
   if (patch.location) {
     next.location = { ...next.location, ...patch.location };
   }
@@ -81,8 +85,11 @@ export default function QuickSiteImportSheet({
   const [placeResults, setPlaceResults] = useState([]);
   const [placeLoading, setPlaceLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
-  const [ocrMessage, setOcrMessage] = useState("");
+  const [ocrChecklist, setOcrChecklist] = useState([]);
+  const [ocrError, setOcrError] = useState("");
   const [ocrApplied, setOcrApplied] = useState(false);
+  const [multiSchedules, setMultiSchedules] = useState([]);
+  const [baseOcrPatch, setBaseOcrPatch] = useState({});
   const titleTouchedRef = useRef(false);
 
   const isField = type === MAP_ITEM_TYPE.FIELD;
@@ -144,8 +151,11 @@ export default function QuickSiteImportSheet({
     setPlaceResults([]);
     setShowPasteInput(true);
     setOcrLoading(false);
-    setOcrMessage("");
+    setOcrChecklist([]);
+    setOcrError("");
     setOcrApplied(false);
+    setMultiSchedules([]);
+    setBaseOcrPatch({});
   }, [open, type, selectedDateKey, resumeState, defaultCrewCount, composeDefaultCraft]);
 
   useEffect(() => {
@@ -174,6 +184,8 @@ export default function QuickSiteImportSheet({
 
   const canSubmit = useMemo(() => {
     if (isField) {
+      const selectedMulti = multiSchedules.filter((r) => r.selected !== false);
+      if (selectedMulti.length >= 2) return true;
       const hasPaste = seedText.length >= 4;
       const hasOcrDraft = ocrApplied && Boolean(fieldDraft?.title?.trim());
       return Boolean(
@@ -185,63 +197,76 @@ export default function QuickSiteImportSheet({
       );
     }
     return title.trim().length >= 2 || text.trim().length >= 2;
-  }, [fieldDraft, isField, ocrApplied, seedText, text, title]);
+  }, [fieldDraft, isField, multiSchedules, ocrApplied, seedText, text, title]);
 
-  const handlePasteStructure = async (rawText) => {
-    const structured = await structureSiteInfo(rawText, { useGpt: true });
-    if (!structured.ok) {
-      setOcrMessage(structured.message || "현장 정보를 찾지 못했습니다");
-      setOcrApplied(false);
-      return;
-    }
-    const { patch } = structuredInfoToFormPatch(structured, rawText, selectedDateKey);
+  const applyStructuredResult = (structured, patch, rawText) => {
     setQuickPatch((prev) => ({
       ...prev,
       ...patch,
       location: patch.location ? { ...(prev.location || {}), ...patch.location } : prev.location,
     }));
     if (patch.location?.fullAddress) setAddressQuery(patch.location.fullAddress);
+    setBaseOcrPatch(patch);
+    setOcrChecklist(structured.checklist || []);
     setOcrApplied(true);
-    setOcrMessage(`현장 정보 인식 · 신뢰도 ${Math.round(structured.confidence * 100)}%`);
+    setOcrError("");
+    void rawText;
   };
 
-  const handleOcrFile = async (file) => {
-    if (!file) return;
-    setCaptureFileName(file.name || "");
+  const handlePasteStructure = async (rawText) => {
+    const structured = await structureSiteInfo(rawText, { useGpt: true, selectedDateKey });
+    if (structured.multiSchedules?.length >= 2) {
+      setMultiSchedules(structured.multiSchedules);
+      const { patch } = structuredInfoToFormPatch(structured, rawText, selectedDateKey);
+      applyStructuredResult(structured, patch, rawText);
+      return;
+    }
+    if (!structured.ok) {
+      setOcrError(structured.message || "현장 정보를 찾지 못했습니다");
+      setOcrChecklist(structured.checklist || []);
+      setOcrApplied(false);
+      setMultiSchedules([]);
+      return;
+    }
+    const { patch } = structuredInfoToFormPatch(structured, rawText, selectedDateKey);
+    setMultiSchedules([]);
+    applyStructuredResult(structured, patch, rawText);
+  };
+
+  const handleOcrFiles = async (fileList) => {
+    const files = Array.from(fileList || []).filter(Boolean);
+    if (!files.length) return;
+    setCaptureFileName(files.length > 1 ? `${files.length}장 선택됨` : files[0].name || "");
     setShowPasteInput(false);
     setOcrLoading(true);
-    setOcrMessage("");
+    setOcrError("");
+    setOcrChecklist([]);
     setOcrApplied(false);
+    setMultiSchedules([]);
     titleTouchedRef.current = false;
     try {
-      const result = await runSiteImportOcr(file, { selectedDateKey, useGpt: true });
-      if (result.stage === SITE_IMPORT_OCR_STAGE.SUCCESS) {
+      const result = await runSiteImportOcr(files, { selectedDateKey, useGpt: true });
+      if (
+        result.stage === SITE_IMPORT_OCR_STAGE.SUCCESS ||
+        result.stage === SITE_IMPORT_OCR_STAGE.MULTI
+      ) {
         setText(result.ocrResult?.text || "");
-        setQuickPatch((prev) => ({
-          ...prev,
-          ...result.patch,
-          location: result.patch?.location
-            ? { ...(prev.location || {}), ...result.patch.location }
-            : prev.location,
-        }));
-        if (result.patch?.location?.fullAddress) {
-          setAddressQuery(result.patch.location.fullAddress);
+        applyStructuredResult(result.structured, result.patch, result.ocrResult?.text);
+        if (result.multiSchedules?.length >= 2) {
+          setMultiSchedules(result.multiSchedules);
         }
-        setOcrApplied(true);
-        setOcrMessage(
-          `현장 정보 인식 · 신뢰도 ${Math.round((result.structured?.confidence || 0) * 100)}%`
-        );
         return;
       }
-      setText("");
+      setText(result.ocrResult?.text || "");
       setQuickPatch((prev) => {
         const next = { ...prev };
         delete next.title;
         return next;
       });
-      setOcrMessage(result.message || "현장 정보를 찾지 못했습니다");
+      setOcrError(result.message || "현장 정보를 찾지 못했습니다");
+      setOcrChecklist(result.structured?.checklist || []);
     } catch (error) {
-      setOcrMessage(error?.message || "OCR 처리에 실패했습니다.");
+      setOcrError(error?.message || "OCR 처리에 실패했습니다.");
     } finally {
       setOcrLoading(false);
     }
@@ -274,6 +299,21 @@ export default function QuickSiteImportSheet({
   const handleSubmit = async () => {
     if (!canSubmit) return;
     if (isField) {
+      const selectedMulti = multiSchedules.filter((r) => r.selected !== false);
+      if (selectedMulti.length >= 2) {
+        for (const row of selectedMulti) {
+          const rowPatch = multiScheduleRowToFormPatch(row, baseOcrPatch);
+          const draft = normalizeFieldDraft(
+            fieldDraft || createInitialJobPostDraft({ selectedDateKey, defaultCraft: seedCraft }),
+            rowPatch
+          );
+          if (!draft) continue;
+          await Promise.resolve(onSubmitField?.({ draft, source: "capture" }));
+        }
+        onClose?.();
+        return;
+      }
+
       const draft =
         normalizeFieldDraft(fieldDraft || createInitialJobPostDraft({ selectedDateKey, defaultCraft: seedCraft }), {
           title: fieldDraft?.title || siteNameSuggestions[0] || "",
@@ -354,7 +394,8 @@ export default function QuickSiteImportSheet({
                       if (String(next).trim().length >= 8) {
                         await handlePasteStructure(next.trim());
                       } else if (!String(next).trim()) {
-                        setOcrMessage("");
+                        setOcrError("");
+                        setOcrChecklist([]);
                       }
                     }}
                     placeholder="카톡·문자 내용 그대로 붙여넣기"
@@ -366,11 +407,11 @@ export default function QuickSiteImportSheet({
                   <input
                     type="file"
                     accept="image/*"
+                    multiple
                     className="quick-site-import-sheet__hero-file"
                     disabled={ocrLoading}
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      void handleOcrFile(file);
+                      void handleOcrFiles(e.target.files);
                       e.target.value = "";
                     }}
                   />
@@ -384,15 +425,29 @@ export default function QuickSiteImportSheet({
                 </label>
               </div>
 
-              {ocrMessage ? (
-                <p
-                  className={`quick-site-import-sheet__hint${
-                    ocrApplied ? " quick-site-import-sheet__hint--ok" : " quick-site-import-sheet__hint--warn"
-                  }`}
-                  role="status"
-                >
-                  {ocrMessage}
+              {ocrError ? (
+                <p className="quick-site-import-sheet__hint quick-site-import-sheet__hint--warn" role="alert">
+                  {ocrError}
                 </p>
+              ) : null}
+
+              {ocrChecklist.length ? (
+                <SiteImportChecklist checklist={ocrChecklist} title="인식 결과" />
+              ) : null}
+
+              {multiSchedules.length >= 2 ? (
+                <SiteImportMultiScheduleList
+                  rows={multiSchedules}
+                  onToggle={(id, checked) =>
+                    setMultiSchedules((prev) =>
+                      prev.map((row) => (row.id === id ? { ...row, selected: checked } : row))
+                    )
+                  }
+                  onToggleAll={() => {
+                    const allSelected = multiSchedules.every((r) => r.selected !== false);
+                    setMultiSchedules((prev) => prev.map((row) => ({ ...row, selected: !allSelected })));
+                  }}
+                />
               ) : null}
 
               <section className="quick-site-import-sheet__editable" aria-label="일정 초안 수정">
@@ -560,14 +615,28 @@ export default function QuickSiteImportSheet({
                   </label>
                 </div>
 
-                <label className="quick-site-import-sheet__editable-card">
-                  <span>비번</span>
-                  <input
-                    value={String(fieldDraft?.details?.accessPassword || "")}
-                    placeholder="7190"
-                    onChange={(e) => handleEditField("accessPassword", e.target.value.replace(/[^\d#*]/g, ""))}
-                  />
-                </label>
+                <div className="quick-site-import-sheet__row-2">
+                  <label className="quick-site-import-sheet__editable-card">
+                    <span>공동비번</span>
+                    <input
+                      value={String(fieldDraft?.details?.accessPassword || "")}
+                      placeholder="0507"
+                      onChange={(e) =>
+                        handleEditField("accessPassword", e.target.value.replace(/[^\d#*]/g, ""))
+                      }
+                    />
+                  </label>
+                  <label className="quick-site-import-sheet__editable-card">
+                    <span>세대비번</span>
+                    <input
+                      value={String(fieldDraft?.details?.housePassword || "")}
+                      placeholder="0814*"
+                      onChange={(e) =>
+                        handleEditField("housePassword", e.target.value.replace(/[^\d#*]/g, ""))
+                      }
+                    />
+                  </label>
+                </div>
 
                 <label className="quick-site-import-sheet__editable-card">
                   <span>준비물</span>
@@ -617,7 +686,11 @@ export default function QuickSiteImportSheet({
 
         <div className="quick-site-import-sheet__sticky-cta">
           <button type="button" className="quick-site-import-sheet__submit" disabled={!canSubmit} onClick={handleSubmit}>
-            {isField ? "저장 후 팀원 부르기" : `${label} 등록`}
+            {isField && multiSchedules.filter((r) => r.selected !== false).length >= 2
+              ? `선택 ${multiSchedules.filter((r) => r.selected !== false).length}건 일괄 저장`
+              : isField
+                ? "저장 후 팀원 부르기"
+                : `${label} 등록`}
           </button>
         </div>
       </section>

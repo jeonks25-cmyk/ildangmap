@@ -1,21 +1,13 @@
-import { buildAddressLine, buildScheduleTitle, extractSiteInfo } from "../extractor/siteInfoExtractor";
+import {
+  buildAddressLine,
+  buildScheduleTitle,
+  buildSiteVerificationChecklist,
+  extractSiteInfo,
+} from "../extractor/siteInfoExtractor";
+import { inferCraftFromText } from "../extractor/craftInference";
+import { parseMultiSchedules } from "../extractor/multiScheduleParser";
 import { structureSiteInfoWithGpt } from "../../../api/siteImportApi";
 import { parsePastedFieldText } from "../../../utils/mapItemDraft";
-
-/**
- * @typedef {Object} SiteStructuredInfo
- * @property {string} title
- * @property {string} apartmentName
- * @property {string} building
- * @property {string} unit
- * @property {string} commonPassword
- * @property {string} housePassword
- * @property {string[]} workItems
- * @property {number} confidence
- * @property {boolean} ok
- * @property {string} source
- * @property {string} [message]
- */
 
 const MIN_UNIT_CONFIDENCE = 0.55;
 
@@ -29,6 +21,7 @@ function mergeStructured(rule, gpt) {
   const building = pick(gpt.building, rule.building);
   const unit = pick(gpt.unit, rule.unit);
   const apartmentName = pick(gpt.apartmentName, rule.apartmentName);
+  const craft = pick(gpt.craft, rule.craft) || rule.craft;
   const merged = {
     apartmentName,
     building,
@@ -37,6 +30,9 @@ function mergeStructured(rule, gpt) {
     housePassword: pick(gpt.housePassword, rule.housePassword),
     workItems: Array.isArray(gpt.workItems) && gpt.workItems.length ? gpt.workItems : rule.workItems,
     brands: rule.brands,
+    craft,
+    craftConfidence: rule.craftConfidence,
+    craftMatched: rule.craftMatched,
     confidence: Math.max(Number(gpt.confidence) || 0, rule.confidence),
     hasUnit: Boolean(building && unit),
     rawText: rule.rawText,
@@ -45,29 +41,23 @@ function mergeStructured(rule, gpt) {
   return merged;
 }
 
-/**
- * @param {string} ocrText
- * @param {{ useGpt?: boolean, referenceDate?: Date }} [options]
- * @returns {Promise<SiteStructuredInfo>}
- */
-export async function structureSiteInfo(ocrText, options = {}) {
-  const extracted = extractSiteInfo(ocrText);
-  let merged = extracted;
-  let source = "rule";
-
-  if (options.useGpt !== false && ocrText.trim().length >= 4) {
-    try {
-      const gpt = await structureSiteInfoWithGpt({ text: ocrText, ruleHint: extracted });
-      if (gpt?.ok) {
-        merged = mergeStructured(extracted, gpt.data);
-        source = gpt.source || "gpt";
-      }
-    } catch (_) {
-      /* GPT optional — rule fallback */
-    }
+function enrichWithCraft(merged, ocrText) {
+  if (merged.craft) return merged;
+  const inferred = inferCraftFromText(ocrText);
+  if (inferred.craft) {
+    return {
+      ...merged,
+      craft: inferred.craft,
+      craftConfidence: inferred.confidence,
+      craftMatched: inferred.matched,
+    };
   }
+  return merged;
+}
 
+function toStructuredPayload(merged, source) {
   const title = buildScheduleTitle(merged);
+  const checklist = buildSiteVerificationChecklist(merged);
   const ok = merged.hasUnit && merged.confidence >= MIN_UNIT_CONFIDENCE;
 
   if (!ok) {
@@ -80,7 +70,9 @@ export async function structureSiteInfo(ocrText, options = {}) {
       housePassword: merged.housePassword || "",
       workItems: merged.workItems || [],
       brands: merged.brands || [],
+      craft: merged.craft || null,
       confidence: merged.confidence,
+      checklist,
       ok: false,
       source,
       message: "현장 정보를 찾지 못했습니다",
@@ -96,7 +88,9 @@ export async function structureSiteInfo(ocrText, options = {}) {
     housePassword: merged.housePassword,
     workItems: merged.workItems || [],
     brands: merged.brands || [],
+    craft: merged.craft || null,
     confidence: merged.confidence,
+    checklist,
     ok: true,
     source,
     message: "",
@@ -104,44 +98,59 @@ export async function structureSiteInfo(ocrText, options = {}) {
 }
 
 /**
- * QuickSiteImportSheet용 quickPatch 생성
- * @param {SiteStructuredInfo} structured
  * @param {string} ocrText
- * @param {string} [selectedDateKey]
+ * @param {{ useGpt?: boolean, referenceDate?: Date, selectedDateKey?: string }} [options]
  */
+export async function structureSiteInfo(ocrText, options = {}) {
+  let extracted = extractSiteInfo(ocrText);
+  extracted = enrichWithCraft(extracted, ocrText);
+  let merged = extracted;
+  let source = "rule";
+
+  if (options.useGpt !== false && ocrText.trim().length >= 4) {
+    try {
+      const gpt = await structureSiteInfoWithGpt({ text: ocrText, ruleHint: extracted });
+      if (gpt?.ok) {
+        merged = mergeStructured(extracted, gpt.data);
+        merged = enrichWithCraft(merged, ocrText);
+        source = gpt.source || "gpt";
+      }
+    } catch (_) {
+      /* GPT optional */
+    }
+  }
+
+  const multiSchedules = parseMultiSchedules(ocrText, {
+    referenceDate: options.referenceDate,
+    defaultDateKey: options.selectedDateKey,
+  });
+
+  const payload = toStructuredPayload(merged, source);
+  return {
+    ...payload,
+    multiSchedules: multiSchedules.length >= 2 ? multiSchedules : [],
+  };
+}
+
 export function structuredInfoToFormPatch(structured, ocrText, selectedDateKey = "") {
   if (!structured?.ok) {
     return { patch: {}, structured, applied: false };
   }
 
   const pasted = parsePastedFieldText(ocrText, selectedDateKey);
-  const accessPassword =
-    structured.commonPassword ||
-    structured.housePassword ||
-    pasted.accessPassword?.value ||
-    "";
-
-  const passwordParts = [];
-  if (structured.commonPassword) passwordParts.push(`공동 ${structured.commonPassword}`);
-  if (structured.housePassword) passwordParts.push(`세대 ${structured.housePassword}`);
-
-  const workDesc = [
-    ...(structured.workItems || []),
-    ...(structured.brands || []).map((b) => `${b} 자재`),
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
+  const workDesc = (structured.workItems || []).filter(Boolean).join(" · ");
   const fullAddress = buildAddressLine(structured) || pasted.address?.fullAddress || "";
 
   const patch = {
     title: structured.title,
-    accessPassword,
+    accessPassword: structured.commonPassword || pasted.accessPassword?.value || "",
+    housePassword: structured.housePassword || "",
+    craft: structured.craft || pasted.craft?.value || undefined,
     location: fullAddress
       ? {
           fullAddress,
           shortRegion: fullAddress.split(/\s+/).slice(0, 2).join(" "),
-          siteKind: /아파트/u.test(fullAddress) ? "아파트" : "현장",
+          siteKind: "아파트",
         }
       : undefined,
     requiredItems: workDesc || pasted.requiredItems?.value || undefined,
@@ -150,9 +159,28 @@ export function structuredInfoToFormPatch(structured, ocrText, selectedDateKey =
   if (pasted.workDate?.value) patch.workDate = pasted.workDate.value;
   if (pasted.workDateEnd?.value) patch.workDateEnd = pasted.workDateEnd.value;
   if (pasted.workTime?.value) patch.workTime = pasted.workTime.value;
-  if (pasted.craft?.value) patch.craft = pasted.craft.value;
   if (pasted.crewCount?.value) patch.crewCount = pasted.crewCount.value;
   if (pasted.payAmount?.value) patch.payAmount = pasted.payAmount.value;
 
   return { patch, structured, applied: true };
+}
+
+export function multiScheduleRowToFormPatch(row, basePatch = {}) {
+  const title = row.title || buildScheduleTitle(row);
+  return {
+    title,
+    accessPassword: row.commonPassword || basePatch.accessPassword || "",
+    housePassword: row.housePassword || basePatch.housePassword || "",
+    craft: row.craft || basePatch.craft,
+    workDate: row.dateKey || basePatch.workDate,
+    workDateEnd: row.dateKey || basePatch.workDateEnd,
+    location: title
+      ? {
+          fullAddress: title,
+          shortRegion: title.split(/\s+/).slice(0, 2).join(" "),
+          siteKind: "아파트",
+        }
+      : basePatch.location,
+    requiredItems: (row.workItems || []).join(" · ") || basePatch.requiredItems,
+  };
 }
