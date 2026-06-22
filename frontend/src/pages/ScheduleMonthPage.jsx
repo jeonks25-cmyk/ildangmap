@@ -21,6 +21,8 @@ import { useSettlementStore } from "../store/useSettlementStore";
 import { getScheduleColorDisplayLabel, getScheduleColorOption } from "../constants/scheduleColors";
 import { useScheduleColorAliasStore } from "../store/useScheduleColorAliasStore";
 import { personalEventToIcsInput } from "../features/calendar-export";
+import { scheduleDiagCalendarLoad } from "../utils/scheduleSyncDiag";
+import { useUserStore } from "../store/useUserStore";
 import "../styles/schedule-page-mobile.css";
 
 function parseDateKey(key) {
@@ -47,6 +49,9 @@ export default function ScheduleMonthPage() {
   const aliasesByColorId = useScheduleColorAliasStore((s) => s.aliasesByColorId);
   const ops = useScheduleFieldOps(selectedDateKey);
   const schedules = useSettlementStore((s) => s.schedules);
+  const schedulesUserId = useSettlementStore((s) => s.schedulesUserId);
+  const schedulesLoaded = useSettlementStore((s) => s.schedulesLoaded);
+  const sessionUserId = useUserStore((s) => s.session?.user?.id ?? s.profile?.id);
   const ownerId = getMyScheduleOwnerId();
   const personalEvents = useFieldScheduleStore((s) => selectPersonalEventsForOwner(s, ownerId));
   const creatorLabel = getDisplayNickname(ops.profile) || "나";
@@ -85,6 +90,28 @@ export default function ScheduleMonthPage() {
     if (colorFilterId === "all") return ops.dayEntries;
     return ops.dayEntries.filter((entry) => entry.colorId === colorFilterId);
   }, [colorFilterId, ops.dayEntries]);
+
+  useEffect(() => {
+    const siteCount = ops.dayEntries.filter((e) => e.kind === "site").length;
+    const personalCount = ops.dayEntries.filter((e) => e.kind === "personal").length;
+    scheduleDiagCalendarLoad({
+      userId: sessionUserId,
+      schedulesUserId,
+      schedulesLoaded,
+      selectedDateKey,
+      totalSchedules: Array.isArray(schedules) ? schedules.length : 0,
+      dayEntryCount: ops.dayEntries.length,
+      siteCount,
+      personalCount,
+    });
+  }, [
+    ops.dayEntries,
+    schedules,
+    schedulesLoaded,
+    schedulesUserId,
+    selectedDateKey,
+    sessionUserId,
+  ]);
 
   const handleOcrReview = useCallback((drafts) => {
     setOcrReviewDrafts(Array.isArray(drafts) ? drafts : []);

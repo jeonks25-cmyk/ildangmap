@@ -42,6 +42,7 @@ import {
 } from "../utils/fieldMemoryStorage";
 import { getFieldProfileFamilyKey, getFieldProfileKey } from "../utils/fieldHistoryModel";
 import { recordSiteMemoryFromRegistration } from "../features/site-import/memory";
+import { scheduleDiagSaveResult } from "../utils/scheduleSyncDiag";
 
 function parseDateKey(key) {
   const [y, m, d] = String(key).split("-").map(Number);
@@ -398,6 +399,13 @@ export function useScheduleFieldOps(selectedDateKey) {
         if (!created) {
           throw new Error("개인 일정 저장에 실패했습니다");
         }
+        scheduleDiagSaveResult({
+          id: created.id,
+          createdByUserId: myUserId,
+          workDate: dateKey,
+          title: created.title,
+          scheduleInvites: [],
+        });
         showAppToast?.("개인 일정을 추가했습니다");
         return { updated: false, events: [created] };
       } catch (error) {
@@ -641,6 +649,13 @@ export function useScheduleFieldOps(selectedDateKey) {
             calendarMemo: memo,
           });
         }
+
+        const latestSchedule =
+          createdSchedule?.id && updateSchedule
+            ? useSettlementStore.getState().schedules.find((s) => String(s?.id) === String(createdSchedule.id)) ||
+              createdSchedule
+            : createdSchedule;
+        scheduleDiagSaveResult(latestSchedule);
 
         const contacts = buildContactsList(
           favoriteById,

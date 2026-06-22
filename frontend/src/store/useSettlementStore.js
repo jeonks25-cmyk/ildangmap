@@ -32,6 +32,7 @@ import {
 } from "./useNotificationStore";
 import { createScheduleBriefingId, ensureScheduleBriefingIdValue } from "../utils/scheduleBoardAccess";
 import { useUserStore } from "./useUserStore";
+import { scheduleDiag } from "../utils/scheduleSyncDiag";
 
 const STORE_KEY = "ildangmap_settlement_store_v2";
 
@@ -45,7 +46,21 @@ function normalizeSchedules(scheduleList) {
 
 function scheduleSyncDebouncedImpl() {
   const state = useSettlementStore.getState();
-  if (schedulesSyncPaused || !state.schedulesUserId || !state.schedulesLoaded) return;
+  const sessionUserId =
+    useUserStore.getState().session?.user?.id ?? useUserStore.getState().profile?.id ?? null;
+  const canSync =
+    state.schedulesLoaded &&
+    (state.schedulesUserId || (sessionUserId != null && sessionUserId !== ""));
+  if (schedulesSyncPaused || !canSync) {
+    scheduleDiag("sync debounced skipped", {
+      schedulesSyncPaused,
+      schedulesLoaded: state.schedulesLoaded,
+      schedulesUserId: state.schedulesUserId,
+      sessionUserId,
+      scheduleCount: Array.isArray(state.schedules) ? state.schedules.length : 0,
+    });
+    return;
+  }
   if (schedulesSyncTimer) clearTimeout(schedulesSyncTimer);
   schedulesSyncTimer = setTimeout(() => {
     schedulesSyncTimer = null;
@@ -167,14 +182,40 @@ export const useSettlementStore = create(
       },
 
       syncSchedulesToServer: async () => {
-        const userId = get().schedulesUserId;
-        if (!userId || !get().schedulesLoaded) return null;
+        const sessionUserId =
+          useUserStore.getState().session?.user?.id ?? useUserStore.getState().profile?.id ?? null;
+        let userId = get().schedulesUserId;
+        if (!userId && sessionUserId != null && sessionUserId !== "") {
+          userId = String(sessionUserId);
+          set({ schedulesUserId: userId, schedulesLoaded: true });
+        }
+        if (!userId || !get().schedulesLoaded) {
+          scheduleDiag("syncToServer skipped", {
+            schedulesUserId: get().schedulesUserId,
+            sessionUserId,
+            schedulesLoaded: get().schedulesLoaded,
+          });
+          return null;
+        }
         set({ schedulesSyncing: true, schedulesError: "" });
         try {
-          const saved = await putSchedulesData(get().buildSchedulesPayload());
+          const payload = get().buildSchedulesPayload();
+          scheduleDiag("syncToServer PUT", {
+            userId,
+            scheduleCount: payload.schedules?.length ?? 0,
+          });
+          const saved = await putSchedulesData(payload);
+          scheduleDiag("syncToServer OK", {
+            userId,
+            scheduleCount: saved?.schedules?.length ?? 0,
+          });
           applyPayloadToSet(set, saved, get().briefingData);
           return saved;
         } catch (error) {
+          scheduleDiag("syncToServer error", {
+            userId,
+            message: error?.message,
+          });
           set({ schedulesError: getApiErrorMessage(error, "일정을 저장하지 못했습니다.") });
           throw error;
         } finally {
@@ -189,19 +230,41 @@ export const useSettlementStore = create(
           return;
         }
         if (get().schedulesUserId && get().schedulesUserId !== uid) {
+          scheduleDiag("bootstrap reset — user changed", {
+            from: get().schedulesUserId,
+            to: uid,
+          });
           get().resetSchedules();
         }
-        if (get().schedulesLoaded && get().schedulesUserId === uid) return;
+        if (get().schedulesLoaded && get().schedulesUserId === uid) {
+          scheduleDiag("bootstrap skip — already loaded", { userId: uid });
+          return;
+        }
 
         if (schedulesBootstrapInFlight) return schedulesBootstrapInFlight;
 
         const run = (async () => {
+          const localBefore = Array.isArray(get().schedules) ? get().schedules : [];
+          scheduleDiag("bootstrap start", {
+            userId: uid,
+            localScheduleCount: localBefore.length,
+            schedulesLoaded: get().schedulesLoaded,
+            schedulesUserId: get().schedulesUserId,
+          });
           set({ loading: true, schedulesError: "" });
           try {
             const server = normalizeSchedulesPayload(await getSchedulesData());
+            scheduleDiag("bootstrap GET /users/me/schedules", {
+              userId: uid,
+              serverScheduleCount: server.schedules?.length ?? 0,
+            });
             if (hasSchedulesPayload(server)) {
               get().applySchedulesPayload(server);
               set({ schedulesUserId: uid, schedulesLoaded: true });
+              scheduleDiag("bootstrap applied server payload", {
+                userId: uid,
+                scheduleCount: server.schedules?.length ?? 0,
+              });
               return;
             }
 
@@ -212,12 +275,37 @@ export const useSettlementStore = create(
               get().applySchedulesPayload(saved);
               removeLegacySchedulesLocalStorage();
               set({ schedulesUserId: uid, schedulesLoaded: true });
+              scheduleDiag("bootstrap migrated legacy localStorage", {
+                userId: uid,
+                scheduleCount: saved.schedules?.length ?? 0,
+              });
+              return;
+            }
+
+            const localNow = Array.isArray(get().schedules) ? get().schedules : [];
+            if (localNow.length > 0) {
+              scheduleDiag("bootstrap upload local schedules (server empty)", {
+                userId: uid,
+                localScheduleCount: localNow.length,
+              });
+              const saved = normalizeSchedulesPayload(await putSchedulesData(get().buildSchedulesPayload()));
+              get().applySchedulesPayload(saved);
+              set({ schedulesUserId: uid, schedulesLoaded: true });
+              scheduleDiag("bootstrap local upload OK", {
+                userId: uid,
+                scheduleCount: saved.schedules?.length ?? 0,
+              });
               return;
             }
 
             get().applySchedulesPayload(normalizeSchedulesPayload({ schedules: [], fieldOps: readAllFieldOps() }));
             set({ schedulesUserId: uid, schedulesLoaded: true });
+            scheduleDiag("bootstrap empty", { userId: uid });
           } catch (error) {
+            scheduleDiag("bootstrap error", {
+              userId: uid,
+              message: error?.message,
+            });
             const legacy = readLegacySchedulesLocalStorage();
             if (hasSchedulesPayload(legacy)) {
               get().applySchedulesPayload(legacy);
@@ -225,6 +313,19 @@ export const useSettlementStore = create(
                 schedulesUserId: uid,
                 schedulesLoaded: true,
                 schedulesError: getApiErrorMessage(error, "일정을 불러오지 못했습니다. 오프라인 데이터를 표시합니다."),
+              });
+              return;
+            }
+            const localFallback = Array.isArray(get().schedules) ? get().schedules : [];
+            if (localFallback.length > 0) {
+              set({
+                schedulesUserId: uid,
+                schedulesLoaded: true,
+                schedulesError: getApiErrorMessage(error, "일정을 불러오지 못했습니다. 로컬 일정을 유지합니다."),
+              });
+              scheduleDiag("bootstrap error — kept local schedules", {
+                userId: uid,
+                localScheduleCount: localFallback.length,
               });
               return;
             }
@@ -535,6 +636,8 @@ export const useSettlementStore = create(
       },
 
       refreshSettlementData: async ({ force = false } = {}) => {
+        const sessionUserId =
+          useUserStore.getState().session?.user?.id ?? useUserStore.getState().profile?.id ?? null;
         if (get().schedulesLoaded && get().schedulesUserId) {
           const summary = await getSettlementSummaryApi(get().schedules);
           set((state) => ({
@@ -547,6 +650,13 @@ export const useSettlementStore = create(
           return get().schedules;
         }
         if (!force && get().schedulesLoaded) return get().schedules;
+        if (!sessionUserId) {
+          scheduleDiag("refreshSettlementData skip — no session user", {
+            schedulesLoaded: get().schedulesLoaded,
+            scheduleCount: get().schedules?.length ?? 0,
+          });
+          return get().schedules;
+        }
         return runAsyncStoreAction({
           set,
           defaultErrorMessage: "정산 데이터를 불러오지 못했습니다.",

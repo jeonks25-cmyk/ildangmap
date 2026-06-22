@@ -2,6 +2,7 @@ import { isMockApiEnabled, runApiRequest } from "./client";
 import { readJsonStorage, removeStorageKey, writeJsonStorage } from "../store/storeUtils";
 import { SCHEDULES_STORAGE_KEY } from "../utils/scheduleModel";
 import { migrateSchedule } from "../utils/scheduleModel";
+import { scheduleDiag } from "../utils/scheduleSyncDiag";
 
 const LEGACY_SETTLEMENT_STORE_KEY = "ildangmap_settlement_store_v2";
 const FIELD_OPS_STORAGE_KEY = "ildangmap.scheduleFieldOps.v1";
@@ -120,7 +121,8 @@ function resolveUseMock() {
 }
 
 export async function getSchedulesData() {
-  return runApiRequest({
+  scheduleDiag("GET /api/users/me/schedules");
+  const data = await runApiRequest({
     path: "/api/users/me/schedules",
     useMock: resolveUseMock(),
     mock: () => {
@@ -128,11 +130,18 @@ export async function getSchedulesData() {
       return readMockSchedules(userId);
     },
   });
+  scheduleDiag("GET /api/users/me/schedules response", {
+    scheduleCount: data?.schedules?.length ?? 0,
+  });
+  return data;
 }
 
 export async function putSchedulesData(payload) {
   const body = normalizeSchedulesPayload(payload);
-  return runApiRequest({
+  scheduleDiag("PUT /api/users/me/schedules", {
+    scheduleCount: body.schedules?.length ?? 0,
+  });
+  const saved = await runApiRequest({
     path: "/api/users/me/schedules",
     method: "PUT",
     body,
@@ -143,4 +152,8 @@ export async function putSchedulesData(payload) {
       return body;
     },
   });
+  scheduleDiag("PUT /api/users/me/schedules response", {
+    scheduleCount: saved?.schedules?.length ?? 0,
+  });
+  return saved;
 }
