@@ -6,6 +6,10 @@
 
 import { parseSiteFields, isNoiseLine, buildSiteTitle, pickPlausibleApartmentName } from "../features/site-import/parser/siteFieldParser";
 import {
+  isAddressLikeTitle,
+  resolveScheduleTitleByPriority,
+} from "../features/site-import/parser/scheduleTitleResolver";
+import {
   extractExplicitWorkTimes,
   isKakaoSendTimeLine,
   isExplicitWorkTimeLine,
@@ -324,6 +328,7 @@ export function isExcludedTitleCandidate(value) {
   const latin = (t.match(/[A-Za-z]/g) || []).length;
   if (hangul > 0 && latin > hangul && !/\d{3,4}\s*동/u.test(t)) return true;
   if (/Md&@p|»/.test(t) && !/[가-힣]{2,}/u.test(t)) return true;
+  if (isAddressLikeTitle(t)) return true;
 
   return false;
 }
@@ -358,10 +363,11 @@ function logTitleResolution({
 
 /**
  * 제목 우선순위:
- * 1) building+unit → 동·호 제목 (아파트명 optional)
- * 2) apartmentName만
- * 3) OCR 자유 텍스트 줄
- * 4) legacy fallback
+ * 1) 상호명 (업종 키워드)
+ * 2) 건물명 + 호수
+ * 3) 아파트명 + 동·호
+ * 4) 주소 (정상 형식만)
+ * 5) OCR 자유 텍스트 줄 (주소 조각 제외)
  */
 function resolveScheduleTitle({
   apartmentName,
@@ -371,53 +377,34 @@ function resolveScheduleTitle({
   lines,
   referenceDate,
   titleDiag,
+  rawText = "",
 }) {
   const apt = pickPlausibleApartmentName(apartmentName, siteNameCandidates);
   const b = String(building || "").trim();
   const u = String(unit || "").trim();
-  let title = "";
-  let titlePath = null;
-  let titleLineIndex = -1;
-  let titleRemainder = "";
   const titleBefore = "";
 
-  if (b && u) {
-    titlePath = apt ? "priority1_dong_ho_with_name" : "priority1_dong_ho_only";
-    const resolvedTitle = buildSiteTitle({ siteName: apt, building: b, unit: u });
-    title = resolvedTitle;
-    titleLineIndex = lines.findIndex((line) => {
-      const compact = String(line || "").replace(/\s+/g, "");
-      return compact.includes(`${b}동`) && (compact.includes(`${u}호`) || compact.includes(u));
-    });
-    titleDiag.steps.push({ step: titlePath, apartmentName: apt, building: b, unit: u, title, titleLineIndex });
-    logTitleResolution({ titlePath, titleBefore, apartmentName: apt, building: b, unit: u, finalTitle: title });
-    console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", title);
-    return {
-      title,
-      resolvedTitle,
-      parsedTitle: "",
-      legacyTitle: "",
-      titlePath,
-      titleLineIndex,
-      titleRemainder,
-    };
-  }
+  const priorityResult = resolveScheduleTitleByPriority({
+    apartmentName: apt,
+    siteNameCandidates,
+    building: b,
+    unit: u,
+    lines,
+    rawText,
+    titleDiag,
+  });
 
-  if (apt && apt.length >= 2 && !isExcludedTitleCandidate(apt)) {
-    titlePath = "priority2_apartment_name";
-    title = apt;
-    titleDiag.steps.push({ step: titlePath, apartmentName: apt, title });
-    logTitleResolution({ titlePath, titleBefore, apartmentName: apt, building: b, unit: u, finalTitle: title });
-    console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", title);
-    return {
-      title,
-      resolvedTitle: "",
-      parsedTitle: apt,
-      legacyTitle: "",
-      titlePath,
-      titleLineIndex,
-      titleRemainder,
-    };
+  if (priorityResult.title) {
+    logTitleResolution({
+      titlePath: priorityResult.titlePath,
+      titleBefore,
+      apartmentName: apt,
+      building: b,
+      unit: u,
+      finalTitle: priorityResult.title,
+    });
+    console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", priorityResult.title);
+    return priorityResult;
   }
 
   for (let i = 0; i < Math.min(lines.length, 12); i++) {
@@ -433,84 +420,48 @@ function resolveScheduleTitle({
     const ocrTitle = String(extracted.title || "").trim();
     if (!ocrTitle || isExcludedTitleCandidate(ocrTitle)) continue;
 
-    titlePath = "priority3_ocr_free_text";
-    title = ocrTitle;
-    titleRemainder = extracted.titleRemainder || "";
-    titleLineIndex = i;
+    const titlePath = "priority5_ocr_free_text";
+    logTitleResolution({
+      titlePath,
+      titleBefore,
+      apartmentName: apt,
+      building: b,
+      unit: u,
+      finalTitle: ocrTitle,
+    });
+    console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", ocrTitle);
     titleDiag.titleSourceLine = i;
     titleDiag.titleSourceText = candidate;
-    titleDiag.steps.push({ step: titlePath, lineIndex: i, candidate, title, titleRemainder });
-    logTitleResolution({ titlePath, titleBefore, apartmentName: apt, building: b, unit: u, finalTitle: title });
-    console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", title);
+    titleDiag.steps.push({ step: titlePath, lineIndex: i, candidate, title: ocrTitle });
     return {
-      title,
+      title: ocrTitle,
       resolvedTitle: "",
-      parsedTitle: title,
+      parsedTitle: ocrTitle,
       legacyTitle: "",
       titlePath,
-      titleLineIndex,
-      titleRemainder,
+      titleLineIndex: i,
+      titleRemainder: extracted.titleRemainder || "",
     };
   }
 
-  titlePath = "priority4_legacy_fallback";
-  titleLineIndex = -1;
-  let titleSource = "";
-
-  for (let i = 0; i < Math.min(lines.length, 8); i++) {
-    if (isNoiseLine(lines[i])) continue;
-    const candidate = stripDateAndTimeFromLine(lines[i], referenceDate);
-    if (candidate && !isExcludedTitleCandidate(candidate)) {
-      titleLineIndex = i;
-      titleSource = candidate;
-      break;
-    }
-  }
-
-  if (!titleSource) {
-    titleDiag.steps.push({ step: "no_valid_title_line" });
-    logTitleResolution({ titlePath, titleBefore, apartmentName: apt, building: b, unit: u, finalTitle: "" });
-    console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", "");
-    return {
-      title: "",
-      resolvedTitle: "",
-      parsedTitle: "",
-      legacyTitle: "",
-      titlePath,
-      titleLineIndex,
-      titleRemainder: "",
-    };
-  }
-
-  titleDiag.titleSourceLine = titleLineIndex;
-  titleDiag.titleSourceText = titleSource;
-  const extracted = extractSiteTitleFromLine(titleSource);
-  titleDiag.steps.push({ step: "extractSiteTitleFromLine", input: titleSource, output: extracted });
-  ({ title, titleRemainder } = extracted);
-
-  if (isExcludedTitleCandidate(title)) {
-    titleDiag.garbageRejected = true;
-    titleDiag.rejectedTitle = title;
-    titleDiag.garbageReason = explainGarbageTitle(title, titleLineIndex, titleSource);
-    titleDiag.steps.push({
-      step: "garbage_title_rejected",
-      rejectedTitle: title,
-      reason: titleDiag.garbageReason,
-    });
-    title = "";
-    titleRemainder = titleSource || "";
-  }
-
-  logTitleResolution({ titlePath, titleBefore, apartmentName: apt, building: b, unit: u, finalTitle: title });
-  console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", title);
+  titleDiag.steps.push({ step: "no_valid_title_line" });
+  logTitleResolution({
+    titlePath: "no_title_candidate",
+    titleBefore,
+    apartmentName: apt,
+    building: b,
+    unit: u,
+    finalTitle: "",
+  });
+  console.log("[SCHEDULE-OCR] resolveScheduleTitle finalTitle:", "");
   return {
-    title,
+    title: "",
     resolvedTitle: "",
     parsedTitle: "",
-    legacyTitle: title,
-    titlePath,
-    titleLineIndex,
-    titleRemainder,
+    legacyTitle: "",
+    titlePath: "no_title_candidate",
+    titleLineIndex: -1,
+    titleRemainder: "",
   };
 }
 
@@ -630,6 +581,7 @@ export function parseSchedulePasteText(text, options = {}) {
     lines,
     referenceDate,
     titleDiag,
+    rawText,
   });
   title = titleResolved.title;
   titleRemainder = titleResolved.titleRemainder;

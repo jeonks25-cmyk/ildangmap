@@ -86,7 +86,7 @@ describe("siteFieldParser", () => {
     );
     expect(result.title).toBe("장재계룡 1109동 1402호");
     expect(result.resolvedTitle).toBe("장재계룡 1109동 1402호");
-    expect(result.titleDiag.path).toMatch(/^priority1_/);
+    expect(result.titleDiag.path).toMatch(/^priority3_/);
     expect(result.structureOk).toBe(true);
   });
 
@@ -94,7 +94,7 @@ describe("siteFieldParser", () => {
     const { parseSchedulePasteText } = require("../../../utils/schedulePasteParser");
     const result = parseSchedulePasteText("1109동 1402호");
     expect(result.title).toBe("1109동 1402호");
-    expect(result.titleDiag.path).toBe("priority1_dong_ho_only");
+    expect(result.titleDiag.path).toBe("priority3_dong_ho_only");
   });
 
   test("garbage 제목 -6 방지 (schedule paste)", () => {

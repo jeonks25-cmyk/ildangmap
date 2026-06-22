@@ -60,7 +60,10 @@ export function applyScheduleImportTitleToForm(result, options = {}) {
   const parserFinalTitle = String(result?.finalTitle || result?.title || "").trim();
 
   let finalAppliedTitle;
-  if (building && unit) {
+  const titlePath = result?.titleDiag?.path || result?.parseDiagnostics?.titlePath || "";
+  const parserTitle = String(result?.title || "").trim();
+
+  if (building && unit && (!titlePath || titlePath.startsWith("priority3_"))) {
     finalAppliedTitle = structuralTitle || resolvedTitle || "";
     if (
       !finalAppliedTitle &&
@@ -72,10 +75,12 @@ export function applyScheduleImportTitleToForm(result, options = {}) {
     }
   } else {
     finalAppliedTitle =
+      (parserTitle && !isExcludedTitleCandidate(parserTitle) ? parserTitle : "") ||
       resolvedTitle ||
       (parsedTitle && !isExcludedTitleCandidate(parsedTitle) ? parsedTitle : "") ||
       (legacyTitle && !isExcludedTitleCandidate(legacyTitle) ? legacyTitle : "") ||
       (parserFinalTitle && !isExcludedTitleCandidate(parserFinalTitle) ? parserFinalTitle : "") ||
+      structuralTitle ||
       "";
   }
 
