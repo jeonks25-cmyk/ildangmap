@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { getBriefingFilters, getBriefings } from "../api/briefingApi";
-import { getSchedules as getSchedulesApi, getSettlementSummary as getSettlementSummaryApi } from "../api/settlementApi";
+import { getSettlementSummary as getSettlementSummaryApi } from "../api/settlementApi";
 import {
   applyFieldOpsToLegacyStorage,
   getSchedulesData,
@@ -32,16 +32,44 @@ import {
 } from "./useNotificationStore";
 import { createScheduleBriefingId, ensureScheduleBriefingIdValue } from "../utils/scheduleBoardAccess";
 import { useUserStore } from "./useUserStore";
-import { scheduleDiag, schedulePersistTrace, payloadByteLength } from "../utils/scheduleSyncDiag";
+import {
+  scheduleDiag,
+  schedulePersistTrace,
+  payloadByteLength,
+  scheduleZeroPutProbe,
+  scheduleStateChangeTrace,
+  getScheduleDebounceSource,
+  setScheduleDebounceSource,
+} from "../utils/scheduleSyncDiag";
 
 const STORE_KEY = "ildangmap_settlement_store_v2";
 
 let schedulesSyncTimer = null;
 let schedulesBootstrapInFlight = null;
 let schedulesSyncPaused = false;
+/** deleteSchedule 등 의도적 전체 삭제 후 1회만 count=0 PUT 허용 */
+let allowEmptySchedulesPutOnce = false;
 
 export function isSchedulesBootstrapInFlight() {
   return schedulesBootstrapInFlight != null;
+}
+
+export function permitEmptySchedulesPutOnce(source = "unknown") {
+  allowEmptySchedulesPutOnce = true;
+  scheduleZeroPutProbe("PERMIT_EMPTY_PUT", {
+    syncReason: source,
+    debounceSource: source,
+  });
+}
+
+function hasEmptySchedulesPutPermit() {
+  return allowEmptySchedulesPutOnce;
+}
+
+function takeEmptySchedulesPutPermit() {
+  if (!allowEmptySchedulesPutOnce) return false;
+  allowEmptySchedulesPutOnce = false;
+  return true;
 }
 
 function normalizeSchedules(scheduleList) {
@@ -62,11 +90,34 @@ function bindSchedulesSyncContextIfAuthenticated() {
   return uid;
 }
 
-function scheduleSyncDebouncedImpl() {
+function scheduleSyncDebouncedImpl(debounceSource) {
+  if (debounceSource) setScheduleDebounceSource(debounceSource);
   const sessionUserId = bindSchedulesSyncContextIfAuthenticated();
   const state = useSettlementStore.getState();
   const scheduleCount = Array.isArray(state.schedules) ? state.schedules.length : 0;
+  const userId = state.schedulesUserId || sessionUserId;
   const canSync = state.schedulesLoaded && (state.schedulesUserId || sessionUserId);
+  const syncReason = schedulesBootstrapInFlight
+    ? "bootstrap_in_progress"
+    : schedulesSyncPaused
+      ? "sync_paused"
+      : !canSync
+        ? "not_ready"
+        : !state.schedulesLoaded && scheduleCount === 0
+          ? "empty_before_bootstrap"
+          : "debounce_scheduled";
+
+  scheduleZeroPutProbe("DEBOUNCE_ENTER", {
+    syncReason,
+    debounceSource: getScheduleDebounceSource(),
+    schedulesLoaded: state.schedulesLoaded,
+    scheduleCount,
+    "schedules.length": scheduleCount,
+    userId: userId != null ? String(userId) : null,
+    schedulesBootstrapInFlight: Boolean(schedulesBootstrapInFlight),
+    schedulesSyncPaused,
+  });
+
   if (schedulesBootstrapInFlight || schedulesSyncPaused || !canSync) {
     scheduleDiag("sync debounced skipped", {
       schedulesBootstrapInFlight: Boolean(schedulesBootstrapInFlight),
@@ -75,6 +126,8 @@ function scheduleSyncDebouncedImpl() {
       schedulesUserId: state.schedulesUserId,
       sessionUserId,
       scheduleCount,
+      syncReason,
+      debounceSource: getScheduleDebounceSource(),
     });
     return;
   }
@@ -82,10 +135,36 @@ function scheduleSyncDebouncedImpl() {
     scheduleDiag("sync debounced skipped — empty before bootstrap", { sessionUserId, scheduleCount });
     return;
   }
+
+  if (scheduleCount === 0 && state.schedulesLoaded && !hasEmptySchedulesPutPermit()) {
+    scheduleZeroPutProbe("ZERO_PUT_BLOCKED_DEBOUNCE", {
+      syncReason: "empty_put_blocked",
+      debounceSource: getScheduleDebounceSource(),
+      schedulesLoaded: state.schedulesLoaded,
+      scheduleCount: 0,
+      "schedules.length": 0,
+      userId: userId != null ? String(userId) : null,
+    });
+    scheduleDiag("sync debounced skipped — empty put blocked", {
+      debounceSource: getScheduleDebounceSource(),
+      userId,
+    });
+    return;
+  }
+
   if (schedulesSyncTimer) clearTimeout(schedulesSyncTimer);
+  const sourceForTimer = getScheduleDebounceSource();
   schedulesSyncTimer = setTimeout(() => {
     schedulesSyncTimer = null;
-    useSettlementStore.getState().syncSchedulesToServer().catch(() => {
+    setScheduleDebounceSource(`${sourceForTimer}→debounce_timer`);
+    scheduleZeroPutProbe("DEBOUNCE_FIRE", {
+      syncReason: "debounce_timer_elapsed",
+      debounceSource: sourceForTimer,
+      schedulesLoaded: useSettlementStore.getState().schedulesLoaded,
+      scheduleCount: useSettlementStore.getState().schedules?.length ?? 0,
+      userId: useSettlementStore.getState().schedulesUserId,
+    });
+    useSettlementStore.getState().syncSchedulesToServer({ syncReason: "debounce", debounceSource: sourceForTimer }).catch(() => {
       /* schedulesError in store */
     });
   }, 600);
@@ -207,19 +286,40 @@ export const useSettlementStore = create(
         });
       },
 
-      flushSchedulesSync: async () => {
+      flushSchedulesSync: async (opts = {}) => {
+        const { syncReason = "flush", debounceSource = "flushSchedulesSync" } = opts;
+        scheduleZeroPutProbe("FLUSH_ENTER", {
+          syncReason,
+          debounceSource,
+          schedulesLoaded: get().schedulesLoaded,
+          scheduleCount: get().schedules?.length ?? 0,
+          userId: get().schedulesUserId,
+        });
         if (schedulesSyncTimer) {
           clearTimeout(schedulesSyncTimer);
           schedulesSyncTimer = null;
         }
-        return get().syncSchedulesToServer();
+        return get().syncSchedulesToServer({ syncReason, debounceSource });
       },
 
-      syncSchedulesToServer: async () => {
+      syncSchedulesToServer: async (opts = {}) => {
+        const { syncReason = "direct", debounceSource = getScheduleDebounceSource() } = opts;
         const sessionUserId = bindSchedulesSyncContextIfAuthenticated();
         const userId = get().schedulesUserId || sessionUserId;
         const scheduleCount = Array.isArray(get().schedules) ? get().schedules.length : 0;
         const schedulesLoaded = get().schedulesLoaded;
+
+        scheduleZeroPutProbe("SYNC_ENTER", {
+          syncReason,
+          debounceSource,
+          schedulesLoaded,
+          scheduleCount,
+          "schedules.length": scheduleCount,
+          userId: userId != null ? String(userId) : null,
+          schedulesBootstrapInFlight: Boolean(schedulesBootstrapInFlight),
+          schedulesSyncPaused,
+        });
+
         if (schedulesBootstrapInFlight) {
           schedulePersistTrace("SYNC_SKIPPED", {
             userId: userId != null ? String(userId) : null,
@@ -248,20 +348,62 @@ export const useSettlementStore = create(
           });
           return null;
         }
+
+        const payload = get().buildSchedulesPayload();
+        const payloadBytes = payloadByteLength(payload);
+        const putCount = payload.schedules?.length ?? 0;
+        const allowEmptyPut = Boolean(opts.allowEmptyPut) || takeEmptySchedulesPutPermit();
+        if (putCount === 0 && !allowEmptyPut) {
+          scheduleZeroPutProbe("ZERO_PUT_BLOCKED_SYNC", {
+            syncReason,
+            debounceSource,
+            schedulesLoaded,
+            scheduleCount: putCount,
+            "schedules.length": putCount,
+            userId: userId != null ? String(userId) : null,
+          });
+          schedulePersistTrace("SYNC_SKIPPED", {
+            userId: userId != null ? String(userId) : null,
+            sessionUserId: sessionUserId != null ? String(sessionUserId) : null,
+            schedulesLoaded,
+            scheduleCount: putCount,
+            saveSuccess: false,
+            reason: "empty_put_blocked",
+            syncReason,
+            debounceSource,
+          });
+          scheduleDiag("syncToServer skipped — empty put blocked", { userId, syncReason, debounceSource });
+          return null;
+        }
+
         set({ schedulesSyncing: true, schedulesError: "" });
         try {
-          const payload = get().buildSchedulesPayload();
-          const payloadBytes = payloadByteLength(payload);
+          if (putCount === 0) {
+            scheduleZeroPutProbe("ZERO_PUT_IMMINENT", {
+              syncReason,
+              debounceSource,
+              schedulesLoaded,
+              scheduleCount: putCount,
+              "schedules.length": putCount,
+              userId: String(userId),
+              payloadBytes,
+              allowEmptyPut: true,
+            });
+          }
           schedulePersistTrace("SYNC_PUT", {
             userId: String(userId),
-            scheduleCount: payload.schedules?.length ?? 0,
+            scheduleCount: putCount,
             payloadBytes,
+            syncReason,
+            debounceSource,
           });
           scheduleDiag("syncToServer PUT", {
             userId,
-            scheduleCount: payload.schedules?.length ?? 0,
+            scheduleCount: putCount,
+            syncReason,
+            debounceSource,
           });
-          const saved = await putSchedulesData(payload);
+          const saved = await putSchedulesData(payload, { syncReason, debounceSource, allowEmptyPut: putCount === 0 });
           schedulePersistTrace("SYNC_SERVER_OK", {
             userId: String(userId),
             scheduleCount: saved?.schedules?.length ?? 0,
@@ -326,6 +468,7 @@ export const useSettlementStore = create(
           }
           schedulesSyncPaused = true;
           const localBefore = Array.isArray(get().schedules) ? get().schedules : [];
+          const loadedBeforeBootstrap = get().schedulesLoaded;
           scheduleDiag("bootstrap start", {
             userId: uid,
             localScheduleCount: localBefore.length,
@@ -337,6 +480,14 @@ export const useSettlementStore = create(
             schedulesLoaded: false,
             loading: true,
             schedulesError: "",
+          });
+          scheduleStateChangeTrace("schedulesLoaded", {
+            from: loadedBeforeBootstrap,
+            to: false,
+            reason: "bootstrap_start",
+            userId: uid,
+            schedulesLoaded: false,
+            scheduleCount: localBefore.length,
           });
           try {
             const server = normalizeSchedulesPayload(await getSchedulesData());
@@ -352,6 +503,14 @@ export const useSettlementStore = create(
             if (hasSchedulesPayload(server)) {
               get().applySchedulesPayload(server);
               set({ schedulesUserId: uid, schedulesLoaded: true });
+              scheduleStateChangeTrace("schedulesLoaded", {
+                from: false,
+                to: true,
+                reason: "bootstrap_apply_server",
+                userId: uid,
+                schedulesLoaded: true,
+                scheduleCount: serverCount,
+              });
               schedulePersistTrace("BOOTSTRAP_APPLY_SERVER", {
                 userId: uid,
                 scheduleCount: serverCount,
@@ -395,6 +554,20 @@ export const useSettlementStore = create(
 
             get().applySchedulesPayload(normalizeSchedulesPayload({ schedules: [], fieldOps: readAllFieldOps() }));
             set({ schedulesUserId: uid, schedulesLoaded: true });
+            scheduleStateChangeTrace("schedulesLoaded", {
+              from: false,
+              to: true,
+              reason: "bootstrap_empty",
+              userId: uid,
+              schedulesLoaded: true,
+              scheduleCount: 0,
+            });
+            scheduleZeroPutProbe("BOOTSTRAP_EMPTY_LOADED_TRUE", {
+              syncReason: "bootstrap_empty_sets_loaded",
+              userId: uid,
+              schedulesLoaded: true,
+              scheduleCount: 0,
+            });
             schedulePersistTrace("BOOTSTRAP_EMPTY", { userId: uid, scheduleCount: 0 });
             scheduleDiag("bootstrap empty", { userId: uid });
           } catch (error) {
@@ -538,6 +711,9 @@ export const useSettlementStore = create(
         });
         if (removed && removedSchedule) {
           emitScheduleCancelledNotification({ schedule: removedSchedule });
+          if (get().schedulesLoaded && get().schedules.length === 0) {
+            permitEmptySchedulesPutOnce("deleteSchedule");
+          }
         }
         return removed;
       },
@@ -736,11 +912,28 @@ export const useSettlementStore = create(
         return available ? "accepted" : "declined";
       },
 
-      refreshSettlementData: async ({ force = false } = {}) => {
+      refreshSettlementData: async () => {
         const sessionUserId =
           useUserStore.getState().session?.user?.id ?? useUserStore.getState().profile?.id ?? null;
-        if (get().schedulesLoaded && get().schedulesUserId) {
-          const summary = await getSettlementSummaryApi(get().schedules);
+        scheduleZeroPutProbe("REFRESH_SETTLEMENT_ENTER", {
+          syncReason: "refreshSettlementData",
+          schedulesLoaded: get().schedulesLoaded,
+          scheduleCount: get().schedules?.length ?? 0,
+          userId: sessionUserId != null ? String(sessionUserId) : null,
+        });
+
+        if (!get().schedulesLoaded) {
+          scheduleDiag("refreshSettlementData skip — await bootstrapSchedules", {
+            schedulesLoaded: false,
+            scheduleCount: get().schedules?.length ?? 0,
+            userId: sessionUserId != null ? String(sessionUserId) : null,
+          });
+          return get().schedules;
+        }
+
+        const schedules = get().schedules;
+        try {
+          const summary = await getSettlementSummaryApi(schedules);
           set((state) => ({
             summary: {
               ...createDefaultSummary(),
@@ -748,46 +941,10 @@ export const useSettlementStore = create(
               briefingData: state.briefingData,
             },
           }));
-          return get().schedules;
+        } catch (error) {
+          scheduleDiag("refreshSettlementData summary error", { message: error?.message });
         }
-        if (!force && get().schedulesLoaded) return get().schedules;
-        if (!sessionUserId) {
-          scheduleDiag("refreshSettlementData skip — no session user", {
-            schedulesLoaded: get().schedulesLoaded,
-            scheduleCount: get().schedules?.length ?? 0,
-          });
-          return get().schedules;
-        }
-        return runAsyncStoreAction({
-          set,
-          defaultErrorMessage: "정산 데이터를 불러오지 못했습니다.",
-          action: async () => {
-            const schedules = normalizeSchedules(await getSchedulesApi());
-            const summary = await getSettlementSummaryApi(schedules);
-            return { schedules, summary };
-          },
-          onSuccess: (state, payload) => ({
-            schedules: payload.schedules,
-            summary: {
-              ...createDefaultSummary(),
-              ...payload.summary,
-              briefingData: state.briefingData,
-            },
-            schedulesLoaded: true,
-          }),
-          onError: (state, error) => {
-            if (!isNetworkError(error)) return {};
-            const fallbackSchedules = Array.isArray(state.schedules) ? state.schedules : [];
-            return {
-              schedules: fallbackSchedules,
-              schedulesLoaded: true,
-              summary: {
-                ...createDefaultSummary(),
-                ...buildLocalSummary(fallbackSchedules, state.briefingData),
-              },
-            };
-          },
-        }).then((payload) => payload.schedules);
+        return schedules;
       },
 
       refreshSettlementSummary: async () => {
@@ -867,8 +1024,28 @@ export const useSettlementStore = create(
 
 useSettlementStore.subscribe((state, prevState) => {
   if (state.schedules !== prevState?.schedules) {
+    const prevLen = prevState?.schedules?.length ?? 0;
+    const nextLen = state.schedules?.length ?? 0;
+    scheduleZeroPutProbe("SCHEDULES_ARRAY_CHANGED", {
+      syncReason: "store.subscribe.schedules",
+      scheduleCount_before: prevLen,
+      scheduleCount_after: nextLen,
+      "schedules.length": nextLen,
+      schedulesLoaded: state.schedulesLoaded,
+      userId: state.schedulesUserId,
+    });
     useContactsStore.getState().syncCoworkFromSchedules(state.schedules);
-    scheduleSyncDebouncedImpl();
+    scheduleSyncDebouncedImpl("store.subscribe.schedules");
+  }
+  if (state.schedulesLoaded !== prevState?.schedulesLoaded) {
+    scheduleStateChangeTrace("schedulesLoaded", {
+      from: prevState?.schedulesLoaded,
+      to: state.schedulesLoaded,
+      reason: "store.subscribe.schedulesLoaded",
+      userId: state.schedulesUserId,
+      schedulesLoaded: state.schedulesLoaded,
+      scheduleCount: state.schedules?.length ?? 0,
+    });
   }
 });
 useContactsStore.getState().syncCoworkFromSchedules(useSettlementStore.getState().schedules);

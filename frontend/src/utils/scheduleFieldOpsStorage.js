@@ -29,7 +29,22 @@ function writeAll(data) {
     if (typeof window !== "undefined") {
       import("../store/useSettlementStore")
         .then(({ useSettlementStore }) => {
-          useSettlementStore.getState().scheduleSyncDebounced?.();
+          import("../utils/scheduleSyncDiag")
+            .then(({ scheduleZeroPutProbe, setScheduleDebounceSource }) => {
+              setScheduleDebounceSource("fieldOps.writeAll");
+              const st = useSettlementStore.getState();
+              scheduleZeroPutProbe("FIELDOPS_WRITE_TRIGGER_SYNC", {
+                syncReason: "fieldOps.writeAll",
+                debounceSource: "fieldOps.writeAll",
+                schedulesLoaded: st.schedulesLoaded,
+                scheduleCount: st.schedules?.length ?? 0,
+                userId: st.schedulesUserId,
+              });
+            })
+            .catch(() => {
+              /* noop */
+            });
+          useSettlementStore.getState().scheduleSyncDebounced?.("fieldOps.writeAll");
         })
         .catch(() => {
           /* noop */

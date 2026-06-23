@@ -1,6 +1,6 @@
 import { extractMePayload, getMe } from "../api/userApi";
 import { isSchedulesBootstrapInFlight, useSettlementStore } from "../store/useSettlementStore";
-import { scheduleDiag, schedulePersistTrace } from "./scheduleSyncDiag";
+import { scheduleDiag, schedulePersistTrace, scheduleZeroPutProbe } from "./scheduleSyncDiag";
 
 function sleep(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -58,6 +58,14 @@ export async function trySyncSchedulesToServer({ source = "unknown", retryOnSess
   const storeState = useSettlementStore.getState();
   const scheduleCount = storeState.schedules?.length ?? 0;
 
+  scheduleZeroPutProbe("TRY_SYNC_ENTER", {
+    syncReason: source,
+    debounceSource: source,
+    schedulesLoaded: storeState.schedulesLoaded,
+    scheduleCount,
+    userId: storeState.schedulesUserId,
+  });
+
   if (isSchedulesBootstrapInFlight()) {
     schedulePersistTrace("SYNC_SKIP", {
       source,
@@ -99,7 +107,10 @@ export async function trySyncSchedulesToServer({ source = "unknown", retryOnSess
   });
 
   const attemptSync = async (attempt) => {
-    const result = await useSettlementStore.getState().flushSchedulesSync();
+    const result = await useSettlementStore.getState().flushSchedulesSync({
+      syncReason: source,
+      debounceSource: `trySync:${source}:attempt${attempt}`,
+    });
     if (result != null) {
       schedulePersistTrace("SYNC_OK", {
         source,

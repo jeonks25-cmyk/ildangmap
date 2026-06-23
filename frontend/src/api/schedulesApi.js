@@ -2,7 +2,7 @@ import { isMockApiEnabled, runApiRequest } from "./client";
 import { readJsonStorage, removeStorageKey, writeJsonStorage } from "../store/storeUtils";
 import { SCHEDULES_STORAGE_KEY } from "../utils/scheduleModel";
 import { migrateSchedule } from "../utils/scheduleModel";
-import { scheduleDiag, schedulePersistTrace, payloadByteLength } from "../utils/scheduleSyncDiag";
+import { scheduleDiag, schedulePersistTrace, payloadByteLength, scheduleZeroPutProbe } from "../utils/scheduleSyncDiag";
 import { recordOperatorGetSchedules } from "../utils/operatorDiag";
 
 const LEGACY_SETTLEMENT_STORE_KEY = "ildangmap_settlement_store_v2";
@@ -162,15 +162,46 @@ export async function getSchedulesData() {
   }
 }
 
-export async function putSchedulesData(payload) {
+export async function putSchedulesData(payload, opts = {}) {
   const body = normalizeSchedulesPayload(payload);
   const scheduleCount = body.schedules?.length ?? 0;
   const payloadBytes = payloadByteLength(body);
-  scheduleDiag("PUT /api/users/me/schedules", { scheduleCount });
+  const { syncReason = "unknown", debounceSource = "unknown", allowEmptyPut = false } = opts;
+  if (scheduleCount === 0 && !allowEmptyPut) {
+    scheduleZeroPutProbe("ZERO_PUT_BLOCKED_API", {
+      syncReason,
+      debounceSource,
+      scheduleCount: 0,
+      "schedules.length": 0,
+      payloadBytes,
+      path: "/api/users/me/schedules",
+    });
+    schedulePersistTrace("PUT_BLOCKED", {
+      path: "/api/users/me/schedules",
+      scheduleCount: 0,
+      reason: "empty_put_blocked",
+      syncReason,
+      debounceSource,
+    });
+    throw new Error("empty_schedules_put_blocked");
+  }
+  if (scheduleCount === 0) {
+    scheduleZeroPutProbe("ZERO_PUT_API_CALL", {
+      syncReason,
+      debounceSource,
+      scheduleCount: 0,
+      "schedules.length": 0,
+      payloadBytes,
+      path: "/api/users/me/schedules",
+    });
+  }
+  scheduleDiag("PUT /api/users/me/schedules", { scheduleCount, syncReason, debounceSource });
   schedulePersistTrace("PUT_START", {
     path: "/api/users/me/schedules",
     scheduleCount,
     payloadBytes,
+    syncReason,
+    debounceSource,
   });
   try {
     const saved = await runApiRequest({

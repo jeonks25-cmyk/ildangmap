@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useJobStore } from "../store/useJobStore";
 import { useSettlementStore } from "../store/useSettlementStore";
 import { useUserStore } from "../store/useUserStore";
+import { scheduleZeroPutProbe } from "../utils/scheduleSyncDiag";
 
 let jobsBootstrapRequested = false;
 let userMeBootstrapRequested = false;
@@ -72,6 +73,10 @@ export default function useAppBootstrap() {
 
     if (!settlementBootstrapAttempted) {
       settlementBootstrapAttempted = true;
+      scheduleZeroPutProbe("APP_BOOTSTRAP_REFRESH_SETTLEMENT", {
+        syncReason: "useAppBootstrap.refreshSettlementData",
+        debounceSource: "useAppBootstrap",
+      });
       useSettlementStore
         .getState()
         .refreshSettlementData()

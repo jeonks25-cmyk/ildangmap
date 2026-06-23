@@ -1,5 +1,69 @@
 import { recordOperatorPersistEvent } from "./operatorDiag";
 
+/** count=0 PUT 추적 — 콘솔 필터: [SCHEDULE-ZERO-PUT] */
+const ZERO_PUT_PREFIX = "[SCHEDULE-ZERO-PUT]";
+
+/** debounce 타이머에 실어 보낼 마지막 호출 출처 (subscribe / fieldOps 등) */
+let pendingDebounceSource = "unknown";
+
+export function setScheduleDebounceSource(source) {
+  pendingDebounceSource = String(source || "unknown");
+}
+
+export function getScheduleDebounceSource() {
+  return pendingDebounceSource;
+}
+
+/** 호출 스택 (Error.captureStackTrace 미지원 환경 대비) */
+export function captureSyncCallStack(skipFrames = 2, maxLines = 14) {
+  try {
+    const err = new Error();
+    const lines = String(err.stack || "")
+      .split("\n")
+      .slice(skipFrames, skipFrames + maxLines)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    return lines.join("\n");
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * count=0 PUT 직전·직후 상태 스냅샷
+ * @param {string} phase
+ * @param {Record<string, unknown>} detail
+ */
+export function scheduleZeroPutProbe(phase, detail = {}) {
+  const entry = {
+    at: new Date().toISOString(),
+    callStack: captureSyncCallStack(3),
+    debounceSource: pendingDebounceSource,
+    ...detail,
+  };
+  const count = Number(entry.scheduleCount ?? entry["schedules.length"] ?? -1);
+  if (count === 0 || phase.includes("ZERO") || phase.includes("CANDIDATE")) {
+    console.warn(`${ZERO_PUT_PREFIX} ${phase}`, entry);
+  } else {
+    console.log(`${ZERO_PUT_PREFIX} ${phase}`, entry);
+  }
+  recordOperatorPersistEvent(`ZERO_PUT_${phase}`, entry);
+}
+
+/** schedulesLoaded / schedules.length 변화 추적 */
+export function scheduleStateChangeTrace(field, { from, to, reason, userId, schedulesLoaded, scheduleCount } = {}) {
+  scheduleZeroPutProbe("STATE_CHANGE", {
+    field,
+    from,
+    to,
+    syncReason: reason,
+    userId: userId != null ? String(userId) : null,
+    schedulesLoaded,
+    scheduleCount: scheduleCount ?? null,
+    "schedules.length": scheduleCount ?? null,
+  });
+}
+
 /** 일정 저장·조회 동기화 진단 — [SCHEDULE-DIAG] 접두사로 필터 */
 export function scheduleDiag(step, detail) {
   if (detail !== undefined) {

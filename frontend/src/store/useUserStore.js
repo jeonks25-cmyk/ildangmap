@@ -30,7 +30,7 @@ import {
 } from "./storeUtils";
 import { useContactsStore } from "./useContactsStore";
 import { useSettlementStore } from "./useSettlementStore";
-import { scheduleDiag, schedulePersistTrace } from "../utils/scheduleSyncDiag";
+import { scheduleDiag, schedulePersistTrace, scheduleZeroPutProbe } from "../utils/scheduleSyncDiag";
 import { bootstrapBoardNotifications } from "../utils/boardNotificationBootstrap";
 import { useSiteBoardStore } from "./useSiteBoardStore";
 import { useNotificationStore } from "./useNotificationStore";
@@ -912,12 +912,22 @@ export const useUserStore = create(
           scheduleCount,
         });
         if (get().session?.isAuthenticated && scheduleCount > 0) {
+          scheduleZeroPutProbe("LOGOUT_FLUSH_ATTEMPT", {
+            syncReason: "logout_flush",
+            debounceSource: "logout",
+            schedulesLoaded: settlement.schedulesLoaded,
+            scheduleCount,
+            userId: sessionUserId != null ? String(sessionUserId) : null,
+          });
           scheduleDiag("logout flush schedules start", {
             userId: sessionUserId != null ? String(sessionUserId) : null,
             scheduleCount,
           });
           try {
-            const flushed = await settlement.flushSchedulesSync();
+            const flushed = await settlement.flushSchedulesSync({
+              syncReason: "logout_flush",
+              debounceSource: "logout",
+            });
             if (flushed != null) {
               schedulePersistTrace("LOGOUT_FLUSH_OK", {
                 userId: sessionUserId != null ? String(sessionUserId) : null,
