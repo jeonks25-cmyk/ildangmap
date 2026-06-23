@@ -1,6 +1,7 @@
 import { bootstrapSessionFromToken } from "../api/authApi";
 import { getMe } from "../api/userApi";
 import { authDiag } from "./authDiag";
+import { recordOperatorBootstrapOk } from "./operatorDiag";
 
 const BOOTSTRAP_DONE_PREFIX = "ildangmap_bt_consumed:";
 let bootstrapInFlightPromise = null;
@@ -82,6 +83,9 @@ export async function bootstrapSessionOnce(bootstrapToken, { source = "unknown" 
     const result = await bootstrapSessionFromToken(token);
     if (result.ok) {
       markBootstrapConsumed(token);
+      if (!result.skipped) {
+        recordOperatorBootstrapOk({ source });
+      }
     }
     console.log("[AUTH-DIAG] bootstrap 호출 결과", {
       source,

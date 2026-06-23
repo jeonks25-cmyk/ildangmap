@@ -1,3 +1,5 @@
+import { recordOperatorPersistEvent } from "./operatorDiag";
+
 /** 일정 저장·조회 동기화 진단 — [SCHEDULE-DIAG] 접두사로 필터 */
 export function scheduleDiag(step, detail) {
   if (detail !== undefined) {
@@ -9,10 +11,9 @@ export function scheduleDiag(step, detail) {
 
 /** 영속화 경로 추적 — [SCHEDULE-PERSIST] (저장·sync·로그아웃·bootstrap) */
 export function schedulePersistTrace(phase, detail = {}) {
-  console.log(`[SCHEDULE-PERSIST] ${phase}`, {
-    at: new Date().toISOString(),
-    ...detail,
-  });
+  const entry = { at: new Date().toISOString(), ...detail };
+  console.log(`[SCHEDULE-PERSIST] ${phase}`, entry);
+  recordOperatorPersistEvent(phase, detail);
 }
 
 export function payloadByteLength(payload) {

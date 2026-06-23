@@ -59,6 +59,14 @@ export const OCR_ANALYTICS_ADMIN_MENU_ITEM = {
   path: "/settings/admin/analytics",
 };
 
+export const DEVELOPER_DIAGNOSTICS_MENU_ITEM = {
+  id: "developer-diagnostics",
+  label: "개발자 진단",
+  icon: "🔧",
+  action: "route",
+  path: "/settings/developer-diagnostics",
+};
+
 export const SETTINGS_MENU_SECTIONS = [
   {
     id: "account",
@@ -68,7 +76,7 @@ export const SETTINGS_MENU_SECTIONS = [
   {
     id: "beta",
     title: "베타 테스트",
-    items: [ILDANG_NEWS_MENU_ITEM, BETA_FEEDBACK_MENU_ITEM],
+    items: [ILDANG_NEWS_MENU_ITEM, BETA_FEEDBACK_MENU_ITEM, DEVELOPER_DIAGNOSTICS_MENU_ITEM],
   },
   {
     id: "privacy-support",

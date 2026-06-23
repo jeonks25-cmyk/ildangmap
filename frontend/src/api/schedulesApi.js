@@ -3,6 +3,7 @@ import { readJsonStorage, removeStorageKey, writeJsonStorage } from "../store/st
 import { SCHEDULES_STORAGE_KEY } from "../utils/scheduleModel";
 import { migrateSchedule } from "../utils/scheduleModel";
 import { scheduleDiag, schedulePersistTrace, payloadByteLength } from "../utils/scheduleSyncDiag";
+import { recordOperatorGetSchedules } from "../utils/operatorDiag";
 
 const LEGACY_SETTLEMENT_STORE_KEY = "ildangmap_settlement_store_v2";
 const FIELD_OPS_STORAGE_KEY = "ildangmap.scheduleFieldOps.v1";
@@ -139,6 +140,7 @@ export async function getSchedulesData() {
       payloadBytes: payloadByteLength(data),
       saveSuccess: true,
     });
+    recordOperatorGetSchedules({ ok: true, scheduleCount, source: "GET /api/users/me/schedules" });
     return data;
   } catch (error) {
     schedulePersistTrace("GET_FAIL", {
@@ -147,6 +149,14 @@ export async function getSchedulesData() {
       message: error?.message,
       status: error?.status,
       code: error?.code,
+    });
+    recordOperatorGetSchedules({
+      ok: false,
+      scheduleCount: 0,
+      status: error?.status,
+      message: error?.message,
+      code: error?.code,
+      source: "GET /api/users/me/schedules",
     });
     throw error;
   }

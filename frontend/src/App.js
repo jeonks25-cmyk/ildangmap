@@ -26,6 +26,7 @@ const BetaFeedbackPage = lazy(() => import("./pages/BetaFeedbackPage"));
 const BetaFeedbackAdminPage = lazy(() => import("./pages/BetaFeedbackAdminPage"));
 const PlaceReportAdminPage = lazy(() => import("./pages/PlaceReportAdminPage"));
 const OcrAnalyticsAdminPage = lazy(() => import("./pages/OcrAnalyticsAdminPage"));
+const DeveloperDiagnosticsPage = lazy(() => import("./pages/DeveloperDiagnosticsPage"));
 const ProfileEditPage = lazy(() => import("./pages/ProfileEditPage"));
 const InviteLandingPage = lazy(() => import("./pages/InviteLandingPage"));
 const NewsFeedPage = lazy(() => import("./pages/NewsFeedPage"));
@@ -121,6 +122,14 @@ export default function App() {
             element={
               <LazyRoute>
                 <BetaFeedbackAdminPage />
+              </LazyRoute>
+            }
+          />
+          <Route
+            path="settings/developer-diagnostics"
+            element={
+              <LazyRoute>
+                <DeveloperDiagnosticsPage />
               </LazyRoute>
             }
           />

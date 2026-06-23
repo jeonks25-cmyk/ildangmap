@@ -1,0 +1,229 @@
+.dev-diag-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 16px 48px;
+}
+
+.dev-diag-page__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.dev-diag-page__back {
+  border: none;
+  background: transparent;
+  font-size: 1.25rem;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.dev-diag-page__eyebrow {
+  margin: 0 0 4px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #666);
+}
+
+.dev-diag-page__title {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+}
+
+.dev-diag-page__lead {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-text-muted, #555);
+}
+
+.dev-diag-page__refresh {
+  margin-left: auto;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.dev-diag-page__refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dev-diag__verdict {
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.dev-diag__verdict h2 {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.dev-diag__verdict-label {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.dev-diag__verdict--ok {
+  background: #e8f7ee;
+  color: #0d6b3a;
+  border: 1px solid #b7e4c7;
+}
+
+.dev-diag__verdict--warn {
+  background: #fff8e1;
+  color: #9a6700;
+  border: 1px solid #ffe08a;
+}
+
+.dev-diag__verdict--fail {
+  background: #fdecea;
+  color: #b42318;
+  border: 1px solid #f5c2c0;
+}
+
+.dev-diag__verdict--pending {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.dev-diag__api-cause {
+  margin: 8px 0 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.dev-diag__save-summary {
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.dev-diag__save-summary h3 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+}
+
+.dev-diag__save-summary ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dev-diag__save-summary li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-size: 0.88rem;
+}
+
+.dev-diag__save-summary li:last-child {
+  border-bottom: none;
+}
+
+.dev-diag__save-summary--ok {
+  background: #f3fcf6;
+  border: 1px solid #b7e4c7;
+}
+
+.dev-diag__save-summary--warn {
+  background: #fffdf5;
+  border: 1px solid #ffe08a;
+}
+
+.dev-diag__save-summary--fail {
+  background: #fff6f5;
+  border: 1px solid #f5c2c0;
+}
+
+.dev-diag__card {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.dev-diag__card h2 {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+}
+
+.dev-diag__dl {
+  margin: 0;
+}
+
+.dev-diag__row {
+  display: grid;
+  grid-template-columns: minmax(0, 42%) minmax(0, 1fr);
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.85rem;
+}
+
+.dev-diag__row:last-child {
+  border-bottom: none;
+}
+
+.dev-diag__row dt {
+  margin: 0;
+  color: #666;
+  font-weight: 500;
+}
+
+.dev-diag__row dd {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dev-diag__value {
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.dev-diag__hint {
+  font-size: 0.75rem;
+  color: #888;
+  line-height: 1.4;
+}
+
+.dev-diag__empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.dev-diag__phase-list {
+  margin: 12px 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.82rem;
+}
+
+.dev-diag__phase-list li {
+  margin-bottom: 6px;
+}
+
+.dev-diag__phase-list code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.8rem;
+}
+
+.dev-diag__phase-meta {
+  display: block;
+  color: #777;
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
