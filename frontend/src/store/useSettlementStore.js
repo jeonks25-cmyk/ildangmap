@@ -40,6 +40,10 @@ let schedulesSyncTimer = null;
 let schedulesBootstrapInFlight = null;
 let schedulesSyncPaused = false;
 
+export function isSchedulesBootstrapInFlight() {
+  return schedulesBootstrapInFlight != null;
+}
+
 function normalizeSchedules(scheduleList) {
   return (Array.isArray(scheduleList) ? scheduleList : []).map((schedule) => migrateSchedule(schedule)).filter(Boolean);
 }
@@ -51,9 +55,9 @@ function bindSchedulesSyncContextIfAuthenticated() {
   if (!isAuthenticated || sessionUserId == null || sessionUserId === "") return null;
   const uid = String(sessionUserId);
   const state = useSettlementStore.getState();
-  if (state.schedulesUserId !== uid || !state.schedulesLoaded) {
-    useSettlementStore.setState({ schedulesUserId: uid, schedulesLoaded: true });
-    scheduleDiag("bind sync context", { userId: uid });
+  if (state.schedulesUserId !== uid) {
+    useSettlementStore.setState({ schedulesUserId: uid });
+    scheduleDiag("bind sync context (userId only)", { userId: uid });
   }
   return uid;
 }
@@ -61,15 +65,21 @@ function bindSchedulesSyncContextIfAuthenticated() {
 function scheduleSyncDebouncedImpl() {
   const sessionUserId = bindSchedulesSyncContextIfAuthenticated();
   const state = useSettlementStore.getState();
+  const scheduleCount = Array.isArray(state.schedules) ? state.schedules.length : 0;
   const canSync = state.schedulesLoaded && (state.schedulesUserId || sessionUserId);
-  if (schedulesSyncPaused || !canSync) {
+  if (schedulesBootstrapInFlight || schedulesSyncPaused || !canSync) {
     scheduleDiag("sync debounced skipped", {
+      schedulesBootstrapInFlight: Boolean(schedulesBootstrapInFlight),
       schedulesSyncPaused,
       schedulesLoaded: state.schedulesLoaded,
       schedulesUserId: state.schedulesUserId,
       sessionUserId,
-      scheduleCount: Array.isArray(state.schedules) ? state.schedules.length : 0,
+      scheduleCount,
     });
+    return;
+  }
+  if (!state.schedulesLoaded && scheduleCount === 0) {
+    scheduleDiag("sync debounced skipped — empty before bootstrap", { sessionUserId, scheduleCount });
     return;
   }
   if (schedulesSyncTimer) clearTimeout(schedulesSyncTimer);
@@ -209,11 +219,24 @@ export const useSettlementStore = create(
         const sessionUserId = bindSchedulesSyncContextIfAuthenticated();
         const userId = get().schedulesUserId || sessionUserId;
         const scheduleCount = Array.isArray(get().schedules) ? get().schedules.length : 0;
-        if (!userId || !get().schedulesLoaded) {
+        const schedulesLoaded = get().schedulesLoaded;
+        if (schedulesBootstrapInFlight) {
           schedulePersistTrace("SYNC_SKIPPED", {
             userId: userId != null ? String(userId) : null,
             sessionUserId: sessionUserId != null ? String(sessionUserId) : null,
-            schedulesLoaded: get().schedulesLoaded,
+            schedulesLoaded,
+            scheduleCount,
+            saveSuccess: false,
+            reason: "bootstrap_in_progress",
+          });
+          scheduleDiag("syncToServer skipped — bootstrap in progress", { userId, scheduleCount });
+          return null;
+        }
+        if (!userId || !schedulesLoaded) {
+          schedulePersistTrace("SYNC_SKIPPED", {
+            userId: userId != null ? String(userId) : null,
+            sessionUserId: sessionUserId != null ? String(sessionUserId) : null,
+            schedulesLoaded,
             scheduleCount,
             saveSuccess: false,
             reason: "not_ready",
@@ -221,7 +244,7 @@ export const useSettlementStore = create(
           scheduleDiag("syncToServer skipped", {
             schedulesUserId: get().schedulesUserId,
             sessionUserId,
-            schedulesLoaded: get().schedulesLoaded,
+            schedulesLoaded,
           });
           return null;
         }
@@ -293,19 +316,15 @@ export const useSettlementStore = create(
           });
           get().resetSchedules();
         }
-        if (get().schedulesLoaded && get().schedulesUserId === uid) {
-          schedulePersistTrace("BOOTSTRAP_SKIP", {
-            userId: uid,
-            reason: "already_loaded",
-            scheduleCount: Array.isArray(get().schedules) ? get().schedules.length : 0,
-          });
-          scheduleDiag("bootstrap skip — already loaded", { userId: uid });
-          return;
-        }
 
         if (schedulesBootstrapInFlight) return schedulesBootstrapInFlight;
 
         const run = (async () => {
+          if (schedulesSyncTimer) {
+            clearTimeout(schedulesSyncTimer);
+            schedulesSyncTimer = null;
+          }
+          schedulesSyncPaused = true;
           const localBefore = Array.isArray(get().schedules) ? get().schedules : [];
           scheduleDiag("bootstrap start", {
             userId: uid,
@@ -313,7 +332,12 @@ export const useSettlementStore = create(
             schedulesLoaded: get().schedulesLoaded,
             schedulesUserId: get().schedulesUserId,
           });
-          set({ loading: true, schedulesError: "" });
+          set({
+            schedulesUserId: uid,
+            schedulesLoaded: false,
+            loading: true,
+            schedulesError: "",
+          });
           try {
             const server = normalizeSchedulesPayload(await getSchedulesData());
             const serverCount = server.schedules?.length ?? 0;
@@ -407,6 +431,7 @@ export const useSettlementStore = create(
               schedulesLoaded: true,
             });
           } finally {
+            schedulesSyncPaused = false;
             set({ loading: false });
           }
         })();
@@ -443,7 +468,7 @@ export const useSettlementStore = create(
           return {
             schedules,
             summary: buildLocalSummary(schedules, state.briefingData),
-            ...(syncUserId ? { schedulesUserId: syncUserId, schedulesLoaded: true } : {}),
+            ...(syncUserId ? { schedulesUserId: syncUserId } : {}),
           };
         });
         emitScheduleCreatedNotification({ schedule: next });
@@ -465,7 +490,7 @@ export const useSettlementStore = create(
           return {
             schedules,
             summary: buildLocalSummary(schedules, state.briefingData),
-            ...(syncUserId ? { schedulesUserId: syncUserId, schedulesLoaded: true } : {}),
+            ...(syncUserId ? { schedulesUserId: syncUserId } : {}),
           };
         });
         emitScheduleCreatedNotification({ schedule });

@@ -1,5 +1,5 @@
 import { extractMePayload, getMe } from "../api/userApi";
-import { useSettlementStore } from "../store/useSettlementStore";
+import { isSchedulesBootstrapInFlight, useSettlementStore } from "../store/useSettlementStore";
 import { scheduleDiag, schedulePersistTrace } from "./scheduleSyncDiag";
 
 function sleep(ms) {
@@ -43,9 +43,9 @@ async function verifyServerSessionForScheduleSync(source) {
 function bindSchedulesSyncContextForServerUser(userId) {
   if (!userId) return;
   const state = useSettlementStore.getState();
-  if (state.schedulesUserId !== userId || !state.schedulesLoaded) {
-    useSettlementStore.setState({ schedulesUserId: userId, schedulesLoaded: true });
-    scheduleDiag("bind sync context (server session)", { userId });
+  if (state.schedulesUserId !== userId) {
+    useSettlementStore.setState({ schedulesUserId: userId });
+    scheduleDiag("bind sync context (server session, userId only)", { userId });
   }
 }
 
@@ -55,7 +55,27 @@ function bindSchedulesSyncContextForServerUser(userId) {
  * @returns {Promise<{ ok: boolean, reason?: string, error?: unknown, result?: unknown, serverUserId?: string }>}
  */
 export async function trySyncSchedulesToServer({ source = "unknown", retryOnSession = true } = {}) {
-  const scheduleCount = useSettlementStore.getState().schedules?.length ?? 0;
+  const storeState = useSettlementStore.getState();
+  const scheduleCount = storeState.schedules?.length ?? 0;
+
+  if (isSchedulesBootstrapInFlight()) {
+    schedulePersistTrace("SYNC_SKIP", {
+      source,
+      reason: "bootstrap_in_progress",
+      scheduleCount,
+      saveSuccess: false,
+    });
+    return { ok: false, reason: "bootstrap_in_progress" };
+  }
+  if (!storeState.schedulesLoaded) {
+    schedulePersistTrace("SYNC_SKIP", {
+      source,
+      reason: "not_bootstrapped",
+      scheduleCount,
+      saveSuccess: false,
+    });
+    return { ok: false, reason: "not_bootstrapped" };
+  }
 
   const sessionVerify = await verifyServerSessionForScheduleSync(source);
   if (!sessionVerify.ok) {
